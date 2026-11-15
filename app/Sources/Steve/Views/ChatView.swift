@@ -479,64 +479,67 @@ private struct HeroHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
-/// Пузырь «Стив думает»: пузырьки с воздухом надуваются, дрожат и лопаются брызгами. Рисуется одним Canvas.
+/// «Стив думает»: маленькие пузырьки с воздухом плывут снизу вверх, по пути растут и в конце лопаются брызгами.
+/// Без подложки сообщения: только сами пузырьки. Рисуется одним Canvas.
 struct ThinkingBubble: View {
     let compact: Bool
 
-    /// Цикл одного пузырька 1,6 с: 70% надувается, потом лопается. Соседние пузырьки сдвинуты по фазе.
-    private static let cycle = 1.6
-    private static let popStart = 0.7
-    private static let offsets: [Double] = [0, 0.55, 1.1]
+    private static let cycle = 2.2
+    private static let risePart = 0.8
+    /// Сдвиг по времени, положение по ширине и «характер» каждого пузырька.
+    private static let bubbles: [(delay: Double, x: CGFloat, seed: Double)] = [
+        (0, 0.18, 0), (0.55, 0.42, 1.7), (1.1, 0.66, 3.1), (1.65, 0.88, 4.6),
+    ]
 
     var body: some View {
         HStack(spacing: 0) {
             TimelineView(.animation(minimumInterval: 1 / 60)) { context in
                 let time = context.date.timeIntervalSinceReferenceDate
                 Canvas { canvas, size in
-                    for (index, offset) in Self.offsets.enumerated() {
-                        let progress = ((time - offset).truncatingRemainder(dividingBy: Self.cycle) + Self.cycle).truncatingRemainder(dividingBy: Self.cycle) / Self.cycle
-                        let center = CGPoint(x: size.width * (0.2 + 0.3 * CGFloat(index)), y: size.height / 2 + CGFloat(sin(time * 3 + Double(index))) * 1.2)
-                        draw(in: &canvas, center: center, progress: progress, seed: Double(index))
+                    for bubble in Self.bubbles {
+                        let progress = ((time - bubble.delay).truncatingRemainder(dividingBy: Self.cycle) + Self.cycle).truncatingRemainder(dividingBy: Self.cycle) / Self.cycle
+                        draw(in: &canvas, size: size, x: bubble.x * size.width, progress: progress, seed: bubble.seed)
                     }
                 }
-                .frame(width: 66, height: 26)
+                .frame(width: 64, height: compact ? 40 : 48)
             }
-            .padding(.horizontal, compact ? 12 : 16)
-            .padding(.vertical, compact ? 5 : 7)
-            .background(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).fill(Color.white.opacity(0.14)))
-            .overlay(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+            .padding(.leading, compact ? 6 : 10)
             Spacer(minLength: 40)
         }
         .accessibilityLabel("Стив думает")
     }
 
-    private func draw(in canvas: inout GraphicsContext, center: CGPoint, progress: Double, seed: Double) {
+    private func draw(in canvas: inout GraphicsContext, size: CGSize, x baseX: CGFloat, progress: Double, seed: Double) {
         let tint = Color.steveBody
-        if progress < Self.popStart {
-            // надувание: быстро в начале, у лопания дрожит
-            let grow = progress / Self.popStart
-            let eased = 1 - pow(1 - grow, 2.2)
-            let tremble = grow > 0.8 ? sin(grow * 70 + seed) * 0.6 : 0
-            let radius = 2 + 8 * CGFloat(eased) + CGFloat(tremble)
+        let bottom = size.height - 6
+        let top = 11.0
+        if progress < Self.risePart {
+            // подъём: чуть качается из стороны в сторону, растёт от маленького к большому
+            let t = progress / Self.risePart
+            let lift = CGFloat(t * t * (3 - 2 * t))                 // плавный старт и подход к вершине
+            let radius = 1.6 + 6.8 * CGFloat(pow(t, 0.85))
+            let center = CGPoint(x: baseX + CGFloat(sin(t * 7 + seed)) * 3, y: bottom - (bottom - top) * lift)
             let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-            canvas.fill(Path(ellipseIn: rect), with: .color(tint.opacity(0.18)))
-            canvas.stroke(Path(ellipseIn: rect), with: .color(tint.opacity(0.95)), lineWidth: 1.4)
-            // блик на стенке пузырька
-            var glint = Path()
-            glint.addArc(center: center, radius: radius * 0.62, startAngle: .degrees(200), endAngle: .degrees(255), clockwise: false)
-            canvas.stroke(glint, with: .color(.white.opacity(0.85)), style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+            canvas.fill(Path(ellipseIn: rect), with: .color(tint.opacity(0.16)))
+            canvas.stroke(Path(ellipseIn: rect), with: .color(tint.opacity(0.95)), lineWidth: 1.2)
+            if radius > 3.5 {
+                var glint = Path()
+                glint.addArc(center: center, radius: radius * 0.62, startAngle: .degrees(205), endAngle: .degrees(255), clockwise: false)
+                canvas.stroke(glint, with: .color(.white.opacity(0.85)), style: StrokeStyle(lineWidth: 1.1, lineCap: .round))
+            }
         } else {
-            // лопание: кольцо расходится и гаснет, брызги летят в стороны
-            let t = (progress - Self.popStart) / (1 - Self.popStart)
-            let ringRadius = 10 + 9 * CGFloat(t)
-            let ring = CGRect(x: center.x - ringRadius, y: center.y - ringRadius, width: ringRadius * 2, height: ringRadius * 2)
-            canvas.stroke(Path(ellipseIn: ring), with: .color(tint.opacity(0.8 * (1 - t))), lineWidth: 1.4 * (1 - CGFloat(t)) + 0.2)
+            // у вершины пузырёк лопается: кольцо расходится и гаснет, брызги летят в стороны
+            let t = (progress - Self.risePart) / (1 - Self.risePart)
+            let center = CGPoint(x: baseX + CGFloat(sin(7 + seed)) * 3, y: top)
+            let ringRadius = 8 + 8 * CGFloat(t)
+            canvas.stroke(Path(ellipseIn: CGRect(x: center.x - ringRadius, y: center.y - ringRadius, width: ringRadius * 2, height: ringRadius * 2)),
+                          with: .color(tint.opacity(0.8 * (1 - t))), lineWidth: 1.2 * (1 - CGFloat(t)) + 0.2)
             for k in 0..<7 {
                 let angle = Double(k) / 7 * 2 * .pi + seed
-                let distance = 8 + 11 * CGFloat(t)
-                let size = 2.2 * (1 - CGFloat(t)) + 0.3
+                let distance = 7 + 10 * CGFloat(t)
+                let dot = 2 * (1 - CGFloat(t)) + 0.3
                 let point = CGPoint(x: center.x + CGFloat(cos(angle)) * distance, y: center.y + CGFloat(sin(angle)) * distance)
-                canvas.fill(Path(ellipseIn: CGRect(x: point.x - size / 2, y: point.y - size / 2, width: size, height: size)),
+                canvas.fill(Path(ellipseIn: CGRect(x: point.x - dot / 2, y: point.y - dot / 2, width: dot, height: dot)),
                             with: .color(tint.opacity(0.9 * (1 - t))))
             }
         }
