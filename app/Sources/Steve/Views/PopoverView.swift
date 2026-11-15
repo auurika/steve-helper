@@ -39,7 +39,8 @@ struct PopoverView: View {
         .padding(16)
         .frame(width: 340)
         .foregroundStyle(Color.steveText)
-        .glassSurface(alpha: model.settings.glassAlpha)
+        .background(Color.steveNavy.opacity(model.settings.glassAlpha)) // скругление и размытие даёт само окно меню-бара
+        .containerBackground(.ultraThinMaterial, for: .window)
         .environment(\.colorScheme, .dark)
     }
 }

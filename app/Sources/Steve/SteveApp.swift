@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
         SnapshotTool.runIfRequested(model: AppModel.shared)
+        SnapshotTool.runWindowCaptureIfRequested(model: AppModel.shared)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

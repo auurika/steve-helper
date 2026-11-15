@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Рисует значок приложения (пиксельный Стив на тёмном скруглённом квадрате) и собирает Steve.icns.
+// Рисует значок приложения (пиксельный Стив на тёмном квадрате) и собирает Steve.icns.
 // Запуск: swift scripts/make-icon.swift <папка для результата>
 import AppKit
 
@@ -14,13 +14,12 @@ func render(size: Int) -> Data {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let s = CGFloat(size)
 
-    // фон: скруглённый квадрат с мягким градиентом
-    let background = NSBezierPath(roundedRect: NSRect(x: s * 0.04, y: s * 0.04, width: s * 0.92, height: s * 0.92), xRadius: s * 0.21, yRadius: s * 0.21)
+    // фон на весь квадрат без скруглений и полей: так macOS сама скругляет значок и не ставит его на серую подложку
     NSGradient(colors: [NSColor(red: 0.16, green: 0.18, blue: 0.36, alpha: 1), NSColor(red: 0.36, green: 0.22, blue: 0.62, alpha: 1)])!
-        .draw(in: background, angle: -60)
+        .draw(in: NSRect(x: 0, y: 0, width: s, height: s), angle: -60)
 
     // Стив: те же прямоугольники, что в SVG (область 128 на 128), сверху вниз
-    let unit = s * 0.92 * 0.74 / 128
+    let unit = s * 0.62 / 128
     let originX = (s - 128 * unit) / 2
     let originY = (s - 128 * unit) / 2
     func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> NSRect {

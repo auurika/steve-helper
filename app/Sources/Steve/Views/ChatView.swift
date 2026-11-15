@@ -62,6 +62,7 @@ struct MessageList: View {
         let isUser = message.role == .user
         return HStack(spacing: 0) {
             if isUser { Spacer(minLength: 40) }
+            WidthLimited(maxWidth: 520) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(message.text)
                     .font(.system(size: compact ? 12.5 : 14))
@@ -76,7 +77,6 @@ struct MessageList: View {
             .foregroundStyle(Color.steveText)
             .padding(.horizontal, compact ? 10 : 14)
             .padding(.vertical, compact ? 6 : 10)
-            .frame(maxWidth: 520, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .background {
                 RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous)
@@ -85,6 +85,7 @@ struct MessageList: View {
             .overlay {
                 RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+            }
             }
             if !isUser { Spacer(minLength: 40) }
         }
@@ -100,7 +101,7 @@ struct ComposerView: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            TextField(compact ? "Сообщение…" : "Или напиши сообщение…", text: $text, axis: .vertical)
+            TextField("", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...5)
                 .font(.system(size: compact ? 13 : 14))
@@ -109,6 +110,17 @@ struct ComposerView: View {
                 .padding(.vertical, compact ? 8 : 11)
                 .frame(minHeight: compact ? 38 : 42)
                 .glassControl(cornerRadius: compact ? 12 : 14)
+                .overlay(alignment: .topLeading) {
+                    // своя подсказка: системная подсказка поля на тёмном стекле почти не видна
+                    if text.isEmpty {
+                        Text(compact ? "Сообщение…" : "Или напиши сообщение…")
+                            .font(.system(size: compact ? 13 : 14))
+                            .foregroundStyle(Color.steveMuted)
+                            .padding(.horizontal, compact ? 10 : 12)
+                            .padding(.vertical, compact ? 8 : 11)
+                            .allowsHitTesting(false)
+                    }
+                }
                 .focused($focused)
                 .onKeyPress(keys: [.return], phases: .down) { press in
                     if press.modifiers.contains(.shift) {
@@ -140,5 +152,20 @@ struct ComposerView: View {
         guard !message.isEmpty else { return }
         text = ""
         Task { await model.ask(message, typed: true) }
+    }
+}
+
+/// Ограничивает ширину содержимого, но не растягивает его: пузырь с короткой фразой остаётся коротким.
+private struct WidthLimited: Layout {
+    let maxWidth: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let width = min(proposal.width ?? maxWidth, maxWidth)
+        return subview.sizeThatFits(ProposedViewSize(width: width, height: proposal.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
     }
 }

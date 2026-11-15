@@ -7,7 +7,38 @@ import SteveCore
 /// Окно создаётся за пределами видимой области, поэтому на экране ничего не мигает.
 @MainActor
 enum SnapshotTool {
-    static var isRequested: Bool { CommandLine.arguments.contains("--snapshot") }
+    static var isRequested: Bool { CommandLine.arguments.contains("--snapshot") || CommandLine.arguments.contains("--snapshot-window") }
+
+    /// `--snapshot-window <папка>`: снимает настоящее окно приложения (с заголовком и кнопками) в нескольких размерах.
+    static func runWindowCaptureIfRequested(model: AppModel) {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--snapshot-window"), arguments.indices.contains(index + 1) else { return }
+        let folder = URL(fileURLWithPath: arguments[index + 1])
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard let window = NSApp.windows.first(where: { $0.title == "Стив" }) else {
+                FileHandle.standardError.write(Data("main window not found: \(NSApp.windows.map(\.title))\n".utf8))
+                NSApp.terminate(nil)
+                return
+            }
+            for (width, height) in [(960.0, 640.0), (560.0, 700.0), (420.0, 460.0)] {
+                for section in [AppSection.chat, .presets, .settings] {
+                    model.section = section
+                    window.setContentSize(CGSize(width: width, height: height))
+                    try? await Task.sleep(for: .milliseconds(400))
+                    let name = "window-\(Int(width))x\(Int(height))-\(section)"
+                    if let frame = window.contentView?.superview, let bitmap = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+                        frame.cacheDisplay(in: frame.bounds, to: bitmap)
+                        try? bitmap.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("\(name).png"))
+                    }
+                    FileHandle.standardError.write(Data("\(name): window frame \(window.frame.size), content \(window.contentLayoutRect.size)\n".utf8))
+                }
+            }
+            NSApp.terminate(nil)
+        }
+    }
 
     static func runIfRequested(model: AppModel) {
         let arguments = CommandLine.arguments
