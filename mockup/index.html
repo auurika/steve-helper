@@ -36,7 +36,7 @@
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 
   .stage{width:min(960px,100%);display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
-  @media(max-width:860px){.stage{grid-template-columns:1fr}}
+  @media(max-width:900px){.stage{grid-template-columns:1fr !important}}
 
   /* window */
   .win{background:var(--bg);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
@@ -155,6 +155,20 @@
   .state{text-align:center;padding:0 12px}
   .side{width:150px}
   .kbd{white-space:nowrap}
+  .stage{grid-template-columns:1fr 340px}
+  .pop .orb{width:48px;height:48px}
+  .pop .who{min-width:0}.pop .who b{display:block}
+  .qs{margin-left:auto;display:flex;gap:5px}
+  .qb{all:unset;cursor:pointer;width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
+  .qb:hover{background:rgba(255,255,255,.3)}
+  .qb svg.i{width:15px;height:15px}
+  .pchat{height:168px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
+  .pchat .msg{max-width:92%;font-size:12.5px;padding:6px 10px;border-radius:14px}
+  .pform{display:flex;gap:6px}
+  .pform input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--text);font:inherit;font-size:13px;outline:none}
+  .pform .btn{height:34px}
+  .qsel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  input::placeholder{color:rgba(230,234,255,.65)}
 </style>
 </head>
 <body>
@@ -171,6 +185,9 @@
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r=".6"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-stopwatch" viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 10v4l2.5 1.5M9.5 2.5h5M18.5 6.5l1.5-1.5"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect x="7.5" y="13" width="4" height="3.5" rx="1"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
 </defs></svg>
 <svg width="0" height="0" style="position:absolute"><symbol id="oct" viewBox="0 0 128 128" shape-rendering="crispEdges">
   <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
@@ -223,12 +240,12 @@
       <section class="view" id="v-skills"><div class="pad">
         <h2>Навыки</h2><p class="sub">Что Стив умеет делать на этом Mac без интернета</p>
         <div class="grid">
-          <div class="card"><div class="ic"><svg class="i"><use href="#i-rocket"/></svg></div><h3>Приложения</h3><p>Открывает любые программы</p><div class="cmd">«Открой Safari»</div></div>
-          <div class="card"><div class="ic"><svg class="i"><use href="#i-timer"/></svg></div><h3>Таймеры</h3><p>Напоминает голосом и уведомлением</p><div class="cmd">«Таймер на 10 минут»</div></div>
-          <div class="card"><div class="ic"><svg class="i"><use href="#i-note"/></svg></div><h3>Заметки</h3><p>Сохраняет мысли в одном файле</p><div class="cmd">«Запиши: купить молоко»</div></div>
-          <div class="card"><div class="ic"><svg class="i"><use href="#i-vol"/></svg></div><h3>Громкость</h3><p>Управляет звуком системы</p><div class="cmd">«Сделай потише, 30%»</div></div>
-          <div class="card"><div class="ic"><svg class="i"><use href="#i-bat"/></svg></div><h3>Система</h3><p>Батарея, время, дата</p><div class="cmd">«Сколько осталось заряда?»</div></div>
-          <div class="card" style="border-style:dashed"><div class="ic"><svg class="i"><use href="#i-plus"/></svg></div><h3>Скоро</h3><p>Файлы, календарь, музыка, скриншоты</p></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-globe"/></svg></div><h3>Приложения</h3><p>Открывает Safari и любые программы на Mac</p><div class="cmd">«Открой Safari»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-timer"/></svg></div><h3>Таймер и секундомер</h3><p>Запускает их в стандартном приложении «Часы»</p><div class="cmd">«Таймер на 10 минут»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-note"/></svg></div><h3>Заметки</h3><p>Создаёт заметки в приложении «Заметки»</p><div class="cmd">«Запиши: купить молоко»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-calendar"/></svg></div><h3>Календарь</h3><p>Добавляет события в приложение «Календарь»</p><div class="cmd">«23 ноября с 17 до 19 событие Зал»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-vol"/></svg></div><h3>Громкость и система</h3><p>Звук, батарея, время и дата</p><div class="cmd">«Сделай потише, 30%»</div></div>
+          <div class="card" style="border-style:dashed"><div class="ic"><svg class="i"><use href="#i-plus"/></svg></div><h3>Скоро</h3><p>Файлы, музыка, скриншоты, напоминания</p></div>
         </div>
       </div></section>
 
@@ -237,6 +254,8 @@
         <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
         <div class="row"><div>Прозрачность стекла<small>От матового до почти невидимого. Применяется ко всему приложению</small></div>
           <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
+        <div class="row"><div>Быстрые кнопки<small>Четыре значка рядом со Стивом во всплывающем окне. Выбери действие для каждого</small></div>
+          <div class="qsel" id="qsSel"></div></div>
         <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается. Записанный голос повышает точность</small></div>
           <div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="padding:6px 12px" id="wwOpen"><svg class="i"><use href="#i-mic"/></svg> Записать</button></div></div>
         <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
@@ -270,14 +289,10 @@
     <div class="cap">Так выглядит всплывающее окно из меню-бара ↓</div>
     <div class="pop">
       <div class="top"><div class="orb" id="orb2"><svg><use href="#oct"/></svg></div>
-        <div><b>Стив</b><div class="hint" id="state2">Готов слушать</div></div></div>
-      <div class="q">
-        <button data-say="Поставь таймер на 5 минут"><svg class="i"><use href="#i-timer"/></svg> Таймер</button>
-        <button data-say="Запиши заметку"><svg class="i"><use href="#i-note"/></svg> Заметка</button>
-        <button data-say="Открой Safari"><svg class="i"><use href="#i-rocket"/></svg> Safari</button>
-        <button data-say="Сколько времени?"><svg class="i"><use href="#i-clock"/></svg> Время</button>
-      </div>
-      <div class="hint">⌥ Пробел — говорить · ⌘ , — настройки</div>
+        <div class="who"><b>Стив</b><div class="hint" id="state2">Готов слушать</div></div>
+        <div class="qs" id="qs"></div></div>
+      <div class="pchat" id="chat2"></div>
+      <form class="pform" id="form2"><input id="inp2" placeholder="Сообщение…" autocomplete="off"><button class="btn" style="padding:0 12px"><svg class="i"><use href="#i-mic"/></svg></button></form>
     </div>
   </div>
 </div>
@@ -293,16 +308,19 @@ $$('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
 
 // демо-ответы
 const demo=[
-  [/таймер|timer/i,'Поставил таймер. Скажу, когда сработает.','set_timer(seconds=300)'],
-  [/заметк|запиши|note/i,'Записал в заметки.','create_note(text="…")'],
-  [/safari|открой|open/i,'Открываю.','open_app(name="Safari")'],
+  [/календар|событи|23 нояб/i,'Добавил в «Календарь» событие «Зал»: 23 ноября, 17:00–19:00.','Calendar.create_event(title="Зал", start="2026-11-23 17:00", end="2026-11-23 19:00")'],
+  [/секундомер|stopwatch/i,'Запустил секундомер в «Часах».','Clock.start_stopwatch()'],
+  [/таймер|timer/i,'Поставил таймер в «Часах». Скажу, когда сработает.','Clock.start_timer(seconds=300)'],
+  [/заметк|запиши|note/i,'Создал заметку в «Заметках».','Notes.create_note(text="…")'],
+  [/safari|открой|open/i,'Открываю Safari.','open_app(name="Safari")'],
   [/врем|час|time/i,'Сейчас 16:40, воскресенье.','get_time()'],
+  [/громк|тише|громче/i,'Сделал потише.','set_volume(percent=30)'],
   [/батаре|заряд|battery/i,'Заряд 87%, ноутбук не на зарядке.','battery()'],
 ];
 function add(text,me,tool){
   const d=document.createElement('div');d.className='msg'+(me?' me':'');d.textContent=text;
   if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
-  $('#chat').append(d);$('#chat').scrollTop=1e9;
+  $('#chat').append(d);$('#chat').scrollTop=1e9;const d2=d.cloneNode(true);$('#chat2').append(d2);$('#chat2').scrollTop=1e9;
 }
 function setState(s,label){
   ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
@@ -323,7 +341,7 @@ function run(q){
 }
 $('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
 $('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v)};
-$$('[data-say]').forEach(b=>b.onclick=()=>run(b.dataset.say));
+$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';run(v)};
 $('#tray').onclick=()=>$('#tray').classList.toggle('on');
 
 // запись слова активации
@@ -349,6 +367,21 @@ function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100
 $('#glass').oninput=e=>setGlass(+e.target.value);
 try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
 setGlass(+$('#glass').value);
+
+// быстрые кнопки
+const ACTS={timer:['Таймер','timer','Поставь таймер на 5 минут'],stopwatch:['Секундомер','stopwatch','Запусти секундомер'],
+  note:['Заметка','note','Запиши заметку'],safari:['Safari','globe','Открой Safari'],calendar:['Календарь','calendar','23 ноября с 17:00 до 19:00 событие Зал'],
+  time:['Время','clock','Сколько времени?'],volume:['Громкость','vol','Сделай потише'],battery:['Заряд','bat','Сколько заряда?']};
+let qsel=['timer','note','safari','calendar'];
+const ico=n=>`<svg class="i"><use href="#i-${n}"/></svg>`;
+function drawQs(){
+  $('#qs').innerHTML=qsel.map((k,i)=>`<button class="qb" data-k="${k}" title="${ACTS[k][0]}">${ico(ACTS[k][1])}</button>`).join('');
+  $$('#qs .qb').forEach(b=>b.onclick=()=>run(ACTS[b.dataset.k][2]));
+}
+$('#qsSel').innerHTML=qsel.map((k,i)=>`<select data-i="${i}">${Object.entries(ACTS).map(([id,a])=>`<option value="${id}"${id===k?' selected':''}>${a[0]}</option>`).join('')}</select>`).join('');
+$$('#qsSel select').forEach(sel=>sel.onchange=()=>{qsel[+sel.dataset.i]=sel.value;drawQs()});
+drawQs();
+$('#chat2').append($('#chat .msg').cloneNode(true));
 </script>
 </body>
 </html>
