@@ -91,6 +91,8 @@ final class AppModel {
 
     @ObservationIgnored private let parser = CommandParser()
     @ObservationIgnored private let engine: OllamaEngine?
+    /// Установка Ollama и модели для свободного разговора.
+    let chatSetup: ChatSetup
     @ObservationIgnored private var isCapturingVoice = false
     @ObservationIgnored private var stopRequested = false
     @ObservationIgnored private var isProcessing = false
@@ -114,6 +116,7 @@ final class AppModel {
         }
         let local = OllamaEngine()
         engine = ProcessInfo.processInfo.environment["STEVE_ENGINE"] == "off" ? nil : local
+        chatSetup = ChatSetup(engine: local)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { local.shutdown() }
         }
@@ -165,7 +168,14 @@ final class AppModel {
             if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
             restartWakeWord()
         }
-        Task { _ = await engine?.reply(to: "привет", history: []) } // прогрев: модель загружается в память заранее
+        Task {
+            await chatSetup.refresh()
+            // у тех, кто только что поставил приложение, модели ещё нет: говорим об этом сразу, а не при первом вопросе
+            if case .needsInstall = chatSetup.state, messages.count <= 1 {
+                messages.append(ChatMessage(role: .steve, text: "Чтобы я болтал на любые темы, скачай модель в Настройках, раздел «Свободный разговор». Это один раз, около 2,7 ГБ. Команды работают и без неё"))
+            }
+            if case .ready = chatSetup.state { _ = await engine?.reply(to: "привет", history: []) } // прогрев: модель загружается в память заранее
+        }
     }
 
     // MARK: - Диалог
@@ -196,6 +206,9 @@ final class AppModel {
         if case .unknown = command, let engine {
             let history = messages.dropLast().suffix(8).map { ChatTurn(isUser: $0.role == .user, text: $0.text) }
             chatReply = await engine.reply(to: trimmed, history: history, allowProfanity: !settings.censorship)
+            if chatReply == nil, case .needsInstall = chatSetup.state {
+                chatReply = "Чтобы я болтал на любые темы, нужна модель. Скачай её в Настройках, раздел «Свободный разговор»"
+            }
         }
         if case .unknown = command, chatReply == nil { command = .unknown(trimmed) }
 

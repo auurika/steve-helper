@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Steve",
     defaultLocalization: "ru",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS(.v14)],
     products: [
         .executable(name: "Steve", targets: ["Steve"]),
     ],

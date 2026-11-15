@@ -8,8 +8,9 @@ CONFIG="${1:-release}"
 APP="build/Стив.app"
 
 echo "Сборка ($CONFIG)…"
-swift build -c "$CONFIG"
-BINARY="$(swift build -c "$CONFIG" --show-bin-path)/Steve"
+# универсальная сборка: работает и на Маках с Apple, и на Маках с Intel
+swift build -c "$CONFIG" --arch arm64 --arch x86_64
+BINARY="$(swift build -c "$CONFIG" --arch arm64 --arch x86_64 --show-bin-path)/Steve"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -29,11 +30,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key><string>Стив</string>
   <key>CFBundleDisplayName</key><string>Стив</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleShortVersionString</key><string>0.4.0</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>CFBundleIconFile</key><string>Steve</string>
   <key>CFBundleDevelopmentRegion</key><string>ru</string>
-  <key>LSMinimumSystemVersion</key><string>15.0</string>
+  <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSHighResolutionCapable</key><true/>

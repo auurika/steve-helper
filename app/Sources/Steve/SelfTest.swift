@@ -9,7 +9,7 @@ import SteveCore
 /// чтобы разрешения брались у самого приложения, а не у терминала.
 @MainActor
 enum SelfTest {
-    static var isRequested: Bool { ["--selftest", "--add-voice", "--move-test"].contains { CommandLine.arguments.contains($0) } }
+    static var isRequested: Bool { ["--selftest", "--add-voice", "--move-test", "--setup-test"].contains { CommandLine.arguments.contains($0) } }
 
     /// `Steve --add-voice <файл> <имя> <отчёт>`: добавляет свой голос из записи без окна выбора файла.
     private static func addVoiceIfRequested(model: AppModel) -> Bool {
@@ -48,7 +48,39 @@ enum SelfTest {
         return true
     }
 
+    /// `Steve --setup-test <отчёт>`: скачивает Ollama в пустую папку и маленькую модель, показывает, что ход загрузки виден.
+    private static func setupTestIfRequested(model: AppModel) -> Bool {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--setup-test"), arguments.count > index + 1 else { return false }
+        let report = URL(fileURLWithPath: arguments[index + 1])
+        Task {
+            var log = ""
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent("steve-setup-test", isDirectory: true)
+            do {
+                try await model.chatSetup.downloadBinary(into: folder)
+                let version = await ProcessRunner.run(folder.appendingPathComponent("ollama").path, ["--version"], timeout: 30)
+                log += "Ollama скачана и распакована, версия: \(version.output.trimmingCharacters(in: .whitespacesAndNewlines)) \(version.error.trimmingCharacters(in: .whitespacesAndNewlines))\n"
+            } catch { log += "ошибка загрузки Ollama: \(error.localizedDescription)\n" }
+            var seen = Set<Int>()
+            let watcher = Task { @MainActor in
+                while !Task.isCancelled {
+                    if case .working(_, let progress) = model.chatSetup.state, let progress { seen.insert(Int(progress * 10)) }
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+            }
+            do {
+                try await model.chatSetup.pullModel("all-minilm")
+                log += "модель all-minilm скачана, ступени хода загрузки: \(seen.sorted())\n"
+            } catch { log += "ошибка загрузки модели: \(error.localizedDescription)\n" }
+            watcher.cancel()
+            try? log.write(to: report, atomically: true, encoding: .utf8)
+            NSApp.terminate(nil)
+        }
+        return true
+    }
+
     static func runIfRequested(model: AppModel) {
+        if setupTestIfRequested(model: model) { return }
         if moveTestIfRequested(model: model) { return }
         if addVoiceIfRequested(model: model) { return }
         let arguments = CommandLine.arguments

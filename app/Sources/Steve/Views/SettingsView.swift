@@ -38,6 +38,7 @@ struct SettingsView: View {
                 toggle("Озвучивать ответы", isOn: $model.settings.speakAnswers)
                 toggle("Запускать при входе в систему", isOn: $model.settings.launchAtLogin)
                 toggle("Слушать постоянно", hint: "Ждать слово активации в фоне", isOn: $model.settings.listenAlways)
+                chatSetupRow
                 permissionsRow
             }
             .padding(.vertical, 22)
@@ -48,6 +49,33 @@ struct SettingsView: View {
     }
 
     // MARK: - Разрешения
+
+    private var chatSetupRow: some View {
+        let setup = model.chatSetup
+        return SettingRow(title: "Свободный разговор", hint: setup.hint, inline: true) {
+            switch setup.state {
+            case .ready:
+                Text("Готово").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.steveOK)
+            case .checking:
+                ProgressView().controlSize(.small)
+            case .needsInstall, .failed:
+                Button { Task { await setup.install() } } label: {
+                    Chip(setup.state == .needsInstall ? "Установить" : "Повторить", highlighted: true)
+                }
+                .buttonStyle(.plain)
+            case .working(_, let progress):
+                HStack(spacing: 10) {
+                    if let progress {
+                        ProgressView(value: progress).frame(width: 130)
+                        Text("\(Int(progress * 100))%").font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+            }
+        }
+        .task { await setup.refresh() }
+    }
 
     private var permissionsRow: some View {
         let permissions = model.permissions

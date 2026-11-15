@@ -16,14 +16,23 @@ protocol ChatEngine {
 /// чтобы скачать модель. Если сервер Ollama не запущен, Стив запускает его сам.
 @MainActor
 final class OllamaEngine: ChatEngine {
-    private let base = URL(string: "http://127.0.0.1:11434")!
+    let base = URL(string: "http://127.0.0.1:11434")!
     private var server: Process?
     private var chosenModel: String?
 
+    /// Копия Ollama, которую Стив скачал сам (если на Маке её не было).
+    static var ownDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Steve/ollama", isDirectory: true)
+    }
+
+    func forgetChosenModel() { chosenModel = nil }
+
     /// Модели в порядке предпочтения: лучше всех говорят по-русски.
     private static let preferred = ["qwen3", "qwen2.5", "gemma3", "llama3", "mistral"]
-    private static let binaryPaths = ["/opt/homebrew/bin/ollama", "/usr/local/bin/ollama",
-                                      "/Applications/Ollama.app/Contents/Resources/ollama"]
+    static var binaryPaths: [String] {
+        ["/opt/homebrew/bin/ollama", "/usr/local/bin/ollama", "/Applications/Ollama.app/Contents/Resources/ollama",
+         ownDirectory.appendingPathComponent("ollama").path]
+    }
 
     var isInstalled: Bool { Self.binaryPaths.contains { FileManager.default.isExecutableFile(atPath: $0) } }
 
@@ -91,7 +100,7 @@ final class OllamaEngine: ChatEngine {
 
     // MARK: - Сервер и модель
 
-    private func ensureServer() async -> Bool {
+    func ensureServer() async -> Bool {
         if await isRunning() { return true }
         guard let path = Self.binaryPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return false }
         let process = Process()
@@ -115,7 +124,7 @@ final class OllamaEngine: ChatEngine {
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
-    private func pickModel() async -> String? {
+    func pickModel() async -> String? {
         if let chosenModel { return chosenModel }
         if let forced = ProcessInfo.processInfo.environment["STEVE_OLLAMA_MODEL"] { return forced }
         var request = URLRequest(url: base.appendingPathComponent("api/tags"))
@@ -129,7 +138,7 @@ final class OllamaEngine: ChatEngine {
         return pick
     }
 
-    private func post(_ path: String, body: [String: Any], timeout: TimeInterval) async -> [String: Any]? {
+    func post(_ path: String, body: [String: Any], timeout: TimeInterval) async -> [String: Any]? {
         var request = URLRequest(url: base.appendingPathComponent(path))
         request.httpMethod = "POST"
         request.timeoutInterval = timeout
