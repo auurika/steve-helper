@@ -6,38 +6,53 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   :root{
-    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --line:#272c37;
-    --text:#e8eaf0; --muted:#8b93a7; --accent:#7c9cff; --accent2:#b58cff;
-    --ok:#4ade80; --warn:#fbbf24;
+    --a:.39;            /* плотность стекла: меняется ползунком в настройках */
+    --blur:28px;
+    --bg:rgba(24,28,52,var(--a));
+    --panel:rgba(255,255,255,calc(var(--a)*.16));
+    --panel2:rgba(255,255,255,calc(var(--a)*.26));
+    --line:rgba(255,255,255,.2);
+    --text:#f4f6ff; --muted:#b4bbd6; --accent:#8fa9ff; --accent2:#c4a0ff;
+    --ok:#6ee7a0; --warn:#fbbf24;
+    --rim:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(255,255,255,.08), inset 0 0 36px rgba(255,255,255,.05);
   }
   *{box-sizing:border-box;margin:0}
-  body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;background:#2a2d36;color:var(--text);
+  body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:var(--text);
+       background:
+         radial-gradient(600px 420px at 12% 18%,#ff7ab8 0,transparent 70%),
+         radial-gradient(700px 520px at 88% 12%,#5b8cff 0,transparent 70%),
+         radial-gradient(760px 560px at 70% 95%,#22d3b5 0,transparent 70%),
+         radial-gradient(640px 500px at 8% 90%,#9b6bff 0,transparent 70%),
+         #1b1e3a;background-attachment:fixed;
        min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px;gap:18px}
-  .note{color:#aab;font-size:12px;text-align:center;max-width:720px}
+  .note{color:#e3e6f7;font-size:12px;text-align:center;max-width:720px}
   .note b{color:#fff}
 
   /* menu bar */
-  .menubar{width:min(960px,100%);height:26px;background:rgba(20,22,28,.9);border-radius:8px;display:flex;
-           align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:12px;color:#ccd}
+  .menubar{width:min(960px,100%);height:28px;background:rgba(20,22,40,calc(var(--a)*.9));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.22);box-shadow:var(--rim);border-radius:10px;display:flex;
+           align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:12px;color:#eef}
   .tray{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:5px}
-  .tray:hover,.tray.on{background:rgba(255,255,255,.14)}
+  .tray:hover,.tray.on{background:rgba(255,255,255,.2)}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 
   .stage{width:min(960px,100%);display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
   @media(max-width:860px){.stage{grid-template-columns:1fr}}
 
   /* window */
-  .win{background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;
-       box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;height:640px}
-  .titlebar{height:40px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:8px}
+  .win{background:var(--bg);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
+       border:1px solid rgba(255,255,255,.3);border-radius:22px;overflow:hidden;
+       box-shadow:0 30px 70px rgba(10,10,40,.45),var(--rim);display:flex;flex-direction:column;height:640px}
+  .win::before,.pop::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:4;
+       background:linear-gradient(135deg,rgba(255,255,255,.28) 0,rgba(255,255,255,.06) 22%,transparent 45%,transparent 70%,rgba(255,255,255,.1) 100%)}
+  .titlebar{height:40px;background:rgba(255,255,255,calc(var(--a)*.1));border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:8px}
   .tl{width:12px;height:12px;border-radius:50%}
   .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
   .titlebar .t{flex:1;text-align:center;color:var(--muted);font-size:13px;margin-right:52px}
   .body{flex:1;display:flex;min-height:0}
-  .side{width:150px;background:var(--panel);border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
-  .side button{all:unset;cursor:pointer;padding:8px 10px;border-radius:8px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .side{width:168px;background:rgba(255,255,255,calc(var(--a)*.1));border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+  .side button{all:unset;cursor:pointer;padding:9px 12px;border-radius:12px;color:var(--muted);display:flex;gap:10px;align-items:center;transition:.15s}
   .side button:hover{background:var(--panel2)}
-  .side button.on{background:var(--panel2);color:var(--text)}
+  .side button.on{background:rgba(255,255,255,.2);color:var(--text);box-shadow:var(--rim)}
   .side .sp{flex:1}
   .offline{font-size:11px;color:var(--ok);padding:8px 10px;display:flex;gap:6px;align-items:center}
 
@@ -64,14 +79,14 @@
   .state{color:var(--muted);font-size:13px;height:18px}
 
   .chat{flex:1;overflow:auto;padding:10px 22px;display:flex;flex-direction:column;gap:10px}
-  .msg{max-width:78%;padding:9px 13px;border-radius:14px;background:var(--panel2)}
-  .msg.me{align-self:flex-end;background:#2b3a6b}
+  .msg{max-width:78%;padding:10px 14px;border-radius:18px;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim)}
+  .msg.me{align-self:flex-end;background:rgba(143,169,255,.38)}
   .msg .tool{display:block;margin-top:6px;font-size:12px;color:var(--ok);font-family:ui-monospace,Menlo,monospace}
   .composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
-  .composer input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;outline:none}
+  .composer input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);padding:10px 12px;color:var(--text);font:inherit;outline:none}
   .composer input:focus{border-color:var(--accent)}
-  .btn{background:var(--accent);color:#0b1020;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;cursor:pointer}
-  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn{background:linear-gradient(180deg,#b5c6ff,#8fa9ff);color:#0b1230;border:0;border-radius:14px;padding:0 16px;font:inherit;font-weight:600;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);display:inline-flex;align-items:center;gap:6px;justify-content:center}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);box-shadow:var(--rim)}
 
   /* settings & skills */
   .pad{padding:22px;overflow:auto}
@@ -79,54 +94,84 @@
   .sub{color:var(--muted);margin-bottom:16px}
   .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
   .row small{display:block;color:var(--muted)}
-  select,.kbd{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit}
-  .sw{width:38px;height:22px;border-radius:11px;background:#3a3f4d;position:relative;cursor:pointer;flex:none;transition:.2s}
-  .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  select,.kbd{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:6px 10px;font:inherit}
+  .sw{width:40px;height:24px;border-radius:12px;background:rgba(255,255,255,.22);box-shadow:inset 0 1px 3px rgba(0,0,0,.25);position:relative;cursor:pointer;flex:none;transition:.2s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;box-shadow:0 1px 3px rgba(0,0,0,.35);border-radius:50%;background:#fff;transition:.2s}
   .sw.on{background:var(--accent)}.sw.on::after{left:18px}
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
-  .card .ic{font-size:22px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--rim)}
+  .card .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:var(--rim);color:#fff}
   .card h3{font-size:14px;margin:6px 0 2px}
   .card p{color:var(--muted);font-size:12px;margin-bottom:10px}
   .card .cmd{font-size:12px;color:var(--accent);font-style:italic}
-  .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar{height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-top:6px}
   .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 
   /* popover */
-  .pop{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px}
+  .pop{position:relative;overflow:hidden;background:var(--bg);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.3);border-radius:22px;padding:16px;box-shadow:0 30px 70px rgba(10,10,40,.45),var(--rim);display:flex;flex-direction:column;gap:12px}
   .pop .orb{width:72px;height:72px}
   .pop .top{display:flex;align-items:center;gap:12px}
   .pop .q{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .pop .q button{all:unset;cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center;font-size:13px}
+  .pop .q button{all:unset;cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);padding:10px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px}
   .pop .q button:hover{border-color:var(--accent)}
   .pop-wrap{display:flex;flex-direction:column;gap:8px}
-  .cap{color:#99a;font-size:12px}
+  .cap{color:#e3e6f7;font-size:12px}
   .hint{color:var(--muted);font-size:12px}
 
   /* окно записи слова активации */
   .win{position:relative}
-  .modal{position:absolute;inset:0;background:rgba(5,6,9,.62);display:none;align-items:center;justify-content:center;z-index:5}
+  .modal{position:absolute;inset:0;background:rgba(10,10,30,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:5}
   .modal.on{display:flex}
-  .dlg{width:440px;max-width:92%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .dlg{width:440px;max-width:92%;background:rgba(28,32,60,calc(var(--a)*.6 + .3));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.32);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(10,10,40,.5),var(--rim)}
   .dlg h2{margin-bottom:2px}
-  .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
+  .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
   .dlg .field:focus{border-color:var(--accent)}
-  .say{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px}
+  .say{background:var(--panel);border:1px dashed rgba(255,255,255,.3);border-radius:16px;padding:14px;text-align:center;margin-bottom:12px}
   .say big{display:block;font-size:20px;margin:4px 0 8px}
   .wave{display:flex;align-items:center;justify-content:center;gap:3px;height:36px}
   .wave i{width:4px;height:6px;background:var(--muted);border-radius:2px;transition:height .08s}
   .wave.rec i{background:var(--accent2)}
   .samples{display:flex;gap:8px;margin-bottom:14px}
-  .samples div{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .samples div{flex:1;text-align:center;padding:8px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
   .samples div.done{color:var(--ok);border-color:var(--ok)}
   .samples div.cur{border-color:var(--accent);color:var(--text)}
   .acts{display:flex;gap:8px;justify-content:flex-end}
   .acts .btn{padding:9px 16px}
   .btn[disabled]{opacity:.4;cursor:default}
-  .rec-btn{background:#ff5f57;color:#fff}
+  .rec-btn{background:linear-gradient(180deg,#ff8f88,#ff5f57);color:#fff}
+  .rdot{width:9px;height:9px;border-radius:50%;background:#fff}
+
+  /* иконки */
+  svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .card .ic svg.i{width:20px;height:20px}
+  /* ползунок прозрачности */
+  input[type=range]{-webkit-appearance:none;appearance:none;width:200px;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.55));outline:none;box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#dfe6ff);border:1px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
+  .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:38px;text-align:right;font-weight:600}
+  .row>div:first-child{flex:1 1 170px;min-width:0}
+  .row{flex-wrap:wrap}
+  .row>:not(:first-child){flex:none}
+  .rng input{width:130px}
+  .state{text-align:center;padding:0 12px}
+  .side{width:150px}
+  .kbd{white-space:nowrap}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h-1a2 2 0 1 0 0 4h1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1.5 1.3-2 5-2 5s3.7-.5 5-2M14 4c3-1 6-1 6-1s0 3-1 6l-6 6-4-4zM9 12l-3-1 2-3 3 .5M12 15l1 3 3-2-.5-3"/><circle cx="15" cy="9" r="1"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-bat" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2M5.5 10.5v3M9 10.5v3M12.5 10.5v3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r=".6"/><path d="M3 3l18 18"/></symbol>
+</defs></svg>
 <svg width="0" height="0" style="position:absolute"><symbol id="oct" viewBox="0 0 128 128" shape-rendering="crispEdges">
   <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
   <rect x="28" y="72" width="12" height="24"/><rect x="48" y="72" width="12" height="32"/>
@@ -139,8 +184,8 @@
 (слушает → думает → отвечает), загляни во вкладки слева и в меню-бар. Напиши, что менять — цвета, структуру, экраны.</p>
 
 <div class="menubar">
-  <span>Wi-Fi: выкл</span>
-  <span>🔋 87%</span>
+  <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-wifi"/></svg> выкл</span>
+  <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-bat"/></svg> 87%</span>
   <span class="tray on" id="tray"><svg width="16" height="16" style="display:block"><use href="#oct"/></svg> Стив</span>
   <span>Вс 15 ноя 16:40</span>
 </div>
@@ -151,9 +196,9 @@
     <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="t">Стив</span></div>
     <div class="body">
       <nav class="side">
-        <button class="on" data-v="chat">💬 Диалог</button>
-        <button data-v="skills">🧩 Навыки</button>
-        <button data-v="settings">⚙️ Настройки</button>
+        <button class="on" data-v="chat"><svg class="i"><use href="#i-chat"/></svg> Диалог</button>
+        <button data-v="skills"><svg class="i"><use href="#i-puzzle"/></svg> Навыки</button>
+        <button data-v="settings"><svg class="i"><use href="#i-gear"/></svg> Настройки</button>
         <div class="sp"></div>
         <div class="offline"><span class="dot"></span> Работает офлайн</div>
       </nav>
@@ -169,8 +214,8 @@
         </div>
         <form class="composer" id="form">
           <input id="inp" placeholder="Или напиши сообщение…" autocomplete="off">
-          <button class="btn ghost" type="button" id="mic">🎙</button>
-          <button class="btn">Отправить</button>
+          <button class="btn ghost" type="button" id="mic"><svg class="i"><use href="#i-mic"/></svg></button>
+          <button class="btn" style="padding:0 18px">Отправить</button>
         </form>
       </section>
 
@@ -178,20 +223,22 @@
       <section class="view" id="v-skills"><div class="pad">
         <h2>Навыки</h2><p class="sub">Что Стив умеет делать на этом Mac без интернета</p>
         <div class="grid">
-          <div class="card"><div class="ic">🚀</div><h3>Приложения</h3><p>Открывает любые программы</p><div class="cmd">«Открой Safari»</div></div>
-          <div class="card"><div class="ic">⏱</div><h3>Таймеры</h3><p>Напоминает голосом и уведомлением</p><div class="cmd">«Таймер на 10 минут»</div></div>
-          <div class="card"><div class="ic">📝</div><h3>Заметки</h3><p>Сохраняет мысли в одном файле</p><div class="cmd">«Запиши: купить молоко»</div></div>
-          <div class="card"><div class="ic">🔊</div><h3>Громкость</h3><p>Управляет звуком системы</p><div class="cmd">«Сделай потише, 30%»</div></div>
-          <div class="card"><div class="ic">🔋</div><h3>Система</h3><p>Батарея, время, дата</p><div class="cmd">«Сколько осталось заряда?»</div></div>
-          <div class="card" style="border-style:dashed"><div class="ic">＋</div><h3>Скоро</h3><p>Файлы, календарь, музыка, скриншоты</p></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-rocket"/></svg></div><h3>Приложения</h3><p>Открывает любые программы</p><div class="cmd">«Открой Safari»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-timer"/></svg></div><h3>Таймеры</h3><p>Напоминает голосом и уведомлением</p><div class="cmd">«Таймер на 10 минут»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-note"/></svg></div><h3>Заметки</h3><p>Сохраняет мысли в одном файле</p><div class="cmd">«Запиши: купить молоко»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-vol"/></svg></div><h3>Громкость</h3><p>Управляет звуком системы</p><div class="cmd">«Сделай потише, 30%»</div></div>
+          <div class="card"><div class="ic"><svg class="i"><use href="#i-bat"/></svg></div><h3>Система</h3><p>Батарея, время, дата</p><div class="cmd">«Сколько осталось заряда?»</div></div>
+          <div class="card" style="border-style:dashed"><div class="ic"><svg class="i"><use href="#i-plus"/></svg></div><h3>Скоро</h3><p>Файлы, календарь, музыка, скриншоты</p></div>
         </div>
       </div></section>
 
       <!-- Настройки -->
       <section class="view" id="v-settings"><div class="pad">
         <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
+        <div class="row"><div>Прозрачность стекла<small>От матового до почти невидимого. Применяется ко всему приложению</small></div>
+          <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
         <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается. Записанный голос повышает точность</small></div>
-          <div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="padding:6px 12px" id="wwOpen">🎙 Записать</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="padding:6px 12px" id="wwOpen"><svg class="i"><use href="#i-mic"/></svg> Записать</button></div></div>
         <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
@@ -211,9 +258,9 @@
         <big id="wwBig">«Привет, Стив»</big>
         <div class="wave" id="wave"></div></div>
       <div class="samples"><div class="cur" id="s0">1 · ожидает</div><div id="s1">2 · ожидает</div><div id="s2">3 · ожидает</div></div>
-      <p class="hint" style="margin-bottom:12px">💡 Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
+      <p class="hint" style="margin-bottom:12px">Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
       <div class="acts"><button class="btn ghost" id="wwCancel">Отмена</button>
-        <button class="btn rec-btn" id="wwRec">⏺ Записать</button>
+        <button class="btn rec-btn" id="wwRec"><span class="rdot"></span> Записать</button>
         <button class="btn" id="wwSave" disabled>Сохранить</button></div>
     </div></div>
 </div>
@@ -225,10 +272,10 @@
       <div class="top"><div class="orb" id="orb2"><svg><use href="#oct"/></svg></div>
         <div><b>Стив</b><div class="hint" id="state2">Готов слушать</div></div></div>
       <div class="q">
-        <button data-say="Поставь таймер на 5 минут">⏱ Таймер</button>
-        <button data-say="Запиши заметку">📝 Заметка</button>
-        <button data-say="Открой Safari">🚀 Safari</button>
-        <button data-say="Сколько времени?">🕐 Время</button>
+        <button data-say="Поставь таймер на 5 минут"><svg class="i"><use href="#i-timer"/></svg> Таймер</button>
+        <button data-say="Запиши заметку"><svg class="i"><use href="#i-note"/></svg> Заметка</button>
+        <button data-say="Открой Safari"><svg class="i"><use href="#i-rocket"/></svg> Safari</button>
+        <button data-say="Сколько времени?"><svg class="i"><use href="#i-clock"/></svg> Время</button>
       </div>
       <div class="hint">⌥ Пробел — говорить · ⌘ , — настройки</div>
     </div>
@@ -254,7 +301,7 @@ const demo=[
 ];
 function add(text,me,tool){
   const d=document.createElement('div');d.className='msg'+(me?' me':'');d.textContent=text;
-  if(tool){const t=document.createElement('span');t.className='tool';t.textContent='⚙ '+tool;d.append(t)}
+  if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
   $('#chat').append(d);$('#chat').scrollTop=1e9;
 }
 function setState(s,label){
@@ -292,10 +339,16 @@ $('#wwRec').onclick=()=>{
   wave.classList.add('rec');$('#wwRec').disabled=true;$('#wwHint').textContent='Говори сейчас…';
   let t=0;recTimer=setInterval(()=>{[...wave.children].forEach(b=>b.style.height=(6+Math.random()*28)+'px');
     if(++t>22){clearInterval(recTimer);recTimer=null;wave.classList.remove('rec');[...wave.children].forEach(b=>b.style.height='6px');
-      $('#s'+got).className='done';$('#s'+got).textContent=(got+1)+' · готово ✓';got++;
+      $('#s'+got).className='done';$('#s'+got).textContent=(got+1)+' · готово';got++;
       if(got<3){$('#s'+got).classList.add('cur');$('#wwRec').disabled=false;$('#wwHint').textContent='Образец '+(got+1)+' из 3 — произнеси ещё раз:'}
       else{$('#wwSave').disabled=false;$('#wwHint').textContent='Все образцы записаны. Сохрани, чтобы применить.'}}},90)};
 $('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'» · голос записан';$('#ww').classList.remove('on')};
+
+// прозрачность стекла
+function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';try{localStorage.setItem('glass',p)}catch(e){}}
+$('#glass').oninput=e=>setGlass(+e.target.value);
+try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
+setGlass(+$('#glass').value);
 </script>
 </body>
 </html>
