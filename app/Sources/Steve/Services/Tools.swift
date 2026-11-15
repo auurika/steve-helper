@@ -50,6 +50,7 @@ final class Tools {
         case .startStopwatch: return startStopwatch()
         case .stopStopwatch: return stopStopwatch()
         case .lapStopwatch: return lapStopwatch()
+        case .cancelStopwatch: return cancelStopwatch()
         case .undo: return await undoLast()
         case .createNote(let text): return await createNote(text)
         case .createEvent(let title, let start, let end): return await createEvent(title: title, start: start, end: end)
@@ -176,6 +177,12 @@ final class Tools {
         stopwatch = nil
         onStopwatchChanged?()
         return ToolResult(reply: "Секундомер остановлен: \(seconds / 60) мин \(seconds % 60) сек", tool: "stop_stopwatch()")
+    }
+
+    private func cancelStopwatch() -> ToolResult {
+        guard stopwatch != nil else { return ToolResult(reply: "Секундомера нет", tool: "cancel_stopwatch()") }
+        dismissStopwatch()
+        return ToolResult(reply: "Убрал секундомер", tool: "cancel_stopwatch()")
     }
 
     private func lapStopwatch() -> ToolResult {

@@ -5,12 +5,32 @@ import ServiceManagement
 import SwiftUI
 import SteveCore
 
-struct ChatMessage: Identifiable, Equatable {
-    enum Role { case user, steve }
-    let id = UUID()
+struct ChatMessage: Identifiable, Equatable, Codable {
+    enum Role: String, Codable { case user, steve }
+    var id = UUID()
     let role: Role
     let text: String
     var tool: String?
+}
+
+/// История диалога на диске: переживает закрытие приложения. Хранятся последние 300 сообщений.
+enum ChatHistory {
+    private static var url: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
+        let folder = base.appendingPathComponent("Steve", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appendingPathComponent("history.json")
+    }
+
+    static func load() -> [ChatMessage] {
+        guard let data = try? Data(contentsOf: url), let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) else { return [] }
+        return saved
+    }
+
+    static func save(_ messages: [ChatMessage]) {
+        guard let data = try? JSONEncoder().encode(Array(messages.suffix(300))) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
 }
 
 enum AppSection { case chat, presets, settings }
@@ -23,7 +43,20 @@ final class AppModel {
     var settings: AppSettings {
         didSet { settingsDidChange(from: oldValue) }
     }
-    private(set) var messages = [ChatMessage(role: .steve, text: "Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.")]
+    private(set) var messages: [ChatMessage] = ChatHistory.load().isEmpty ? [AppModel.greeting] : ChatHistory.load() {
+        didSet { scheduleHistorySave() }
+    }
+    private static let greeting = ChatMessage(role: .steve, text: "Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.")
+    @ObservationIgnored private var historySaveTask: Task<Void, Never>?
+
+    private func scheduleHistorySave() {
+        historySaveTask?.cancel()
+        historySaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(400)) // не пишем на диск на каждый символ
+            guard !Task.isCancelled, let self else { return }
+            ChatHistory.save(messages)
+        }
+    }
     private(set) var status = AssistantStatus.idle {
         didSet { character.apply(status: status) }
     }
@@ -192,7 +225,7 @@ final class AppModel {
     }
 
     func clearConversation() {
-        messages = Array(messages.prefix(1))
+        messages = [Self.greeting]
     }
 
     // MARK: - Голос с микрофона

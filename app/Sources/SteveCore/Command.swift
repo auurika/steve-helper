@@ -9,6 +9,8 @@ public enum Command: Equatable {
     case startStopwatch
     case stopStopwatch
     case lapStopwatch
+    /// «Отмени секундомер»: убрать его без итога.
+    case cancelStopwatch
     case createNote(String)
     case createEvent(title: String, start: Date, end: Date)
     case setVolume(percent: Int)

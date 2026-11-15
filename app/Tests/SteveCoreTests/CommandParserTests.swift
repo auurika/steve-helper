@@ -106,6 +106,14 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(CommandParser().parse("таймер на 10 минут"), .timer(seconds: 600))
     }
 
+    func testCancelStopwatchAndTimer() {
+        let parser = CommandParser()
+        XCTAssertEqual(parser.parse("отмени секундомер"), .cancelStopwatch)
+        XCTAssertEqual(parser.parse("убери секундомер"), .cancelStopwatch)
+        XCTAssertEqual(parser.parse("останови секундомер"), .stopStopwatch)
+        XCTAssertEqual(parser.parse("убери таймер"), .cancelTimers)
+    }
+
     func testUndo() {
         let parser = CommandParser()
         for phrase in ["отмени", "Откати", "верни как было", "отмени последнюю команду", "верни назад", "сделай обратно"] {

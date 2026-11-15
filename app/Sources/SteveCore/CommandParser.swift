@@ -20,6 +20,7 @@ public struct CommandParser {
             return .lapStopwatch
         }
         if text.contains("секундомер") || text.contains("stopwatch") {
+            if ["отмен", "убери", "удали", "закрой", "сбрось"].contains(where: { text.contains($0) }) { return .cancelStopwatch }
             let stops = ["останов", "стоп", "выключ", "сброс", "stop"].contains { text.contains($0) }
             return stops ? .stopStopwatch : .startStopwatch
         }
@@ -28,7 +29,7 @@ public struct CommandParser {
             if text.range(of: "сколько|осталось|до конца|how much", options: .regularExpression) != nil, Self.duration(in: text) == nil {
                 return .timerStatus
             }
-            if text.range(of: "(отмени|останови|выключи|сбрось|cancel|stop)", options: .regularExpression) != nil {
+            if text.range(of: "(отмени|останови|выключи|сбрось|убери|удали|закрой|cancel|stop)", options: .regularExpression) != nil {
                 return .cancelTimers
             }
         }

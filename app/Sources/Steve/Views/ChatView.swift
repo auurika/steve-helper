@@ -361,8 +361,8 @@ struct TimerRow: View {
     }
 }
 
-/// Секундомер как в «Часах» на Mac: время с сотыми долями, кнопка круга, пауза и стоп, список кругов.
-/// Самый быстрый круг подсвечен зелёным, самый медленный красным (когда кругов не меньше двух).
+/// Секундомер как в «Часах» на Mac: время с сотыми долями, кнопка круга, пауза и стоп.
+/// Под временем видны три круга: текущий и два предыдущих, без цветовых отметок.
 struct StopwatchRow: View {
     let compact: Bool
     @Environment(AppModel.self) private var model
@@ -391,36 +391,32 @@ struct StopwatchRow: View {
         }
     }
 
-    /// Список кругов: новые сверху, между строками тонкие линии, текущий круг идёт первой строкой.
+    /// Три последних круга: текущий идёт первой строкой, между строками тонкие линии.
     @ViewBuilder
     private func laps(_ stopwatch: ActiveStopwatch, now: Date) -> some View {
         if !stopwatch.laps.isEmpty {
             let splits = stopwatch.splits
-            let best = splits.count > 1 ? splits.min() : nil
-            let worst = splits.count > 1 ? splits.max() : nil
             let current = stopwatch.elapsed(at: now) - (stopwatch.laps.last ?? 0)
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    row(number: splits.count + 1, time: current, color: Color.steveText)
-                    ForEach(Array(splits.enumerated().reversed()), id: \.offset) { index, split in
-                        Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
-                        row(number: index + 1, time: split,
-                            color: split == best ? Color.steveOK : (split == worst ? Color.steveDanger : Color.steveText))
-                    }
+            let previous = Array(splits.enumerated().reversed().prefix(2))
+            VStack(spacing: 0) {
+                row(number: splits.count + 1, time: current)
+                ForEach(previous, id: \.offset) { index, split in
+                    Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
+                    row(number: index + 1, time: split)
                 }
             }
-            .frame(width: 230, height: min(CGFloat(splits.count + 1) * 27, 5 * 27))
+            .frame(width: 230)
         }
     }
 
-    private func row(number: Int, time: TimeInterval, color: Color) -> some View {
+    private func row(number: Int, time: TimeInterval) -> some View {
         HStack {
             Text("Круг \(number)")
             Spacer(minLength: 8)
             Text(ActiveStopwatch.format(time)).monospacedDigit()
         }
         .font(.system(size: 13))
-        .foregroundStyle(color)
+        .foregroundStyle(Color.steveText)
         .frame(height: 26)
     }
 }
