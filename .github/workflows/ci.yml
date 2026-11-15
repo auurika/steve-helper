@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: Приложение (сборка и тесты)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Тесты
+        working-directory: app
+        run: swift test
+      - name: Сборка приложения
+        working-directory: app
+        run: scripts/build-app.sh release
+
+  mockup:
+    name: Макет (проверка синтаксиса скриптов)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Проверка синтаксиса JavaScript
+        run: for file in mockup/scripts/*.js; do node --check "$file"; done

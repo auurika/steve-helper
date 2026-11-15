@@ -20,8 +20,9 @@
 }
 
 /*
- * Пока Стив слушает, от него расходятся пиксельные квадраты: два кольца с срезанными углами,
- * центр которых совпадает с центром тела Стива. Сам Стив при этом не двигается.
+ * Пока Стив слушает, вокруг него расходится квадратное кольцо, как раньше, только чуть меньше.
+ * Центр кольца совпадает с центром Стива, а стартовый размер больше самого Стива,
+ * поэтому кольцо никогда не заходит на его тело. Сам Стив при этом не двигается.
  */
 .orb {
   position: relative;
@@ -31,38 +32,26 @@
   cursor: pointer;
 }
 
-.orb::before,
 .orb::after {
   content: '';
   position: absolute;
-  top: 61%; /* центр тела Стива внутри рамки */
+  top: 61%; /* центр Стива внутри рамки */
   left: 50%;
-  width: 62%;
-  height: 62%;
-  border: 3px solid var(--accent-2);
+  width: 76%;
+  height: 76%;
+  border: 2px solid var(--accent-2);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.6);
-  /* срезанные углы: «пиксельный» квадрат вместо гладкого */
-  clip-path: polygon(
-    4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%,
-    4px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 4px 4px
-  );
-}
-
-.orb.is-listening::before,
-.orb.is-listening::after {
-  animation: orb-ripple 1.6s steps(5) infinite;
+  transform: translate(-50%, -50%);
 }
 
 .orb.is-listening::after {
-  animation-delay: 0.8s;
+  animation: orb-ring 1.2s steps(6) infinite;
 }
 
-@keyframes orb-ripple {
-  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.6); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+@keyframes orb-ring {
+  from { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(1.55); }
 }
 
 .orb .character {

@@ -1,0 +1,321 @@
+import AppKit
+import AVFoundation
+import Observation
+import ServiceManagement
+import SwiftUI
+import SteveCore
+
+struct ChatMessage: Identifiable, Equatable {
+    enum Role { case user, steve }
+    let id = UUID()
+    let role: Role
+    let text: String
+    var tool: String?
+}
+
+enum AppSection { case chat, presets, settings }
+
+/// Сердце приложения: настройки, диалог, статус Стива и всё, что с ним связано.
+@MainActor
+@Observable
+final class AppModel {
+    // MARK: Состояние для интерфейса
+    var settings: AppSettings {
+        didSet { settingsDidChange(from: oldValue) }
+    }
+    private(set) var messages = [ChatMessage(role: .steve, text: "Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.")]
+    private(set) var status = AssistantStatus.idle {
+        didSet { character.apply(status: status) }
+    }
+    var section = AppSection.chat
+    private(set) var menuBarImage = NSImage()
+    private(set) var voices = Speaker.availableVoices()
+    var voiceNote: String?
+
+    // MARK: Службы
+    let character = CharacterController()
+    let network = NetworkMonitor()
+    @ObservationIgnored let tools = Tools()
+    @ObservationIgnored let speaker = Speaker()
+    @ObservationIgnored let listener = Listener()
+    @ObservationIgnored let hotkeys = HotkeyManager()
+    @ObservationIgnored var openMainWindow: (() -> Void)?
+
+    @ObservationIgnored private let parser = CommandParser()
+    @ObservationIgnored private let engine: ChatEngine?
+    @ObservationIgnored private var isCapturingVoice = false
+    @ObservationIgnored private var wakeTask: Task<Void, Never>?
+    @ObservationIgnored private var started = false
+
+    private static let settingsKey = "settings.v1"
+
+    /// Нужен делегату приложения, чтобы открыть окно по клику на значок в Dock.
+    static let shared = AppModel()
+
+    init() {
+        if let data = UserDefaults.standard.data(forKey: Self.settingsKey),
+           let saved = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            settings = saved
+        } else {
+            settings = AppSettings()
+        }
+        engine = ProcessInfo.processInfo.environment["STEVE_ENGINE"] == "ollama" ? OllamaEngine() : nil
+    }
+
+    var isBusy: Bool { status != .idle }
+    var quickPresets: [Preset] { settings.quick.compactMap { id in settings.presets.first { $0.id == id } } }
+
+    /// Запускается один раз при старте приложения.
+    func start() {
+        guard !started, !SnapshotTool.isRequested else { return } // в режиме снимков микрофон не трогаем
+        started = true
+
+        character.startIdleLife { [weak self] in self?.isBusy ?? false }
+        tools.onTimerFired = { [weak self] seconds in
+            guard let self else { return }
+            Task { await self.speakAnswer("Таймер на \(Tools.describe(seconds: seconds)) сработал") }
+        }
+        hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
+        hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
+        hotkeys.register(settings.hotkey)
+
+        applyLaunchAtLogin()
+        restartWakeWord()
+        Task { await keepMenuBarIconFresh() }
+    }
+
+    // MARK: - Диалог
+
+    /// Полный цикл ответа: слушает, думает, выполняет, отвечает.
+    func ask(_ text: String, typed: Bool = false) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, status == .idle || typed || isCapturingVoice else { return }
+        character.touch()
+
+        messages.append(ChatMessage(role: .user, text: trimmed))
+        status = .thinking
+        var command = parser.parse(trimmed)
+
+        // то, что приложение не умеет само, пробует закрыть языковая модель, если она подключена
+        var chatReply: String?
+        if case .unknown = command, let engine {
+            chatReply = await engine.reply(to: trimmed)
+        }
+        if case .unknown = command, chatReply == nil { command = .unknown(trimmed) }
+
+        let needsTool = !(command == .greeting || command == .thanks) && chatReply == nil
+        if needsTool { status = .working }
+        let result: ToolResult
+        if let chatReply {
+            result = ToolResult(reply: chatReply, tool: nil)
+        } else {
+            result = await tools.execute(command)
+        }
+
+        let reply = StyleFilter(censorship: settings.censorship).finalize(result.reply)
+        messages.append(ChatMessage(role: .steve, text: reply, tool: result.tool))
+
+        status = .speaking
+        if JoyWords.matches(trimmed) { character.play(.happy) }
+        await speakAnswer(reply)
+        status = .idle
+    }
+
+    private func speakAnswer(_ text: String) async {
+        guard settings.speakAnswers else { return }
+        let (voice, pitch) = currentVoice()
+        await speaker.speak(text, voice: voice, pitch: pitch)
+    }
+
+    /// Пока человек печатает, Стив «слушает» и следит глазами за кареткой.
+    func typingChanged(_ text: String) {
+        guard !isCapturingVoice, status == .idle || status == .listening else { return }
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            status = .idle
+            character.stopFollowing()
+        } else {
+            status = .listening
+            character.follow(column: text.split(separator: "\n", omittingEmptySubsequences: false).last?.count ?? 0)
+        }
+    }
+
+    func clearConversation() {
+        messages = Array(messages.prefix(1))
+    }
+
+    // MARK: - Голос с микрофона
+
+    /// Нажатие на Стива или на микрофон, а также горячая клавиша.
+    func toggleVoiceCapture() {
+        if isCapturingVoice { listener.endAudio() } else { Task { await captureVoice() } }
+    }
+
+    func captureVoice() async {
+        guard !isCapturingVoice, status == .idle else { return }
+        isCapturingVoice = true
+        character.touch()
+        status = .listening
+        defer { isCapturingVoice = false }
+        do {
+            let text = try await listener.listenOnce(hints: [settings.wakePhrase])
+            status = .idle
+            await ask(text)
+        } catch {
+            status = .idle
+            if let error = error as? Listener.ListenerError, case .nothingHeard = error { return }
+            messages.append(ChatMessage(role: .steve, text: error.localizedDescription))
+        }
+    }
+
+    private func hotkeyPressed() {
+        character.touch()
+        switch settings.hotkeyMode {
+        case .press: toggleVoiceCapture()
+        case .hold: if !isCapturingVoice { Task { await captureVoice() } }
+        }
+    }
+
+    private func hotkeyReleased() {
+        if settings.hotkeyMode == .hold, isCapturingVoice { listener.endAudio() }
+    }
+
+    // MARK: - Слово активации
+
+    /// Останавливает фоновое прослушивание, например пока микрофон нужен окну записи слова активации.
+    func pauseWakeWord() {
+        wakeTask?.cancel()
+        wakeTask = nil
+        listener.stop()
+    }
+
+    /// Слушает микрофон в фоне и ждёт слово активации. Следующая фраза после него считается командой.
+    func restartWakeWord() {
+        wakeTask?.cancel()
+        wakeTask = nil
+        guard settings.listenAlways, !settings.wakePhrase.isEmpty, Packaging.isPackaged else { return }
+        wakeTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await self.listenForWakeWordOnce()
+            }
+        }
+    }
+
+    private func listenForWakeWordOnce() async {
+        guard status == .idle, !isCapturingVoice else {
+            try? await Task.sleep(for: .seconds(1))
+            return
+        }
+        let phrase = CommandParser.normalize(settings.wakePhrase)
+        do {
+            let heard = try await listener.listenOnce(hints: [settings.wakePhrase], silence: 1.2, maxDuration: 50)
+            let normalized = CommandParser.normalize(heard)
+            guard let range = normalized.range(of: phrase) else { return }
+            let tail = String(normalized[range.upperBound...]).trimmingCharacters(in: CharacterSet(charactersIn: " ,.!"))
+            if tail.isEmpty { await captureVoice() } else { await ask(tail) }
+        } catch {
+            // нет разрешения или ничего не расслышал: ждём немного и пробуем снова
+            try? await Task.sleep(for: .seconds(error is Listener.ListenerError ? 3 : 1))
+        }
+    }
+
+    // MARK: - Голос Стива
+
+    /// Системный голос и тон для озвучки: выбранный свой голос или голос из списка.
+    func currentVoice() -> (AVSpeechSynthesisVoice?, Float) {
+        let base = voices.first { Speaker.isPersonal($0) && $0.identifier == settings.voiceIdentifier }
+            ?? voices.first { $0.identifier == settings.voiceIdentifier }
+            ?? voices.first { $0.language.hasPrefix("ru") }
+        if let id = settings.selectedCustomVoice, let custom = settings.customVoices.first(where: { $0.id == id }) {
+            return (voices.first { $0.language.hasPrefix("ru") } ?? base, custom.pitchMultiplier)
+        }
+        return (base, 1)
+    }
+
+    func refreshVoices() async {
+        _ = await Speaker.requestPersonalVoiceAccess()
+        voices = Speaker.availableVoices()
+    }
+
+    func previewVoice() {
+        Task { await speakPreview() }
+    }
+
+    private func speakPreview() async {
+        let (voice, pitch) = currentVoice()
+        await speaker.speak("Привет, меня зовут Стив", voice: voice, pitch: pitch)
+    }
+
+    /// Свой голос из аудиофайла: измеряем тон и говорим системным голосом с этим тоном.
+    func addCustomVoice(from url: URL) async {
+        voiceNote = "Слушаю запись…"
+        let analysis: (Double?, String) = await Task.detached {
+            guard let file = try? AVAudioFile(forReading: url),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+                  (try? file.read(into: buffer)) != nil,
+                  let channel = buffer.floatChannelData?[0] else { return (nil, url.deletingPathExtension().lastPathComponent) }
+            let samples = Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+            return (PitchEstimator.estimate(samples: samples, sampleRate: file.processingFormat.sampleRate), url.deletingPathExtension().lastPathComponent)
+        }.value
+
+        guard let hertz = analysis.0 else {
+            voiceNote = "В записи не слышно голоса или файл не читается. Подойдёт аудио: mp3, wav, m4a."
+            return
+        }
+        let voice = CustomVoice(name: analysis.1, hertz: hertz)
+        settings.customVoices.append(voice)
+        settings.selectedCustomVoice = voice.id
+        voiceNote = "Тон вашего голоса: \(Int(hertz)) Гц. Стив говорит с этим тоном."
+        previewVoice()
+    }
+
+    // MARK: - Пресеты
+
+    func save(preset: Preset) {
+        if let index = settings.presets.firstIndex(where: { $0.id == preset.id }) {
+            settings.presets[index] = preset
+        } else {
+            settings.presets.append(preset)
+        }
+    }
+
+    func setQuick(slot: Int, to id: UUID) {
+        guard settings.quick.indices.contains(slot), !settings.quick.contains(id) || settings.quick[slot] == id else { return }
+        settings.quick[slot] = id
+    }
+
+    func runPreset(_ preset: Preset) {
+        Task { await ask(preset.phrase) }
+    }
+
+    // MARK: - Побочные эффекты настроек
+
+    private func settingsDidChange(from old: AppSettings) {
+        if let data = try? JSONEncoder().encode(settings) {
+            UserDefaults.standard.set(data, forKey: Self.settingsKey)
+        }
+        if old.hotkey != settings.hotkey { hotkeys.register(settings.hotkey) }
+        if old.launchAtLogin != settings.launchAtLogin { applyLaunchAtLogin() }
+        if old.listenAlways != settings.listenAlways || old.wakePhrase != settings.wakePhrase { restartWakeWord() }
+    }
+
+    private func applyLaunchAtLogin() {
+        do {
+            if settings.launchAtLogin { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+        } catch {
+            // запуск из папки сборки без установки в «Программы» не регистрируется, это нормально
+        }
+    }
+
+    // MARK: - Значок в меню-баре
+
+    /// Значок в меню-баре перерисовывается, пока Стив что-то делает, и реже, пока он спокоен.
+    private func keepMenuBarIconFresh() async {
+        while !Task.isCancelled {
+            let renderer = ImageRenderer(content: SteveCanvas(frame: character.frame(at: Date()), isTiny: true).frame(width: 21, height: 23))
+            renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+            if let image = renderer.nsImage { menuBarImage = image }
+            try? await Task.sleep(for: .milliseconds(character.animation == nil && !character.isAsleep ? 400 : 120))
+        }
+    }
+}

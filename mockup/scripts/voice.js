@@ -130,11 +130,12 @@
   function say(text) {
     const clean = speechText(text);
     if (!hasSynthesis || !clean) return;
-    speechSynthesis.cancel();
+    // cancel() на уже замолчавшем синтезаторе даёт в Chrome щелчок, поэтому прерываем только живую речь
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(clean);
     const { voice, pitch } = currentVoice();
     if (voice) utterance.voice = voice;
-    utterance.pitch = pitch;
+    if (pitch !== 1) utterance.pitch = pitch; // тон трогаем только для своего голоса
     utterance.lang = /[а-яё]/i.test(clean) ? 'ru-RU' : 'en-US';
     speechSynthesis.speak(utterance);
   }
