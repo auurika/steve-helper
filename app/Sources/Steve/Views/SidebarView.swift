@@ -25,15 +25,6 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
-            // кнопки привязаны к левому краю панели и не двигаются, когда она раскрывается
-            Color.clear
-                .frame(maxWidth: .infinity)
-                .frame(height: 12)
-                .overlay(alignment: .leading) {
-                    WindowButtons().fixedSize().offset(x: -4)
-                }
-                .padding(.top, 8)
-                .padding(.bottom, 10)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -98,60 +89,25 @@ struct SidebarView: View {
     private var networkStatus: some View {
         let online = model.network.isOnline
         let color = online ? Color.steveOK : Color.steveWarn
-        return HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 8, height: 8)
-                .shadow(color: color.opacity(0.5), radius: 3)
-            if isExpanded {
-                Text(online ? "Работает онлайн" : "Работает офлайн")
-                    .font(.system(size: 12))
-                    .lineLimit(1)
-                    .transition(.opacity)
-            }
-            Spacer(minLength: 0)
-        }
-        .foregroundStyle(color)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
-    }
-}
-
-/// Кнопки окна в боковой панели: закрыть, свернуть, на весь экран. Расстояния такие же, как у остальных значков.
-private struct WindowButtons: View {
-    @State private var hovering = false
-
-    private struct Button: Identifiable {
-        let id: String
-        let color: Color
-        let glyph: String
-        let action: (NSWindow) -> Void
-    }
-
-    private let buttons = [
-        Button(id: "close", color: Color(red: 1, green: 0.37, blue: 0.34), glyph: "xmark") { $0.performClose(nil) },
-        Button(id: "min", color: Color(red: 1, green: 0.74, blue: 0.18), glyph: "minus") { $0.miniaturize(nil) },
-        Button(id: "zoom", color: Color(red: 0.16, green: 0.78, blue: 0.25), glyph: "arrow.up.left.and.arrow.down.right") { $0.toggleFullScreen(nil) },
-    ]
-
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(buttons) { button in
-                SwiftUI.Button {
-                    if let window = NSApp.keyWindow ?? NSApp.mainWindow { button.action(window) }
-                } label: {
-                    Circle()
-                        .fill(button.color)
-                        .frame(width: 12, height: 12)
-                        .overlay {
-                            Image(systemName: button.glyph)
-                                .font(.system(size: 6, weight: .heavy))
-                                .foregroundStyle(Color.black.opacity(0.55))
-                                .opacity(hovering ? 1 : 0)
-                        }
+        // индикатор привязан к левому краю: при раскрытии панели он остаётся на месте, добавляется только подпись
+        return Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 8)
+            .overlay(alignment: .leading) {
+                HStack(spacing: 6) {
+                    Circle().fill(color).frame(width: 8, height: 8)
+                        .shadow(color: color.opacity(0.5), radius: 3)
+                    if isExpanded {
+                        Text(online ? "Работает онлайн" : "Работает офлайн")
+                            .font(.system(size: 12))
+                            .lineLimit(1)
+                            .transition(.opacity)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(button.id == "close" ? "Закрыть" : (button.id == "min" ? "Свернуть" : "На весь экран"))
+                .fixedSize()
+                .foregroundStyle(color)
+                .padding(.leading, 16)
             }
-        }
-        .onHover { hovering = $0 }
+            .padding(.vertical, 9)
     }
 }

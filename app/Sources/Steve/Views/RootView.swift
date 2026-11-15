@@ -29,7 +29,7 @@ struct RootContent: View {
 
             SidebarView()
                 .padding(.leading, 10)
-                .padding(.top, 10)
+                .padding(.top, 36) // под системными кнопками окна
                 .padding(.bottom, 10)
                 .ignoresSafeArea(edges: .top)
         }
@@ -53,11 +53,10 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func configure(_ window: NSWindow?) {
         guard let window else { return }
         window.title = "Стив"
-        window.titleVisibility = .hidden // надписи нет, кнопки окна нарисованы в боковой панели
+        window.titleVisibility = .hidden // надписи нет, остаются системные кнопки окна
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
         window.isMovableByWindowBackground = true // окно можно двигать за любое пустое место
-        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] { window.standardWindowButton(kind)?.isHidden = true }
         window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
         window.isOpaque = false
         window.backgroundColor = .clear
