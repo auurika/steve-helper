@@ -1,7 +1,7 @@
 """Диалог с локальной моделью через Ollama + вызов инструментов."""
 import ollama
 
-from . import config, tools
+from . import config, style, tools
 
 
 class Brain:
@@ -11,7 +11,8 @@ class Brain:
     def ask(self, user_text: str) -> str:
         self.history.append({"role": "user", "content": user_text})
         self.history = self.history[-config.HISTORY_TURNS * 4:]
-        messages = [{"role": "system", "content": config.SYSTEM_PROMPT}, *self.history]
+        system = config.SYSTEM_PROMPT + " " + style.style_prompt()
+        messages = [{"role": "system", "content": system}, *self.history]
 
         for _ in range(4):  # максимум 4 раунда вызова инструментов
             resp = ollama.chat(model=config.LLM_MODEL, messages=messages,
@@ -25,6 +26,6 @@ class Brain:
                 print(f"  [tool] {tc.function.name}({dict(tc.function.arguments)}) -> {result}")
                 messages.append({"role": "tool", "tool_name": tc.function.name, "content": result})
 
-        answer = (msg.content or "").strip() or "Готово."
+        answer = style.censor((msg.content or "").strip()) or "Готово."
         self.history.append({"role": "assistant", "content": answer})
         return answer

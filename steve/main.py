@@ -14,7 +14,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=config.NAME)
     ap.add_argument("--text", action="store_true", help="писать с клавиатуры вместо микрофона")
     ap.add_argument("--mute", action="store_true", help="не озвучивать ответы")
+    ap.add_argument("--no-censor", action="store_true", help="выключить цензуру (по умолчанию включена)")
     args = ap.parse_args()
+    if args.no_censor:
+        config.CENSORSHIP = False
 
     brain = Brain()
     print(f"{config.NAME} запущен. Ctrl+C — выход.")
