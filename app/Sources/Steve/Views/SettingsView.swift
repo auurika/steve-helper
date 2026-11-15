@@ -82,21 +82,29 @@ struct SettingsView: View {
     }
 
     private var quickCommands: some View {
-        SettingRow(title: "Быстрые команды", hint: "2 значка рядом со Стивом во всплывающем окне", fullWidthControls: true) {
+        SettingRow(title: "Быстрые команды", hint: "4 значка рядом со Стивом во всплывающем окне", fullWidthControls: true) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                ForEach(Array(model.quickPresets.enumerated()), id: \.offset) { slot, preset in
-                    Button { pickingSlot = SlotPick(slot: slot) } label: {
+                ForEach(0..<Preset.quickCount, id: \.self) { slot in
+                    let preset = model.quickPresets.indices.contains(slot) ? model.quickPresets[slot] : nil
+                    Button { pickingSlot = SlotPick(slot: slot == model.quickPresets.count || preset != nil ? slot : model.quickPresets.count) } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: preset.symbol).frame(width: 20)
-                            Text(preset.name).lineLimit(2).multilineTextAlignment(.leading)
+                            Image(systemName: preset?.symbol ?? "plus").frame(width: 20)
+                            Text(preset?.name ?? "Выбрать команду").lineLimit(2).multilineTextAlignment(.leading)
+                                .foregroundStyle(preset == nil ? Color.steveMuted : Color.steveText)
                             Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 12)
                         .frame(height: 56)
                         .glassControl(cornerRadius: 14)
+                        .overlay {
+                            if preset == nil {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
-                    .help("Сменить команду")
+                    .help(preset == nil ? "Добавить команду на свободное место" : "Сменить команду")
                 }
             }
         }

@@ -1,4 +1,5 @@
 import AppKit
+import SteveCore
 import SwiftUI
 
 /// Всплывающее окно из значка в меню-баре: Стив, статус, четыре быстрые команды, компактный диалог.
@@ -23,9 +24,20 @@ struct PopoverView: View {
                 }
                 Spacer(minLength: 0)
                 HStack(spacing: 5) {
-                    ForEach(model.quickPresets) { preset in
-                        GlassIconButton(symbol: preset.symbol, size: 28) { model.runPreset(preset) }
-                            .help(preset.name)
+                    // всегда четыре места: пустые ведут в настройки, где их можно заполнить
+                    ForEach(0..<Preset.quickCount, id: \.self) { slot in
+                        if model.quickPresets.indices.contains(slot) {
+                            let preset = model.quickPresets[slot]
+                            GlassIconButton(symbol: preset.symbol, size: 28) { model.runPreset(preset) }
+                                .help(preset.name)
+                        } else {
+                            GlassIconButton(symbol: "plus", size: 28) {
+                                model.section = .settings
+                                model.openMainWindow?()
+                            }
+                            .opacity(0.45)
+                            .help("Свободное место: выбери команду в настройках")
+                        }
                     }
                 }
             }

@@ -36,9 +36,9 @@ public struct Preset: Codable, Identifiable, Equatable {
         UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
     ]
 
-    /// Во всплывающем окне стоят две кнопки: громкость и открытие приложения.
+    /// Во всплывающем окне четыре места под кнопки; по умолчанию заполнены два, остальные ждут выбора.
     public static let defaultQuick: [UUID] = [defaults[1].id, defaults[0].id]
-    public static let quickCount = 2
+    public static let quickCount = 4
 }
 
 public enum HotkeyMode: String, Codable, CaseIterable {
@@ -151,13 +151,9 @@ public struct AppSettings: Codable, Equatable {
         removeRetiredPresets()
     }
 
-    /// Убирает бывшие готовые пресеты и приводит быстрые команды к двум кнопкам.
+    /// Убирает бывшие готовые пресеты. Свободные места быстрых команд остаются пустыми.
     public mutating func removeRetiredPresets() {
         presets.removeAll { Preset.retiredIDs.contains($0.id) }
-        var ids = quick.filter { id in presets.contains { $0.id == id } }
-        for id in Preset.defaultQuick + presets.map(\.id) where ids.count < Preset.quickCount && !ids.contains(id) && presets.contains(where: { $0.id == id }) {
-            ids.append(id)
-        }
-        quick = Array(ids.prefix(Preset.quickCount))
+        quick = Array(quick.filter { id in presets.contains { $0.id == id } }.prefix(Preset.quickCount))
     }
 }

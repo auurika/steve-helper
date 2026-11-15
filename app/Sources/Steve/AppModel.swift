@@ -399,8 +399,8 @@ final class AppModel {
     }
 
     func setQuick(slot: Int, to id: UUID) {
-        guard settings.quick.indices.contains(slot), !settings.quick.contains(id) || settings.quick[slot] == id else { return }
-        settings.quick[slot] = id
+        guard (0..<Preset.quickCount).contains(slot), !settings.quick.contains(id) || (settings.quick.indices.contains(slot) && settings.quick[slot] == id) else { return }
+        if settings.quick.indices.contains(slot) { settings.quick[slot] = id } else { settings.quick.append(id) } // пустое место заполняется следующим по порядку
     }
 
     func runPreset(_ preset: Preset) {
