@@ -33,7 +33,7 @@ struct RootContent: View {
                 .padding(.bottom, 10)
         }
         .foregroundStyle(Color.steveText)
-        .background { Color.steveNavy.opacity(model.settings.glassAlpha) }
+        .background { ZStack { GlassBackdrop(); Color.steveNavy.opacity(model.settings.glassAlpha) } }
         .preferredColorScheme(.dark)
     }
 }

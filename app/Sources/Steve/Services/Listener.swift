@@ -56,11 +56,10 @@ final class Listener {
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            request.append(buffer)
-            let level = Self.level(of: buffer)
+        // замыкание делаем вне главного актора: звук приходит на своём потоке, и проверка изоляции иначе роняет приложение
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.makeTap(request: request) { [weak self] level in
             Task { @MainActor in self?.onLevel?(level) }
-        }
+        })
         engine.prepare()
         try engine.start()
 
@@ -89,6 +88,11 @@ final class Listener {
                         complete(.failure(ListenerError.nothingHeard))
                     }
                 }
+            }
+            // тишина: если за 10 секунд никто не заговорил, заканчиваем
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+                guard let self, self.request === request, !self.hasSpeech else { return }
+                self.endAudio()
             }
             // предел распознавания системы около минуты: заканчиваем раньше
             DispatchQueue.main.asyncAfter(deadline: .now() + maxDuration) { [weak self] in self?.endAudio() }
@@ -125,6 +129,14 @@ final class Listener {
         request = nil
         task = nil
         finish = nil
+    }
+
+    private nonisolated static func makeTap(request: SFSpeechAudioBufferRecognitionRequest,
+                                            onLevel: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
+        { buffer, _ in
+            request.append(buffer)
+            onLevel(level(of: buffer))
+        }
     }
 
     private nonisolated static func level(of buffer: AVAudioPCMBuffer) -> Float {

@@ -39,7 +39,7 @@ struct PopoverView: View {
         .padding(16)
         .frame(width: 340)
         .foregroundStyle(Color.steveText)
-        .background(Color.steveNavy.opacity(model.settings.glassAlpha)) // скругление и размытие даёт само окно меню-бара
+        .background(ZStack { GlassBackdrop(); Color.steveNavy.opacity(model.settings.glassAlpha) }) // скругление и размытие даёт само окно меню-бара
         .containerBackground(.ultraThinMaterial, for: .window)
         .environment(\.colorScheme, .dark)
     }

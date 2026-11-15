@@ -250,8 +250,7 @@ struct GlassSlider: View {
                         .frame(width: max(12, width * value), height: 12)
                 }
                 Capsule()
-                    .fill(LinearGradient(colors: [.white.opacity(0.6), .white.opacity(0.2), .white.opacity(0.1), .white.opacity(0.34)], startPoint: .top, endPoint: .bottom))
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .fill(LinearGradient(colors: [.white.opacity(0.85), .white.opacity(0.55), .white.opacity(0.45), .white.opacity(0.7)], startPoint: .top, endPoint: .bottom))
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.85), lineWidth: 1))
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
                     .frame(width: 38, height: 26)

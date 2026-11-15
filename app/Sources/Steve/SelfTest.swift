@@ -26,6 +26,16 @@ enum SelfTest {
             try? await Task.sleep(for: .milliseconds(800))
             note("упаковано в .app: \(Packaging.isPackaged)")
             note("доступ: речь=\(SFSpeechRecognizer.authorizationStatus().rawValue) (3=есть), микрофон=\(AVCaptureDevice.authorizationStatus(for: .audio).rawValue) (3=есть), календарь=\(EKEventStore.authorizationStatus(for: .event).rawValue) (3=полный)")
+            if CommandLine.arguments.contains("--ask-speech") {
+                let got = await withCheckedContinuation { (c: CheckedContinuation<Int, Never>) in
+                    var done = false
+                    SFSpeechRecognizer.requestAuthorization { status in if !done { done = true; c.resume(returning: status.rawValue) } }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 25) { if !done { done = true; c.resume(returning: -1) } }
+                }
+                let mic = await AVAudioApplication.requestRecordPermission()
+                note("запрос микрофона вернул: \(mic)")
+                note("запрос речи вернул: \(got) (-1 = ответа нет за 25 с)")
+            }
             let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))
             note("распознавание ru-RU: доступно=\(recognizer?.isAvailable ?? false), на устройстве=\(recognizer?.supportsOnDeviceRecognition ?? false)")
             note("голоса: \(model.voices.count) шт., русские: \(model.voices.filter { $0.language.hasPrefix("ru") }.map(\.name))")
@@ -69,6 +79,13 @@ enum SelfTest {
                 note("распознавание записи пропущено: нет доступа к распознаванию речи")
             }
 
+            if SFSpeechRecognizer.authorizationStatus() == .authorized, AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
+                var peak: Float = 0
+                let listener = Listener()
+                listener.onLevel = { peak = max(peak, $0) }
+                do { _ = try await listener.listenOnce(silence: 1, maxDuration: 3) } catch { note("микрофон: слушал 3 с без падения, итог: \(error.localizedDescription)") }
+                note("микрофон: максимум уровня \(String(format: "%.3f", peak)) (0 = тишина или нет звука)")
+            }
             note("конец")
             NSApp.terminate(nil)
         }

@@ -39,7 +39,7 @@ struct SidebarView: View {
             // в покое: светлое стекло поверх окна, как в макете; при раскрытии плотнее, чтобы подписи читались
             let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
             ZStack {
-                shape.fill(.ultraThinMaterial)
+                if isExpanded { shape.fill(.ultraThinMaterial) }
                 shape.fill(isExpanded
                            ? AnyShapeStyle(Color(red: 26 / 255, green: 30 / 255, blue: 60 / 255).opacity(0.92))
                            : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0.06), .white.opacity(0.12)],
