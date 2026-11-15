@@ -13,7 +13,10 @@ struct ChatView: View {
                 hero
                     .background(GeometryReader { proxy in Color.clear.preference(key: HeroHeightKey.self, value: proxy.size.height) })
             }
-            .onPreferenceChange(HeroHeightKey.self) { heroHeight = max(Self.minHeroHeight, $0) }
+            .onPreferenceChange(HeroHeightKey.self) {
+                heroHeight = max(Self.minHeroHeight, $0)
+                Self.lastHeroHeight = heroHeight
+            }
             AttachmentsBar()
             ComposerView(compact: false)
         }
@@ -27,7 +30,9 @@ struct ChatView: View {
     /// Высота Стива со статусом и панелями: с неё начинаются сообщения, чтобы панели не лежали поверх текста.
     /// Выше этой линии сообщения при прокрутке уходят за Стива и размываются.
     static let minHeroHeight: CGFloat = 164
-    @State private var heroHeight: CGFloat = 164
+    /// Последняя измеренная высота хранится между показами экрана, чтобы сообщения не «прыгали» при возвращении в чат.
+    private static var lastHeroHeight: CGFloat = 164
+    @State private var heroHeight: CGFloat = ChatView.lastHeroHeight
 
     private var hero: some View {
         VStack(spacing: 10) {
@@ -104,7 +109,7 @@ struct MessageList: View {
             )
             .onChange(of: messages.count) { scrollToEnd(proxy) }
             .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
-            .onAppear { scrollToEnd(proxy) }
+            .onAppear { proxy.scrollTo("end", anchor: .bottom) } // при возвращении на экран сразу внизу, без видимой прокрутки
             .onChange(of: isThinking) { scrollToEnd(proxy) }
         }
     }
@@ -474,30 +479,30 @@ private struct HeroHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
-/// Пузырь «Стив думает»: три точки по очереди подпрыгивают, как в мессенджере. Каждая взлетает по дуге,
-/// чуть вытягивается в полёте и приземляется со сплющиванием, потом короткая пауза и снова.
+/// Пузырь «Стив думает»: пузырьки с воздухом надуваются, дрожат и лопаются брызгами. Рисуется одним Canvas.
 struct ThinkingBubble: View {
     let compact: Bool
 
-    /// Весь цикл 1,3 с: прыжок точки 0,5 с, точки стартуют со сдвигом 0,16 с, остальное время пауза.
-    private static let cycle = 1.3
-    private static let hop = 0.5
-    private static let stagger = 0.16
+    /// Цикл одного пузырька 1,6 с: 70% надувается, потом лопается. Соседние пузырьки сдвинуты по фазе.
+    private static let cycle = 1.6
+    private static let popStart = 0.7
+    private static let offsets: [Double] = [0, 0.55, 1.1]
 
     var body: some View {
         HStack(spacing: 0) {
             TimelineView(.animation(minimumInterval: 1 / 60)) { context in
                 let time = context.date.timeIntervalSinceReferenceDate
-                HStack(spacing: 6) {
-                    ForEach(0..<3, id: \.self) { index in
-                        dot(phase: (time - Double(index) * Self.stagger).truncatingRemainder(dividingBy: Self.cycle))
+                Canvas { canvas, size in
+                    for (index, offset) in Self.offsets.enumerated() {
+                        let progress = ((time - offset).truncatingRemainder(dividingBy: Self.cycle) + Self.cycle).truncatingRemainder(dividingBy: Self.cycle) / Self.cycle
+                        let center = CGPoint(x: size.width * (0.2 + 0.3 * CGFloat(index)), y: size.height / 2 + CGFloat(sin(time * 3 + Double(index))) * 1.2)
+                        draw(in: &canvas, center: center, progress: progress, seed: Double(index))
                     }
                 }
-                // запас по высоте под прыжок: пузырь не меняет размер и точки не обрезаются
-                .frame(height: 22, alignment: .bottom)
+                .frame(width: 66, height: 26)
             }
             .padding(.horizontal, compact ? 12 : 16)
-            .padding(.vertical, compact ? 6 : 8)
+            .padding(.vertical, compact ? 5 : 7)
             .background(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).fill(Color.white.opacity(0.14)))
             .overlay(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
             Spacer(minLength: 40)
@@ -505,23 +510,36 @@ struct ThinkingBubble: View {
         .accessibilityLabel("Стив думает")
     }
 
-    private func dot(phase rawPhase: Double) -> some View {
-        let phase = rawPhase < 0 ? rawPhase + Self.cycle : rawPhase
-        var lift: CGFloat = 0
-        var stretch: CGFloat = 1
-        if phase < Self.hop {
-            let t = phase / Self.hop                       // 0...1 за прыжок
-            lift = CGFloat(sin(t * .pi)) * 8               // дуга вверх и вниз
-            stretch = 1 + 0.18 * CGFloat(sin(t * .pi))     // в полёте вытягивается
-        } else if phase < Self.hop + 0.12 {
-            let t = (phase - Self.hop) / 0.12              // приземление: сплющивание и возврат
-            stretch = 1 - 0.22 * CGFloat(sin(t * .pi))
+    private func draw(in canvas: inout GraphicsContext, center: CGPoint, progress: Double, seed: Double) {
+        let tint = Color.steveBody
+        if progress < Self.popStart {
+            // надувание: быстро в начале, у лопания дрожит
+            let grow = progress / Self.popStart
+            let eased = 1 - pow(1 - grow, 2.2)
+            let tremble = grow > 0.8 ? sin(grow * 70 + seed) * 0.6 : 0
+            let radius = 2 + 8 * CGFloat(eased) + CGFloat(tremble)
+            let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+            canvas.fill(Path(ellipseIn: rect), with: .color(tint.opacity(0.18)))
+            canvas.stroke(Path(ellipseIn: rect), with: .color(tint.opacity(0.95)), lineWidth: 1.4)
+            // блик на стенке пузырька
+            var glint = Path()
+            glint.addArc(center: center, radius: radius * 0.62, startAngle: .degrees(200), endAngle: .degrees(255), clockwise: false)
+            canvas.stroke(glint, with: .color(.white.opacity(0.85)), style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+        } else {
+            // лопание: кольцо расходится и гаснет, брызги летят в стороны
+            let t = (progress - Self.popStart) / (1 - Self.popStart)
+            let ringRadius = 10 + 9 * CGFloat(t)
+            let ring = CGRect(x: center.x - ringRadius, y: center.y - ringRadius, width: ringRadius * 2, height: ringRadius * 2)
+            canvas.stroke(Path(ellipseIn: ring), with: .color(tint.opacity(0.8 * (1 - t))), lineWidth: 1.4 * (1 - CGFloat(t)) + 0.2)
+            for k in 0..<7 {
+                let angle = Double(k) / 7 * 2 * .pi + seed
+                let distance = 8 + 11 * CGFloat(t)
+                let size = 2.2 * (1 - CGFloat(t)) + 0.3
+                let point = CGPoint(x: center.x + CGFloat(cos(angle)) * distance, y: center.y + CGFloat(sin(angle)) * distance)
+                canvas.fill(Path(ellipseIn: CGRect(x: point.x - size / 2, y: point.y - size / 2, width: size, height: size)),
+                            with: .color(tint.opacity(0.9 * (1 - t))))
+            }
         }
-        return Circle()
-            .fill(Color.steveBody)
-            .frame(width: 7, height: 7)
-            .scaleEffect(x: 1 / stretch, y: stretch, anchor: .bottom) // объём сохраняется: вытянулась по высоте, сузилась по ширине
-            .offset(y: -lift)
     }
 }
 
