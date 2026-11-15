@@ -24,16 +24,15 @@ struct RootContent: View {
                 }
             }
             .padding(.leading, 76)
-            .padding(.top, 28) // место под кнопки окна
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             SidebarView()
                 .padding(.leading, 10)
-                .padding(.top, 30)
+                .padding(.top, 2)
                 .padding(.bottom, 10)
         }
         .foregroundStyle(Color.steveText)
-        .background { ZStack { WindowGlass(); Color.steveNavy.opacity(model.settings.glassAlpha) }.ignoresSafeArea() }
+        .background { Color.steveNavy.opacity(model.settings.glassAlpha).ignoresSafeArea() }
         .preferredColorScheme(.dark)
     }
 }
@@ -52,12 +51,28 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func configure(_ window: NSWindow?) {
         guard let window else { return }
         window.title = "Стив"
-        window.titleVisibility = .hidden // как в макете: только кнопки окна, без надписи
+        window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
         window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
         window.isOpaque = false
         window.backgroundColor = .clear
+        installGlass(in: window)
         window.collectionBehavior.insert(.fullScreenPrimary)
+    }
+
+    /// Размытие рабочего стола под окном. Вставляем обычное AppKit-представление под содержимое окна,
+    /// а не внутрь SwiftUI: так оно не участвует в обработке кликов SwiftUI.
+    private func installGlass(in window: NSWindow) {
+        guard let content = window.contentView, let frameView = content.superview else { return }
+        let id = NSUserInterfaceItemIdentifier("steve.window.glass")
+        if frameView.subviews.contains(where: { $0.identifier == id }) { return }
+        let effect = NSVisualEffectView(frame: frameView.bounds)
+        effect.identifier = id
+        effect.material = .hudWindow
+        effect.blendingMode = .behindWindow
+        effect.state = .active
+        effect.autoresizingMask = [.width, .height]
+        frameView.addSubview(effect, positioned: .below, relativeTo: content)
     }
 }

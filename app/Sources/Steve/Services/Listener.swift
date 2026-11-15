@@ -39,7 +39,7 @@ final class Listener {
 
     /// Слушает, пока человек говорит, и возвращает текст, когда он замолчал на `silence` секунд.
     func listenOnce(locale: Locale = Locale(identifier: "ru-RU"), hints: [String] = [],
-                    silence: TimeInterval = 1.2, maxDuration: TimeInterval = 55,
+                    silence: TimeInterval? = 1.2, maxDuration: TimeInterval = 55,
                     onPartial: ((String) -> Void)? = nil) async throws -> String {
         guard await Self.requestAuthorization() else { throw ListenerError.notAuthorized }
         guard let recognizer = SFSpeechRecognizer(locale: locale), recognizer.isAvailable else { throw ListenerError.unavailable }
@@ -82,7 +82,7 @@ final class Listener {
                         NSLog("Steve.listener partial=%@ final=%d", text, result.isFinal ? 1 : 0)
                         if !text.isEmpty { self.hasSpeech = true }
                         onPartial?(text)
-                        self.restartSilenceTimer(after: silence)
+                        if let silence { self.restartSilenceTimer(after: silence) }
                         if result.isFinal {
                             complete(text.isEmpty ? .failure(ListenerError.nothingHeard) : .success(text))
                         }
@@ -93,10 +93,10 @@ final class Listener {
                 }
             }
             // тишина: если за 10 секунд никто не заговорил, заканчиваем
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            if silence != nil { DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
                 guard let self, self.request === request, !self.hasSpeech else { return }
                 self.endAudio()
-            }
+            } }
             // предел распознавания системы около минуты: заканчиваем раньше
             DispatchQueue.main.asyncAfter(deadline: .now() + maxDuration) { [weak self] in self?.endAudio() }
         }

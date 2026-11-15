@@ -104,3 +104,81 @@ struct WindowGlass: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
+
+// MARK: - Окна поверх экрана
+
+private struct CloseModalKey: EnvironmentKey {
+    static let defaultValue: () -> Void = {}
+}
+
+extension EnvironmentValues {
+    /// Закрывает окно, показанное через `glassModal`.
+    var closeModal: () -> Void {
+        get { self[CloseModalKey.self] }
+        set { self[CloseModalKey.self] = newValue }
+    }
+}
+
+/// Затемнение, окно по центру и крестик. Клик по пустому месту и Escape тоже закрывают окно.
+private struct GlassModalLayer<Content: View>: View {
+    let close: () -> Void
+    let content: Content
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: close)
+            content
+                .environment(\.closeModal, close)
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    ZStack {
+                        shape.fill(.ultraThinMaterial)
+                        shape.fill(Color.steveNavy.opacity(0.88))
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(LinearGradient(colors: [.white.opacity(0.4), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+                }
+                .overlay(alignment: .topTrailing) {
+                    Button(action: close) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 26, height: 26)
+                            .background(Circle().fill(Color.white.opacity(0.16)))
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.28), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
+                    .help("Закрыть")
+                    .padding(12)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+                .padding(24)
+        }
+        .transition(.opacity)
+    }
+}
+
+extension View {
+    func glassModal<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        overlay {
+            if isPresented.wrappedValue {
+                GlassModalLayer(close: { isPresented.wrappedValue = false }, content: content())
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: isPresented.wrappedValue)
+    }
+
+    func glassModal<Item: Identifiable, Content: View>(item: Binding<Item?>, @ViewBuilder content: @escaping (Item) -> Content) -> some View {
+        overlay {
+            if let value = item.wrappedValue {
+                GlassModalLayer(close: { item.wrappedValue = nil }, content: content(value))
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: item.wrappedValue != nil)
+    }
+}

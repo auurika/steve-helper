@@ -42,7 +42,7 @@ struct SidebarView: View {
                 if isExpanded { shape.fill(.ultraThinMaterial) }
                 shape.fill(isExpanded
                            ? AnyShapeStyle(Color(red: 26 / 255, green: 30 / 255, blue: 60 / 255).opacity(0.92))
-                           : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0.06), .white.opacity(0.12)],
+                           : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.1), .white.opacity(0.2)],
                                                           startPoint: .topLeading, endPoint: .bottomTrailing)))
             }
         }
@@ -53,11 +53,10 @@ struct SidebarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
-        // свой трекер мыши: SwiftUI onHover молчит, пока окно не в фокусе
-        .background(HoverTracker { hovering in
+        .onHover { hovering in
             isHovering = hovering
             if !hovering { isLocked = false }
-        })
+        }
     }
 
     private func row(for item: Item) -> some View {
@@ -118,28 +117,3 @@ struct SidebarView: View {
     }
 }
 
-/// Сообщает, находится ли курсор над вьюхой, даже когда окно неактивно.
-private struct HoverTracker: NSViewRepresentable {
-    let onChange: (Bool) -> Void
-
-    func makeNSView(context: Context) -> TrackerView {
-        let view = TrackerView()
-        view.onChange = onChange
-        return view
-    }
-
-    func updateNSView(_ view: TrackerView, context: Context) { view.onChange = onChange }
-
-    final class TrackerView: NSView {
-        var onChange: ((Bool) -> Void)?
-
-        override func updateTrackingAreas() {
-            super.updateTrackingAreas()
-            trackingAreas.forEach(removeTrackingArea)
-            addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
-        }
-        override func mouseEntered(with event: NSEvent) { onChange?(true) }
-        override func mouseExited(with event: NSEvent) { onChange?(false) }
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
-    }
-}

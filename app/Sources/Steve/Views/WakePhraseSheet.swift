@@ -5,7 +5,7 @@ import SteveCore
 /// так что окно заодно проверяет, что распознавание вас понимает.
 struct WakePhraseSheet: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeModal) private var dismiss
 
     @State private var phrase = ""
     @State private var recorded = 0

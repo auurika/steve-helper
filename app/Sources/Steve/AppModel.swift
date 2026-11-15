@@ -49,6 +49,7 @@ final class AppModel {
     @ObservationIgnored private let parser = CommandParser()
     @ObservationIgnored private let engine: OllamaEngine?
     @ObservationIgnored private var isCapturingVoice = false
+    @ObservationIgnored private var stopRequested = false
     @ObservationIgnored private var isProcessing = false
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
     @ObservationIgnored private var started = false
@@ -182,16 +183,26 @@ final class AppModel {
 
     /// Нажатие на Стива или на микрофон, а также горячая клавиша.
     func toggleVoiceCapture() {
-        if isCapturingVoice { listener.endAudio() } else { Task { await captureVoice() } }
+        if isCapturingVoice { stopVoiceCapture() } else { Task { await captureVoice() } }
     }
 
+    /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
+    func stopVoiceCapture() {
+        stopRequested = true
+        listener.endAudio()
+    }
+
+    /// Записывает голос, пока человек не нажмёт на микрофон ещё раз. Текст пишется в строку ввода,
+    /// чтобы его можно было поправить, и сам не отправляется.
     func captureVoice() async {
-        guard !isCapturingVoice, status == .idle else { return }
+        guard !isCapturingVoice, status == .idle || status == .listening else { return }
         isCapturingVoice = true
+        stopRequested = false
         // фоновое ожидание слова активации занимает тот же микрофон: на время записи его останавливаем
         pauseWakeWord()
         defer {
             isCapturingVoice = false
+            if status == .listening { status = .idle }
             restartWakeWord()
         }
         character.touch()
@@ -206,24 +217,31 @@ final class AppModel {
                 Permissions.openSettings(permissions.microphone != .granted ? .microphone : .speech)
                 return
             }
-            restartWakeWord()
         }
+
         status = .listening
-        do {
-            voiceDraft = ""
-            let text = try await listener.listenOnce(hints: [settings.wakePhrase]) { [weak self] partial in
-                self?.voiceDraft = partial // текст сначала пишется в строку ввода
+        var committed = voiceDraft.trimmingCharacters(in: .whitespacesAndNewlines) // то, что уже было в строке, остаётся
+        func joined(_ extra: String) -> String { committed.isEmpty ? extra : (extra.isEmpty ? committed : committed + " " + extra) }
+
+        while !stopRequested {
+            let started = Date()
+            do {
+                // отрезок записи: система ограничивает его примерно минутой, поэтому склеиваем отрезки
+                let text = try await listener.listenOnce(hints: [settings.wakePhrase], silence: nil, maxDuration: 50) { [weak self] partial in
+                    self?.voiceDraft = joined(partial)
+                }
+                committed = joined(text)
+                voiceDraft = committed
+            } catch {
+                if let error = error as? Listener.ListenerError, case .nothingHeard = error {
+                    if Date().timeIntervalSince(started) < 1 { try? await Task.sleep(for: .milliseconds(400)) }
+                    continue
+                }
+                messages.append(ChatMessage(role: .steve, text: error.localizedDescription))
+                break
             }
-            status = .idle
-            try? await Task.sleep(for: .milliseconds(500)) // даём увидеть текст в строке перед отправкой
-            voiceDraft = ""
-            await ask(text)
-        } catch {
-            status = .idle
-            voiceDraft = ""
-            if let error = error as? Listener.ListenerError, case .nothingHeard = error { return }
-            messages.append(ChatMessage(role: .steve, text: error.localizedDescription))
         }
+        voiceDraft = committed
     }
 
     private func hotkeyPressed() {
@@ -235,7 +253,7 @@ final class AppModel {
     }
 
     private func hotkeyReleased() {
-        if settings.hotkeyMode == .hold, isCapturingVoice { listener.endAudio() }
+        if settings.hotkeyMode == .hold, isCapturingVoice { stopVoiceCapture() }
     }
 
     // MARK: - Слово активации
@@ -273,7 +291,8 @@ final class AppModel {
             guard let range = normalized.range(of: phrase) else { return }
             let tail = String(normalized[range.upperBound...]).trimmingCharacters(in: CharacterSet(charactersIn: " ,.!"))
             showMenuBarPopover() // услышал слово активации: открываем маленькое окно из меню-бара
-            if tail.isEmpty { await captureVoice() } else { await ask(tail) }
+            if !tail.isEmpty { voiceDraft = tail }
+            await captureVoice() // пишем голос, пока не нажмут на микрофон; текст остаётся в строке
         } catch {
             // нет разрешения или ничего не расслышал: ждём немного и пробуем снова
             try? await Task.sleep(for: .seconds(error is Listener.ListenerError ? 3 : 1))

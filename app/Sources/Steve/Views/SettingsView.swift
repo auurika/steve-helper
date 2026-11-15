@@ -28,7 +28,6 @@ struct SettingsView: View {
                     }
                 }
 
-                permissionsRow
                 quickCommands
                 wakePhrase
                 hotkey
@@ -39,12 +38,13 @@ struct SettingsView: View {
                 toggle("Озвучивать ответы", isOn: $model.settings.speakAnswers)
                 toggle("Запускать при входе в систему", isOn: $model.settings.launchAtLogin)
                 toggle("Слушать постоянно", hint: "Ждать слово активации в фоне", isOn: $model.settings.listenAlways)
+                permissionsRow
             }
             .padding(22)
             .foregroundStyle(Color.steveText)
         }
-        .sheet(item: $pickingSlot) { pick in QuickCommandPicker(slot: pick.slot) }
-        .sheet(isPresented: $showingWake) { WakePhraseSheet() }
+        .glassModal(item: $pickingSlot) { pick in QuickCommandPicker(slot: pick.slot) }
+        .glassModal(isPresented: $showingWake) { WakePhraseSheet() }
     }
 
     // MARK: - Разрешения
@@ -387,7 +387,7 @@ struct VoicePicker: View {
 struct QuickCommandPicker: View {
     let slot: Int
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeModal) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

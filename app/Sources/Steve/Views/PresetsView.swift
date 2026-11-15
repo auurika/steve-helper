@@ -30,7 +30,7 @@ struct PresetsView: View {
             .padding(22)
             .foregroundStyle(Color.steveText)
         }
-        .sheet(item: $editing) { draft in
+        .glassModal(item: $editing) { draft in
             PresetEditorView(draft: draft)
         }
     }
@@ -102,7 +102,7 @@ private struct PresetCard: View {
 struct PresetEditorView: View {
     let draft: PresetDraft
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeModal) private var dismiss
 
     @State private var name = ""
     @State private var description = ""
@@ -159,7 +159,7 @@ struct PresetEditorView: View {
                 symbol = preset.symbol
             }
         }
-        .sheet(isPresented: $showingIcons) {
+        .glassModal(isPresented: $showingIcons) {
             IconPickerView(selection: $symbol)
         }
     }
@@ -216,7 +216,7 @@ struct CountedField: View {
 /// Выбор значка из SF Symbols.
 struct IconPickerView: View {
     @Binding var selection: String
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeModal) private var dismiss
 
     static let symbols = [
         "safari", "timer", "note.text", "calendar", "speaker.wave.2", "stopwatch", "clock", "message", "mic", "puzzlepiece",

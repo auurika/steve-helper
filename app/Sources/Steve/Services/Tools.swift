@@ -59,6 +59,8 @@ final class Tools {
         }
         timers.append(timer)
         timerEnds.append(Date().addingTimeInterval(TimeInterval(seconds)))
+        // у «Часов» нет программного интерфейса: открываем приложение, а отсчёт и сигнал ведёт Стив
+        Task { _ = await run("/usr/bin/open", ["-a", "Clock"]) }
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
     }
 
@@ -117,7 +119,9 @@ final class Tools {
     private static let noteScript = """
     on run argv
         tell application "Notes"
-            make new note with properties {name:(item 1 of argv), body:(item 2 of argv)}
+            activate
+            set theNote to make new note with properties {name:(item 1 of argv), body:(item 2 of argv)}
+            show theNote
         end tell
         return "ok"
     end run
@@ -150,10 +154,30 @@ final class Tools {
             event.endDate = end
             event.calendar = calendar
             try eventStore.save(event, span: .thisEvent)
+            await showInCalendar(start)
             return ToolResult(reply: "Добавил в «Календарь» событие «\(title)»: \(Self.eventFormatter.string(from: start))–\(Self.hourFormatter.string(from: end))", tool: tool)
         } catch {
             return ToolResult(reply: "Не получилось добавить событие: \(error.localizedDescription)", tool: tool)
         }
+    }
+
+    /// Открывает «Календарь» на дне нового события, чтобы было видно, что оно появилось.
+    private func showInCalendar(_ date: Date) async {
+        let script = """
+        on run argv
+            set d to (current date)
+            set year of d to (item 1 of argv as integer)
+            set month of d to (item 2 of argv as integer)
+            set day of d to (item 3 of argv as integer)
+            tell application "Calendar"
+                activate
+                switch view to day view
+                view calendar at d
+            end tell
+        end run
+        """
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        _ = await run("/usr/bin/osascript", ["-e", script, "\(parts.year ?? 2026)", "\(parts.month ?? 1)", "\(parts.day ?? 1)"], timeout: 20)
     }
 
     // MARK: - Громкость, время, батарея
