@@ -1,0 +1,136 @@
+/*
+ * Всплывающее окно из значка в меню-баре. Вылетает из значка: точка роста (--origin-x)
+ * ставится скриптом под центр значка. Прозрачность такая же, как у приложения.
+ */
+.popover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 340px;
+  max-width: calc(100vw - 16px);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: var(--origin-x, 85%) 0;
+}
+
+.popover.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  animation: popover-in 0.42s cubic-bezier(0.2, 1.25, 0.32, 1) backwards;
+}
+
+.popover.is-closing {
+  opacity: 1;
+  pointer-events: none;
+  animation: popover-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes popover-in {
+  0% { opacity: 0; transform: translateY(-16px) scale(0.8); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes popover-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-12px) scale(0.88); }
+}
+
+.popover-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  overflow: hidden;
+  border-radius: var(--radius-window);
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.popover-head .orb {
+  width: 48px;
+  height: 48px;
+}
+
+.popover-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.popover-name {
+  display: block;
+  font-weight: 600;
+}
+
+.popover-status {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+/* четыре маленьких значка быстрых команд */
+.quick-buttons {
+  display: flex;
+  flex: none;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.quick-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 10px;
+  color: #fff;
+  transition: background 0.15s;
+}
+
+.quick-button .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* компактный диалог внутри всплывающего окна */
+.messages--compact {
+  height: 168px;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-plate);
+  background: var(--fill-1);
+  box-shadow: var(--rim);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.messages--compact .msg {
+  max-width: 92%;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  font-size: 12.5px;
+}
+
+.compact-form {
+  display: flex;
+  align-items: flex-end;
+}
+
+.compact-form .composer-input {
+  height: 38px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}

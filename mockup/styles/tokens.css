@@ -1,0 +1,40 @@
+/*
+ * Токены оформления: цвета, радиусы, стекло.
+ * Прозрачность всех стеклянных поверхностей задаётся одной переменной --glass-alpha,
+ * её меняет ползунок «Прозрачность Liquid Glass» в настройках.
+ */
+:root {
+  --glass-alpha: 0.39;
+  --glass-blur: 28px;
+
+  --surface: rgba(24, 28, 52, var(--glass-alpha));
+  --fill-1: rgba(255, 255, 255, calc(var(--glass-alpha) * 0.16));
+  --fill-2: rgba(255, 255, 255, calc(var(--glass-alpha) * 0.26));
+  --line: rgba(255, 255, 255, 0.2);
+
+  --text: #f4f6ff;
+  --text-muted: #b4bbd6;
+  --accent: #8fa9ff;
+  --accent-2: #c4a0ff;
+  --ok: #6ee7a0;
+  --warn: #fbbf24;
+  --danger: #ff5f57;
+
+  /* внутренний свет по краям стекла */
+  --rim: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 36px rgba(255, 255, 255, 0.05);
+  --control-fill: linear-gradient(160deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.07));
+  --control-rim: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 18px rgba(255, 255, 255, 0.05);
+  --plate-fill: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  --plate-rim: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 0 22px rgba(255, 255, 255, 0.04);
+  --shadow-float: 0 30px 70px rgba(10, 10, 40, 0.45);
+  --hover-fill: rgba(255, 255, 255, 0.3);
+
+  --radius-window: 22px;
+  --radius-plate: 16px;
+  --radius-control: 14px;
+
+  --menubar-height: 28px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}

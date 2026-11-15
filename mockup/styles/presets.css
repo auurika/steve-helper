@@ -1,0 +1,121 @@
+/* Экран «Пресеты» и общая страница с заголовком. */
+.page {
+  flex: 1;
+  padding: 22px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+}
+
+.page-title {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.page-subtitle {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+}
+
+.preset {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--fill-2);
+  box-shadow: var(--rim);
+  cursor: pointer;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.preset:hover {
+  background: var(--hover-fill);
+}
+
+.preset-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.icon-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: var(--rim);
+  color: #fff;
+}
+
+.icon-tile .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* длинные тексты обрезаются: название до 2 строк, описание до 3, фраза до 2 */
+.preset-title,
+.preset-description,
+.preset-phrase {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.preset-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+}
+
+.preset-description {
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  -webkit-line-clamp: 3;
+}
+
+.preset-phrase {
+  margin-top: auto;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+}
+
+/* карточка «Новая команда»: только пунктир */
+.preset--add {
+  border: 1.5px dashed rgba(255, 255, 255, 0.5);
+  background: transparent;
+  box-shadow: none;
+}
+
+.preset--add:hover {
+  background: var(--hover-fill);
+}
+
+.preset--add .preset-description {
+  margin-bottom: 0;
+}
+
+@container window (max-width: 560px) {
+  .preset-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

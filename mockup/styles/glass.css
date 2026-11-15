@@ -1,0 +1,42 @@
+/*
+ * Liquid Glass: общие поверхности.
+ *  .glass           — крупная поверхность (окно, всплывающее окно)
+ *  .glass-specular  — блик по диагонали, как на настоящем стекле
+ *  .glass-control   — кнопка или поле ввода поверх поверхности
+ * Стекло используется только для слоя управления, контент рисуется поверх него без стекла.
+ */
+.glass {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-float), var(--rim);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+
+.glass-specular::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 0,
+    rgba(255, 255, 255, 0.06) 22%,
+    transparent 45%,
+    transparent 70%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.glass-control {
+  background: var(--control-fill);
+  border: 1px solid var(--line);
+  box-shadow: var(--control-rim);
+  color: var(--text);
+}
+
+.glass-control:hover:not(:disabled) {
+  background: var(--hover-fill);
+}

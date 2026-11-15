@@ -1,1196 +1,301 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>Стив — макет</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  :root{
-    --a:.39;            /* плотность стекла: меняется ползунком в настройках */
-    --blur:28px;
-    --bg:rgba(24,28,52,var(--a));
-    --panel:rgba(255,255,255,calc(var(--a)*.16));
-    --panel2:rgba(255,255,255,calc(var(--a)*.26));
-    --line:rgba(255,255,255,.2);
-    --text:#f4f6ff; --muted:#b4bbd6; --accent:#8fa9ff; --accent2:#c4a0ff;
-    --ok:#6ee7a0; --warn:#fbbf24;
-    --rim:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(255,255,255,.08), inset 0 0 36px rgba(255,255,255,.05);
-  }
-  *{box-sizing:border-box;margin:0}
-  body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;color:var(--text);
-       background:
-         radial-gradient(600px 420px at 12% 18%,#ff7ab8 0,transparent 70%),
-         radial-gradient(700px 520px at 88% 12%,#5b8cff 0,transparent 70%),
-         radial-gradient(760px 560px at 70% 95%,#22d3b5 0,transparent 70%),
-         radial-gradient(640px 500px at 8% 90%,#9b6bff 0,transparent 70%),
-         #1b1e3a;background-attachment:fixed;
-       min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px;gap:18px}
-  .note{color:#e3e6f7;font-size:12px;text-align:center;max-width:720px}
-  .note b{color:#fff}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Стив — макет</title>
 
-  /* menu bar */
-  .menubar{width:min(960px,100%);height:28px;background:rgba(20,22,40,calc(var(--a)*.9));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.22);box-shadow:var(--rim);border-radius:10px;display:flex;
-           align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:12px;color:#eef}
-  .tray{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:5px}
-  .tray:hover,.tray.on{background:rgba(255,255,255,.2)}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
-
-  .stage{width:min(960px,100%);display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
-  @media(max-width:900px){.stage{grid-template-columns:1fr !important}}
-
-  /* window */
-  .win{background:var(--bg);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
-       border:1px solid rgba(255,255,255,.3);border-radius:22px;overflow:hidden;
-       box-shadow:0 30px 70px rgba(10,10,40,.45),var(--rim);display:flex;flex-direction:column;height:640px}
-  .win::before,.pop::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:4;
-       background:linear-gradient(135deg,rgba(255,255,255,.28) 0,rgba(255,255,255,.06) 22%,transparent 45%,transparent 70%,rgba(255,255,255,.1) 100%)}
-  .titlebar{height:40px;background:rgba(255,255,255,calc(var(--a)*.1));border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:8px}
-  .tl{width:12px;height:12px;border-radius:50%}
-  .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
-  .titlebar .t{flex:1;text-align:center;color:var(--muted);font-size:13px;margin-right:52px}
-  .body{flex:1;display:flex;min-height:0}
-  .side{width:168px;background:rgba(255,255,255,calc(var(--a)*.1));border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
-  .side button{all:unset;cursor:pointer;padding:9px 12px;border-radius:12px;color:var(--muted);display:flex;gap:10px;align-items:center;transition:.15s}
-  .side button:hover{background:var(--panel2)}
-  .side button.on{background:rgba(255,255,255,.2);color:var(--text);box-shadow:var(--rim)}
-  .side .sp{flex:1}
-  .offline{font-size:11px;color:var(--ok);padding:8px 10px;display:flex;gap:6px;align-items:center}
-
-  .view{flex:1;display:none;flex-direction:column;min-width:0}
-  .view.on{display:flex}
-
-  /* chat view */
-  .orbwrap{padding:22px 0 8px;display:flex;flex-direction:column;align-items:center;gap:10px}
-  .orb{width:112px;height:112px;cursor:pointer;position:relative}
-  .orb::after{content:"";position:absolute;inset:-8px;border:2px solid var(--accent2);opacity:0;pointer-events:none}
-  .orb.listening::after{animation:ring 1.2s steps(6) infinite}
-  @keyframes ring{from{opacity:.8;transform:scale(.95)}to{opacity:0;transform:scale(1.3)}}
-  .state{color:var(--muted);font-size:13px;height:18px}
-
-  .chat{flex:1;overflow:auto;padding:10px 22px;display:flex;flex-direction:column;gap:10px}
-  .msg{white-space:pre-wrap;max-width:78%;padding:10px 14px;border-radius:18px;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim)}
-  .msg.me{align-self:flex-end;background:rgba(143,169,255,.38)}
-  .msg .tool{display:block;margin-top:6px;font-size:12px;color:var(--ok);font-family:ui-monospace,Menlo,monospace}
-  .composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
-  .composer input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);padding:10px 12px;color:var(--text);font:inherit;outline:none}
-  .composer input:focus{border-color:var(--accent)}
-  .btn{background:linear-gradient(180deg,#b5c6ff,#8fa9ff);color:#0b1230;border:0;border-radius:14px;padding:0 16px;font:inherit;font-weight:600;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);display:inline-flex;align-items:center;gap:6px;justify-content:center}
-  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);box-shadow:var(--rim)}
-
-  /* settings & skills */
-  .pad{padding:22px;overflow:auto}
-  h2{font-size:18px;margin-bottom:4px}
-  .sub{color:var(--muted);margin-bottom:16px}
-  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
-  .row small{display:block;color:var(--muted)}
-  select,.kbd{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:6px 10px;font:inherit}
-  .sw{width:40px;height:24px;border-radius:12px;background:rgba(255,255,255,.22);box-shadow:inset 0 1px 3px rgba(0,0,0,.25);position:relative;cursor:pointer;flex:none;transition:.2s}
-  .sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;box-shadow:0 1px 3px rgba(0,0,0,.35);border-radius:50%;background:#fff;transition:.2s}
-  .sw.on{background:var(--accent)}.sw.on::after{left:18px}
-  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  @media(max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
-  .card{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--rim)}
-  .card .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:var(--rim);color:#fff}
-  .card h3{font-size:14px;margin:6px 0 2px}
-  .card p{color:var(--muted);font-size:12px;margin-bottom:10px}
-  .card .cmd{font-size:12px;color:var(--accent);font-style:italic}
-  .bar{height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-top:6px}
-  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-
-  /* popover */
-  .pop{position:relative;overflow:hidden;background:var(--bg);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.3);border-radius:22px;padding:16px;box-shadow:0 30px 70px rgba(10,10,40,.45),var(--rim);display:flex;flex-direction:column;gap:12px}
-  .pop .orb{width:72px;height:72px}
-  .pop .top{display:flex;align-items:center;gap:12px}
-  .pop .q{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .pop .q button{all:unset;cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);padding:10px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px}
-  .pop .q button:hover{border-color:var(--accent)}
-  .pop-wrap{display:flex;flex-direction:column;gap:8px}
-  .cap{color:#e3e6f7;font-size:12px}
-  .hint{color:var(--muted);font-size:12px}
-
-  /* окно записи слова активации */
-  .win{position:relative}
-  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5}
-  .modal.on{display:flex}
-  .modal::before{content:"";position:absolute;inset:0;background:rgba(10,12,34,.32);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%)}
-  .dlg{position:relative}
-  .dlg{width:440px;max-width:92%;background:rgba(24,27,52,.9);border:1px solid rgba(255,255,255,.16);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
-  .dlg h2{margin-bottom:2px}
-  .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
-  .dlg .field:focus{border-color:var(--accent)}
-  .say{background:var(--panel);border:1px dashed rgba(255,255,255,.3);border-radius:16px;padding:14px;text-align:center;margin-bottom:12px}
-  .say big{display:block;font-size:20px;margin:4px 0 8px}
-  .wave{display:flex;align-items:center;justify-content:center;gap:3px;height:36px}
-  .wave i{width:4px;height:6px;background:var(--muted);border-radius:2px;transition:height .08s}
-  .wave.rec i{background:var(--accent2)}
-  .samples{display:flex;gap:8px;margin-bottom:14px}
-  .samples div{flex:1;text-align:center;padding:8px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
-  .samples div.done{color:var(--ok);border-color:var(--ok)}
-  .samples div.cur{border-color:var(--accent);color:var(--text)}
-  .acts{display:flex;gap:8px;justify-content:flex-end}
-  .acts .btn{padding:9px 16px}
-  .btn[disabled]{opacity:.4;cursor:default}
-  .rec-btn{background:linear-gradient(180deg,#ff8f88,#ff5f57);color:#fff}
-  .rdot{width:9px;height:9px;border-radius:50%;background:#fff}
-
-  /* иконки */
-  svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-  .card .ic svg.i{width:20px;height:20px}
-  /* ползунок прозрачности */
-  .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:38px;text-align:right;font-weight:600}
-  .row>div:first-child{flex:1 1 120px;min-width:0}
-  .row{flex-wrap:nowrap}
-  .row>:not(:first-child){flex:none}
-  .rng input{width:90px}
-  .state{text-align:center;padding:0 12px}
-  .side{width:150px}
-  .kbd{white-space:nowrap}
-  .stage{grid-template-columns:1fr 340px}
-  .pop .orb{width:48px;height:48px;flex:none}
-  .pop .top{min-width:0}.pop .who{min-width:0;flex:1 1 auto}.pop .who b{display:block}.pop .who .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .qs{margin-left:auto;display:flex;gap:5px;flex:none}
-  .qb{all:unset;cursor:pointer;width:28px;height:28px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
-  .qb:hover{background:rgba(255,255,255,.3)}
-  .qb svg.i{width:15px;height:15px}
-  .pchat{height:168px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
-  .pchat .msg{max-width:92%;font-size:12.5px;padding:6px 10px;border-radius:14px}
-  .pform{display:flex;gap:6px}
-  .pform input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--text);font:inherit;font-size:13px;outline:none}
-  .pform .btn{height:34px}
-  .qsel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  input::placeholder{color:rgba(230,234,255,.65)}
-
-  /* навыки */
-  .chead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-  .chead h3{flex:1;min-width:0;margin:0;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;hyphens:manual}
-  .card .ic{margin:0;flex:none;border:1px solid var(--line);padding:0}
-  .ic.btn:hover{background:rgba(255,255,255,.3)}
-  .card .ic svg.i,#ncIcon svg.i{width:20px;height:20px}
-  .card.add{border:1.5px dashed rgba(255,255,255,.5);box-shadow:none;background:transparent;cursor:pointer}
-  .card.add:hover{background:rgba(255,255,255,.3)}
-  .card.add p{margin-bottom:0}
-  .ipgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-height:250px;overflow:auto;padding:2px}
-  .ipgrid button{all:unset;cursor:pointer;aspect-ratio:1;border-radius:12px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);color:#fff}
-  .ipgrid button:hover{background:rgba(255,255,255,.3)}
-  .ipgrid button.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.5)}
-  .ipgrid svg.i{width:20px;height:20px}
-
-  /* никаких полос прокрутки и горизонтального скролла внутри блоков */
-  .chat,.pchat,.ipgrid,.pad,.dlg,.view{overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
-  .chat::-webkit-scrollbar,.pchat::-webkit-scrollbar,.ipgrid::-webkit-scrollbar,.pad::-webkit-scrollbar,.dlg::-webkit-scrollbar{display:none;width:0;height:0}
-  /* адаптивный текст: всё переносится внутри своей рамки */
-  .win,.pop,.dlg,.card,.msg,.say,.samples div{overflow-wrap:anywhere;min-width:0}
-  .row{min-width:0;overflow-wrap:break-word}
-  .msg{min-width:0;white-space:pre-wrap}
-  .msg .tool{overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.35}
-  .card .cmd,.card p,.sub,.row small{overflow-wrap:break-word}
-  .chat>*,.pchat>*{max-width:100%}
-  .pop{min-width:0;max-width:100%}
-  .pop-wrap,.win{min-width:0}
-  .stage>*{min-width:0}
-  .dlg h2{padding-right:30px}
-  .xbtn{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:#ff5f57;border:0;padding:0;cursor:pointer;
-        box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25);transition:filter .15s}
-  .xbtn:hover{filter:brightness(1.1)}
-  .xbtn::before,.xbtn::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:1.8px;margin:-.9px 0 0 -5px;border-radius:1px;background:rgba(77,0,0,.85)}
-  .xbtn::before{transform:rotate(45deg)}.xbtn::after{transform:rotate(-45deg)}
-  .hk{font:inherit;color:var(--text);cursor:pointer;white-space:nowrap;transition:.15s}
-  .hk:hover{background:rgba(255,255,255,.3)}
-  .hk.rec{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.45);color:var(--muted)}
-  /* крестик как в macOS: красный кружок 12 px, × только при наведении */
-  .xbtn{top:16px;right:16px;width:12px;height:12px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.3)}
-  .xbtn::before,.xbtn::after{width:7px;height:1.4px;margin:-.7px 0 0 -3.5px;opacity:0;transition:opacity .1s}
-  .xbtn:hover::before,.xbtn:hover::after{opacity:1}
-  .qsel{gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
-  .qslot,.qpitem{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 12px;border-radius:14px;
-        background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:var(--text);min-width:0;transition:.15s}
-  .qslot:hover,.qpitem:hover:not([disabled]){background:rgba(255,255,255,.3)}
-  .qslot svg.i,.qpitem svg.i{width:18px;height:18px}
-  .qname{flex:1;min-width:0;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-  .qplist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:320px;overflow-y:auto}
-  .qpitem.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.45)}
-  .qpitem[disabled]{opacity:.4;cursor:not-allowed}
-  .seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--panel);border:1px solid var(--line);gap:2px}
-  .seg button{all:unset;box-sizing:border-box;cursor:pointer;padding:6px 11px;border-radius:9px;color:var(--muted);font-size:13px;white-space:nowrap;transition:.15s}
-  .seg button:hover{color:var(--text)}
-  .seg button.on{background:rgba(255,255,255,.24);color:var(--text);box-shadow:var(--rim)}
-  .hk.warn{border-color:#ff5f57;box-shadow:0 0 0 2px rgba(255,95,87,.4);color:var(--text)}
-  .modebtn{font:inherit;color:var(--text);cursor:pointer;white-space:nowrap;min-width:114px;text-align:center;transition:.15s}
-  .modebtn:hover{background:rgba(255,255,255,.3)}
-  svg.i{display:block}
-  .btn{align-items:center}
-  #ncIcon{display:grid;place-items:center}
-  .grid{grid-auto-rows:1fr}
-  .card{display:flex;flex-direction:column;min-height:0}
-  .card p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .card .cmd{margin-top:auto;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-  .card.editable{cursor:pointer}
-  .card.editable:hover{background:rgba(255,255,255,.3)}
-  .fw{position:relative}
-  .cnt{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;line-height:1;color:var(--muted);opacity:0;transition:opacity .12s;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .fw input{padding-right:64px}
-  .fw:focus-within .cnt{opacity:1}
-  .cnt.low{color:#ffb4a8}
-  /* строка ввода: высота фиксирована, растёт только вместе с текстом */
-  .composer{align-items:flex-end}
-  .composer textarea,.pform textarea{flex:1;min-width:0;resize:none;overflow-y:auto;scrollbar-width:none;background:var(--panel2);
-        border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);color:var(--text);font:inherit;outline:none;line-height:20px;
-        padding:10px 12px;height:42px;max-height:124px;display:block}
-  .pform textarea{font-size:13px;height:38px;padding:8px 10px;border-radius:12px;line-height:20px}
-  .composer textarea::-webkit-scrollbar,.pform textarea::-webkit-scrollbar{display:none}
-  .composer textarea:focus,.pform textarea:focus{border-color:var(--accent)}
-  .pform{align-items:flex-end}
-  .composer .btn{flex:none;white-space:nowrap;height:42px;overflow-wrap:normal;word-break:keep-all}
-  .composer .btn.send{width:42px;padding:0}
-  .composer #mic{width:42px;padding:0}
-/* ============ Стив: части ============ */
-  .st *{transform-box:fill-box}
-  .st-root{transform-box:view-box}
-  .st-body{transform-box:view-box;transform-origin:64px 104px}
-  .st-eyes{transform-box:view-box}
-  .st-eye{transform-origin:50% 50%;transition:transform .5s steps(3)}
-  .st-leg{transform-origin:50% 0;transition:transform .6s steps(3)}
-  .st-mouth{transform-origin:50% 0;opacity:0}
-  .st-fx{opacity:0}
-  .st-z{opacity:0;transform-origin:50% 100%}
-  .st-sleepy{opacity:0}
-
-  /* постоянное лёгкое покачивание */
-  .st-root{animation:bob 1.8s steps(1,end) infinite}
-  @keyframes bob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-4px)}}
-
-  /* ============ сон ============ */
-  .st-sleep .st-root{animation:breathe 3.2s steps(1,end) infinite}
-  @keyframes breathe{0%,49%{transform:translateY(9px)}50%,100%{transform:translateY(11px)}}
-  .st-sleep .st-body{transform:scaleY(.95)}
-  .st-sleep .st-eye{transform:scaleY(.14)}
-  .st-sleep .st-leg1{transform:rotate(9deg)}.st-sleep .st-leg2{transform:rotate(3deg)}
-  .st-sleep .st-leg3{transform:rotate(-3deg)}.st-sleep .st-leg4{transform:rotate(-9deg)}
-  .st-sleep .st-z{animation:zfloat 3.6s steps(9,end) infinite}
-  .st-sleep .st-z2{animation-delay:1.2s}.st-sleep .st-z3{animation-delay:2.4s}
-  @keyframes zfloat{
-    0%{opacity:0;transform:translate(0,0) scale(.55)}
-    12%{opacity:1}
-    80%{opacity:1}
-    100%{opacity:0;transform:translate(34px,-52px) scale(1.5)}
-  }
-
-  /* ============ моргание ============ */
-  .a-blink .st-eye{animation:blink .28s steps(1,end) 1}
-  @keyframes blink{0%,100%{transform:scaleY(1)}35%,70%{transform:scaleY(.1)}}
-
-  /* ============ взгляд ============ */
-  .a-lookl .st-eyes{animation:lookl 1.8s steps(2,end) 1}
-  @keyframes lookl{0%,100%{transform:translate(0,0)}15%,80%{transform:translate(-7px,0)}}
-  .a-lookr .st-eyes{animation:lookr 1.8s steps(2,end) 1}
-  @keyframes lookr{0%,100%{transform:translate(0,0)}15%,80%{transform:translate(7px,0)}}
-  .a-around .st-eyes{animation:around 3.6s steps(2,end) 1}
-  @keyframes around{
-    0%,100%{transform:translate(0,0)}
-    10%,28%{transform:translate(-7px,0)}
-    38%,56%{transform:translate(7px,0)}
-    66%,84%{transform:translate(0,-6px)}
-  }
-
-  /* ============ прыжок ============ */
-  .a-hop .st-root{animation:hop 1s steps(1,end) 1}
-  .a-hop .st-body{animation:squash 1s steps(1,end) 1}
-  @keyframes hop{0%,100%{transform:translateY(0)}20%{transform:translateY(-10px)}35%{transform:translateY(-22px)}50%{transform:translateY(-10px)}65%,80%{transform:translateY(0)}90%{transform:translateY(-5px)}}
-  @keyframes squash{0%,16%{transform:scale(1,1)}17%,19%{transform:scale(1.1,.88)}20%,64%{transform:scale(.95,1.06)}65%,78%{transform:scale(1.1,.88)}79%,100%{transform:scale(1,1)}}
-
-  /* ============ покачивание ============ */
-  .a-wiggle .st-body{animation:wiggle 1.4s steps(1,end) 1}
-  @keyframes wiggle{0%,100%{transform:rotate(0)}12%,37%,62%,87%{transform:rotate(-5deg)}25%,50%,75%{transform:rotate(5deg)}}
-
-  /* ============ машет ============ */
-  .a-wave .st-leg4{animation:wave 2.2s steps(1,end) 1}
-  .a-wave .st-eye{transform:scaleY(.55)}
-  @keyframes wave{0%,100%{transform:rotate(0)}8%,40%,72%{transform:rotate(-70deg)}24%,56%,88%{transform:rotate(-35deg)}}
-
-  /* ============ зевает ============ */
-  .a-yawn .st-body{animation:yawnbody 2.6s steps(1,end) 1}
-  .a-yawn .st-eye{animation:yawneye 2.6s steps(1,end) 1}
-  .a-yawn .st-mouth{animation:yawnmouth 2.6s steps(1,end) 1}
-  @keyframes yawnbody{0%,100%{transform:scale(1,1)}20%{transform:scale(1,1.03)}35%,60%{transform:scale(1.03,1.08)}75%{transform:scale(1,1.02)}}
-  @keyframes yawneye{0%,100%{transform:scaleY(1)}20%,80%{transform:scaleY(.15)}}
-  @keyframes yawnmouth{0%,18%{opacity:0;transform:scaleY(.3)}20%{opacity:1;transform:scaleY(1.2)}35%,60%{opacity:1;transform:scaleY(3.4)}75%{opacity:1;transform:scaleY(1.2)}85%,100%{opacity:0;transform:scaleY(.3)}}
-
-  /* ============ задумался ============ */
-  .a-think .st-eyes{animation:thinkeyes 2.8s steps(2,end) 1}
-  .a-think .st-body{animation:tilt 2.8s steps(1,end) 1}
-  .a-think .st-dots{opacity:1}
-  .a-think .st-d1{animation:dot 2.8s steps(1,end) 1}
-  .a-think .st-d2{animation:dot2 2.8s steps(1,end) 1}
-  .a-think .st-d3{animation:dot3 2.8s steps(1,end) 1}
-  @keyframes thinkeyes{0%,100%{transform:translate(0,0)}12%,88%{transform:translate(-6px,-7px)}}
-  @keyframes tilt{0%,100%{transform:rotate(0)}12%,88%{transform:rotate(-3deg)}}
-  @keyframes dot{0%,12%{opacity:0}13%,92%{opacity:1}93%,100%{opacity:0}}
-  @keyframes dot2{0%,32%{opacity:0}33%,92%{opacity:1}93%,100%{opacity:0}}
-  @keyframes dot3{0%,52%{opacity:0}53%,92%{opacity:1}93%,100%{opacity:0}}
-  .st-dots{opacity:0}.st-dots rect{opacity:0}
-
-  /* ============ радуется ============ */
-  .a-happy .st-root{animation:hop 1s steps(1,end) 2}
-  .a-happy .st-body{animation:squash 1s steps(1,end) 2}
-  .a-happy .st-eye{transform:scaleY(.3)}
-  .a-happy .st-sparks{opacity:1}
-  .a-happy .st-sp{animation:spark .5s steps(1,end) 6}
-  .a-happy .st-sp2{animation-delay:.12s}.a-happy .st-sp3{animation-delay:.24s}
-  @keyframes spark{0%,100%{opacity:0;transform:scale(.6)}30%,70%{opacity:1;transform:scale(1)}}
-  .st-sparks{opacity:0}.st-sp{transform-origin:50% 50%}
-
-  /* ============ удивился ============ */
-  .a-surprise .st-root{animation:jump 1.8s steps(1,end) 1}
-  .a-surprise .st-eye{transform:scale(1.35)}
-  .a-surprise .st-bang{opacity:1;animation:bang 1.8s steps(1,end) 1}
-  .a-surprise .st-leg1{transform:rotate(-8deg)}.a-surprise .st-leg4{transform:rotate(8deg)}
-  @keyframes jump{0%,100%{transform:translateY(0)}6%{transform:translateY(-12px)}25%{transform:translateY(-4px)}40%,90%{transform:translateY(0)}}
-  @keyframes bang{0%{opacity:0}5%,85%{opacity:1}100%{opacity:0}}
-  .st-bang{opacity:0}
-
-  /* ============ танцует ============ */
-  .a-dance .st-root{animation:dance 0.8s steps(1,end) 4}
-  .a-dance .st-body{animation:sway 0.8s steps(1,end) 4}
-  .a-dance .st-leg1,.a-dance .st-leg3{animation:legA .8s steps(1,end) 4}
-  .a-dance .st-leg2,.a-dance .st-leg4{animation:legB .8s steps(1,end) 4}
-  .a-dance .st-notes{opacity:1}
-  .a-dance .st-n1{animation:note 1.6s steps(8,end) 2}
-  .a-dance .st-n2{animation:note 1.6s steps(8,end) 2 .8s}
-  @keyframes dance{0%,100%{transform:translateY(0)}25%,75%{transform:translateY(-8px)}50%{transform:translateY(0)}}
-  @keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
-  @keyframes legA{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-14deg)}}
-  @keyframes legB{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
-  @keyframes note{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translate(16px,-44px)}}
-  .st-notes{opacity:0}.st-note{opacity:0}
-
-  /* ============ потягивается (пробуждение) ============ */
-  .a-stretch .st-body{animation:stretch 2.2s steps(1,end) 1}
-  .a-stretch .st-mouth{animation:smallyawn 2.2s steps(1,end) 1}
-  .a-stretch .st-leg1{animation:legspread 2.2s steps(1,end) 1}
-  .a-stretch .st-leg4{animation:legspread2 2.2s steps(1,end) 1}
-  @keyframes stretch{0%,100%{transform:scale(1,1)}10%,45%{transform:scale(.9,1.16)}55%{transform:scale(1.06,.96)}70%{transform:scale(1,1)}}
-  @keyframes smallyawn{0%,40%{opacity:0;transform:scaleY(.3)}45%,65%{opacity:1;transform:scaleY(2.2)}70%,100%{opacity:0}}
-  @keyframes legspread{0%,100%{transform:rotate(0)}12%,45%{transform:rotate(-16deg)}}
-  @keyframes legspread2{0%,100%{transform:rotate(0)}12%,45%{transform:rotate(16deg)}}
-
-  .st-zz{transform:scale(1.7);transform-origin:0 100%}
-
-  /* состояния Стива: слушает, выполняет, говорит; держатся, пока состояние активно */
-  .st.loop *{animation-iteration-count:infinite !important}
-  .a-listen .st-eye{transform:scale(1.2)}
-  .a-listen .st-body{animation:listen 1.6s steps(1,end) infinite}
-  @keyframes listen{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
-  .a-work .st-eye{transform:scaleY(.6)}
-  .a-work .st-leg1,.a-work .st-leg3{animation:legA .4s steps(1,end) infinite}
-  .a-work .st-leg2,.a-work .st-leg4{animation:legB .4s steps(1,end) infinite}
-  .a-work .st-root{animation:workbob .4s steps(1,end) infinite}
-  @keyframes workbob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-3px)}}
-  .a-talk .st-mouth{opacity:1;animation:talk .36s steps(1,end) infinite}
-  @keyframes talk{0%,100%{transform:scaleY(1.2)}50%{transform:scaleY(3)}}
-  .st-sleep .st-mouth{opacity:0}
-  /* размеры Стива в разных местах */
-  .orb .st,.pop .orb .st{width:100%;height:100%;display:block;overflow:visible}
-  .trayico{display:inline-flex;align-items:center}
-  .trayico .st{width:18px;height:21px;display:block;overflow:hidden}
-  .st.tiny .st-zz{transform:scale(3.4)}
-  .msg .tool{white-space:normal}
-  .hide-tools .msg .tool{display:none}
-  /* ползунок в стиле Liquid Glass */
-  input[type=range]{-webkit-appearance:none;appearance:none;--p:60%;width:150px;height:28px;background:transparent;outline:none;cursor:pointer;margin:0}
-  input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:999px;
-    background:linear-gradient(90deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) var(--p),rgba(255,255,255,.14) var(--p),rgba(255,255,255,.14) 100%);
-    border:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 2px rgba(0,0,0,.3),0 0 0 .5px rgba(255,255,255,.08)}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:20px;margin-top:-6px;border-radius:999px;
-    background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(235,240,255,.7));border:1px solid rgba(255,255,255,.9);
-    box-shadow:0 3px 10px rgba(10,10,40,.45),inset 0 1px 0 rgba(255,255,255,1),inset 0 -2px 4px rgba(120,130,200,.25);transition:transform .12s}
-  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.08)}
-  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(143,169,255,.6),0 3px 10px rgba(10,10,40,.45)}
-  input[type=range]::-moz-range-track{height:10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
-  input[type=range]::-moz-range-progress{height:10px;border-radius:999px;background:rgba(255,255,255,.62)}
-  input[type=range]::-moz-range-thumb{width:28px;height:18px;border-radius:999px;background:linear-gradient(180deg,#fff,#e8edff);border:1px solid #fff;box-shadow:0 3px 10px rgba(10,10,40,.45)}
-  .rng b{min-width:44px;font-variant-numeric:tabular-nums}
-  /* боковая панель: только значки, при наведении выезжает с подписями */
-  .body{position:relative;padding-left:64px}
-  .side{position:absolute;left:0;top:0;bottom:0;width:64px;z-index:3;overflow:hidden;transition:width .22s ease,background .22s ease}
-  .side:hover,.side:has(:focus-visible){width:176px;background:rgba(30,34,66,.8);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%)}
-  .side button{padding:9px 15px;white-space:nowrap}
-  .lbl{opacity:0;transition:opacity .15s;white-space:nowrap}
-  .side:hover .lbl,.side:has(:focus-visible) .lbl{opacity:1}
-  /* статус сети: офлайн жёлтый, онлайн зелёный */
-  .offline{padding:9px 19px;font-size:12px;cursor:pointer;color:var(--ok);white-space:nowrap}
-  .offline .dot{flex:none;background:var(--ok);box-shadow:0 0 0 3px rgba(110,231,160,.2)}
-  .offline.off{color:#fbbf24}
-  .offline.off .dot{background:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.2)}
-  /* слоты быстрых команд и список выбора: всегда один размер */
-  .qslot,.qpitem{height:56px;min-height:56px;max-height:56px}
-  .qsel{grid-auto-rows:56px}
-  .qplist{grid-auto-rows:56px}
-  /* ползунок прозрачности в одну строку и в стиле Liquid Glass */
-  .glassrow>div:first-child{flex:1 1 90px;min-width:0}
-  .glassrow .rng{flex:none;gap:10px}
-  .glassrow input[type=range]{width:112px;min-width:0}
-  input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:999px;
-    background:linear-gradient(90deg,rgba(190,208,255,.7) 0,rgba(255,255,255,.78) var(--p),rgba(255,255,255,.13) var(--p),rgba(255,255,255,.13) 100%);
-    border:1px solid rgba(255,255,255,.34);
-    box-shadow:inset 0 2px 3px rgba(10,10,50,.35),inset 0 -1px 0 rgba(255,255,255,.18),0 1px 0 rgba(255,255,255,.12)}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:24px;margin-top:-7px;border-radius:999px;
-    background:linear-gradient(180deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.2) 48%,rgba(255,255,255,.1) 52%,rgba(255,255,255,.32) 100%);
-    backdrop-filter:blur(8px) saturate(180%);-webkit-backdrop-filter:blur(8px) saturate(180%);
-    border:1px solid rgba(255,255,255,.85);
-    box-shadow:0 4px 12px rgba(10,10,50,.4),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -2px 5px rgba(255,255,255,.28),inset 0 0 10px rgba(255,255,255,.18)}
-  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.06)}
-
-  /* ===== Liquid Glass по руководству Apple: без разделителей, управление плавает отдельными плашками над контентом ===== */
-  .titlebar{border-bottom:none;background:transparent}
-  .composer{border-top:none;padding:10px 14px 14px}
-  .row{border-bottom:none}
-  /* боковая панель: отдельная парящая плашка, углы вложены в скругление окна */
-  .body{padding-left:76px}
-  .side{left:10px;top:2px;bottom:10px;width:56px;padding:10px 8px;border-radius:18px;
-        border:1px solid rgba(255,255,255,.32);
-        background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.1),inset 0 0 30px rgba(255,255,255,.05),0 12px 32px rgba(10,10,50,.28);
-        backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%)}
-  .side:hover,.side:has(:focus-visible){width:180px;background:linear-gradient(160deg,rgba(60,66,120,.62),rgba(40,44,92,.5))}
-  .side button{padding:9px 11px}
-  .offline{padding:9px 16px}
-  /* мягкое растворение контента у краёв вместо линий (scroll edge effect) */
-  .chat{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);
-        mask-image:linear-gradient(to bottom,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);padding-top:18px;padding-bottom:18px}
-  .pad{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 16px,#000 calc(100% - 16px),transparent 100%);
-       mask-image:linear-gradient(to bottom,transparent 0,#000 16px,#000 calc(100% - 16px),transparent 100%);padding-top:22px;padding-bottom:22px}
-  /* строки настроек: отдельные плашки вместо полосок */
-  .pad .row{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.16);
-            border-radius:16px;padding:12px 14px;margin-bottom:8px;
-            box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 22px rgba(255,255,255,.04)}
-  /* поле ввода и кнопки: общий вид стекла с бликом */
-  .composer textarea,.pform textarea,.composer .btn,.qb,.qslot,.qpitem,.kbd,.modebtn,select{
-    background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.07));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 18px rgba(255,255,255,.05)}
-  .composer textarea::placeholder,.pform textarea::placeholder{color:rgba(244,246,255,.82)}
-
-  /* боковая панель: заметное выделение при наведении, плотный фон при раскрытии, мгновенное сворачивание после выбора */
-  .side:hover,.side:has(:focus-visible){background:rgba(26,30,60,.92);backdrop-filter:blur(30px) saturate(170%);-webkit-backdrop-filter:blur(30px) saturate(170%)}
-  .side button{border-radius:14px;transition:background .15s,box-shadow .15s,color .15s}
-  .side button:hover{color:#fff;background:linear-gradient(160deg,rgba(255,255,255,.46),rgba(255,255,255,.2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 0 14px rgba(255,255,255,.2),0 5px 16px rgba(10,10,50,.35)}
-  .side button.on{color:#fff;background:linear-gradient(160deg,rgba(255,255,255,.32),rgba(255,255,255,.12));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 1.5px rgba(255,255,255,.6)}
-  .side button.on:hover{background:linear-gradient(160deg,rgba(255,255,255,.5),rgba(255,255,255,.24))}
-  .side.lock,.side.lock:hover,.side.lock:has(:focus-visible){width:56px;
-    background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
-    backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%)}
-  .side.lock .lbl,.side.lock:hover .lbl{opacity:0}
-  /* свой ползунок: заливка и бегунок строго по центру линии, все края закруглены */
-  #glass{position:absolute;opacity:0;pointer-events:none;width:0;height:0;margin:0}
-  .rng{position:relative}
-  .gs{--f:.6;position:relative;width:112px;height:30px;flex:none;cursor:pointer;touch-action:none;outline:none}
-  .gs::before{content:"";position:absolute;left:0;right:0;top:50%;height:12px;transform:translateY(-50%);border-radius:999px;
-    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.34);box-sizing:border-box;
-    box-shadow:inset 0 2px 3px rgba(10,10,50,.35),inset 0 -1px 0 rgba(255,255,255,.18)}
-  .gs-fill{position:absolute;left:0;top:50%;height:12px;transform:translateY(-50%);border-radius:999px;box-sizing:border-box;
-    width:calc(19px + (100% - 38px) * var(--f));
-    background:linear-gradient(90deg,rgba(190,208,255,.78),rgba(255,255,255,.85));border:1px solid rgba(255,255,255,.4);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
-  .gs-thumb{position:absolute;top:50%;left:calc((100% - 38px) * var(--f));width:38px;height:26px;transform:translateY(-50%);border-radius:999px;box-sizing:border-box;
-    background:linear-gradient(180deg,rgba(255,255,255,.6) 0,rgba(255,255,255,.2) 48%,rgba(255,255,255,.1) 52%,rgba(255,255,255,.34) 100%);
-    backdrop-filter:blur(8px) saturate(180%);-webkit-backdrop-filter:blur(8px) saturate(180%);border:1px solid rgba(255,255,255,.85);
-    box-shadow:0 4px 12px rgba(10,10,50,.4),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -2px 5px rgba(255,255,255,.28),inset 0 0 10px rgba(255,255,255,.18);
-    transition:transform .12s}
-  .gs:active .gs-thumb{transform:translateY(-50%) scale(1.06)}
-  .gs:focus-visible .gs-thumb{box-shadow:0 0 0 3px rgba(143,169,255,.65),0 4px 12px rgba(10,10,50,.4)}
-  /* больше воздуха между пунктами боковой панели */
-  .side{gap:10px}
-  .side button{padding:11px 11px}
-  /* бегунок снова прозрачный; заливка доходит до его левого края и не просвечивает внутри */
-  .gs-fill{width:calc((100% - 38px) * var(--f) + 10px)}
-  /* заливка занимает всю шкалу (0..100%), бегунок стоит серединой на её конце и может выходить за границы */
-  .gs{margin:0 20px}
-  .gs-fill{width:calc(100% * var(--f))}
-  .gs-thumb{left:calc(100% * var(--f) - 19px)}
-  .gs.zero .gs-fill{opacity:0}
-  /* глаза следят за текстом, который печатают */
-  .a-follow .st-eyes{transform:translate(var(--ex,0px),var(--ey,4px));transition:transform .18s steps(3)}
-  .a-follow .st-eye{transform:scale(1.1)}
-  .glassrow .gs{width:96px;margin:0 8px 0 12px}
-  .glassrow>div:first-child{min-width:104px}
-  /* всплывающее окно живёт под значком в меню-баре и вылетает из него */
-  .stage{grid-template-columns:1fr !important}
-  .pop-wrap{position:absolute;z-index:60;width:340px;max-width:calc(100vw - 16px);top:0;left:0;margin:0;
-            opacity:0;pointer-events:none;transform-origin:var(--ox,85%) 0}
-  .pop-wrap .cap{display:none}
-  .pop-wrap.open{opacity:1;pointer-events:auto;animation:popin .42s cubic-bezier(.2,1.25,.32,1) backwards}
-  .pop-wrap.closing{opacity:1;pointer-events:none;animation:popout .2s cubic-bezier(.4,0,1,1) both}
-  @keyframes popin{0%{opacity:0;transform:translateY(-16px) scale(.8)}55%{opacity:1}100%{opacity:1;transform:none}}
-  @keyframes popout{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-12px) scale(.88)}}
-  .tray{transition:background .15s}
-  @media(prefers-reduced-motion:reduce){.pop-wrap.open,.pop-wrap.closing{animation:none}}
-  /* поверх окон: плотнее, чтобы то, что под ним, не мешало читать */
-  .pop-wrap .pop{background:rgba(26,30,60,.88)}
-  /* пузырь сообщения по ширине текста */
-  .chat>.msg,.pchat>.msg{width:fit-content;align-self:flex-start;max-width:min(92%,520px)}
-  .chat>.msg.me,.pchat>.msg.me{align-self:flex-end}
-  .pchat>.msg{max-width:92%}
-  /* всплывающее окно: та же прозрачность Liquid Glass, что у приложения (ползунок в настройках) */
-  .pop-wrap .pop{background:var(--bg)}
-</style>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/glass.css">
+  <link rel="stylesheet" href="styles/controls.css">
+  <link rel="stylesheet" href="styles/window.css">
+  <link rel="stylesheet" href="styles/sidebar.css">
+  <link rel="stylesheet" href="styles/chat.css">
+  <link rel="stylesheet" href="styles/presets.css">
+  <link rel="stylesheet" href="styles/settings.css">
+  <link rel="stylesheet" href="styles/dialogs.css">
+  <link rel="stylesheet" href="styles/popover.css">
+  <link rel="stylesheet" href="styles/steve.css">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute"><defs>
-  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
-  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h-1a2 2 0 1 0 0 4h1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4z"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
-  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
-  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1.5 1.3-2 5-2 5s3.7-.5 5-2M14 4c3-1 6-1 6-1s0 3-1 6l-6 6-4-4zM9 12l-3-1 2-3 3 .5M12 15l1 3 3-2-.5-3"/><circle cx="15" cy="9" r="1"/></symbol>
-  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></symbol>
-  <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></symbol>
-  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
-  <symbol id="i-bat" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2M5.5 10.5v3M9 10.5v3M12.5 10.5v3"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r=".6"/><path d="M3 3l18 18"/></symbol>
-  <symbol id="i-stopwatch" viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 10v4l2.5 1.5M9.5 2.5h5M18.5 6.5l1.5-1.5"/></symbol>
-  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect x="7.5" y="13" width="4" height="3.5" rx="1"/></symbol>
-  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
-  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19zM14 7l3 3"/></symbol>
-  <!-- Lucide icons, лицензия ISC: https://lucide.dev -->
-  <symbol id="l-alarm-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" /> <path d="M12 9v4l2 2" /> <path d="M5 3 2 6" /> <path d="m22 6-3-3" /> <path d="M6.38 18.7 4 21" /> <path d="M17.64 18.67 20 21" /></symbol>
-  <symbol id="l-battery-charging" viewBox="0 0 24 24"><path d="m11 7-3 5h4l-3 5" /> <path d="M14.856 6H16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.935" /> <path d="M22 14v-4" /> <path d="M5.14 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2.936" /></symbol>
-  <symbol id="l-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0" /> <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></symbol>
-  <symbol id="l-bluetooth" viewBox="0 0 24 24"><path d="m7 7 10 10-5 5V2l5 5L7 17" /></symbol>
-  <symbol id="l-book-open" viewBox="0 0 24 24"><path d="M12 5v16" /> <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></symbol>
-  <symbol id="l-bookmark" viewBox="0 0 24 24"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" /></symbol>
-  <symbol id="l-calculator" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2" /> <line x1="8" x2="16" y1="6" y2="6" /> <line x1="16" x2="16" y1="14" y2="18" /> <path d="M16 10h.01" /> <path d="M12 10h.01" /> <path d="M8 10h.01" /> <path d="M12 14h.01" /> <path d="M8 14h.01" /> <path d="M12 18h.01" /> <path d="M8 18h.01" /></symbol>
-  <symbol id="l-camera" viewBox="0 0 24 24"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" /> <circle cx="12" cy="13" r="3" /></symbol>
-  <symbol id="l-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" /> <circle cx="7" cy="17" r="2" /> <path d="M9 17h6" /> <circle cx="17" cy="17" r="2" /></symbol>
-  <symbol id="l-clapperboard" viewBox="0 0 24 24"><path d="m12.296 3.464 3.02 3.956" /> <path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" /> <path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> <path d="m6.18 5.276 3.1 3.899" /></symbol>
-  <symbol id="l-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /></symbol>
-  <symbol id="l-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6" /> <path d="m8 6-6 6 6 6" /></symbol>
-  <symbol id="l-coffee" viewBox="0 0 24 24"><path d="M10 2v2" /> <path d="M14 2v2" /> <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" /> <path d="M6 2v2" /></symbol>
-  <symbol id="l-cpu" viewBox="0 0 24 24"><path d="M12 20v2" /> <path d="M12 2v2" /> <path d="M17 20v2" /> <path d="M17 2v2" /> <path d="M2 12h2" /> <path d="M2 17h2" /> <path d="M2 7h2" /> <path d="M20 12h2" /> <path d="M20 17h2" /> <path d="M20 7h2" /> <path d="M7 20v2" /> <path d="M7 2v2" /> <rect x="4" y="4" width="16" height="16" rx="2" /> <rect x="8" y="8" width="8" height="8" rx="1" /></symbol>
-  <symbol id="l-credit-card" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2" /> <line x1="2" x2="22" y1="10" y2="10" /> <path d="M6 14h2" /></symbol>
-  <symbol id="l-download" viewBox="0 0 24 24"><path d="M12 15V3" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <path d="m7 10 5 5 5-5" /></symbol>
-  <symbol id="l-dumbbell" viewBox="0 0 24 24"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z" /> <path d="m2.5 21.5 1.4-1.4" /> <path d="m20.1 3.9 1.4-1.4" /> <path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z" /> <path d="m9.6 14.4 4.8-4.8" /></symbol>
-  <symbol id="l-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 9H8" /> <path d="M16 13H8" /> <path d="M16 17H8" /></symbol>
-  <symbol id="l-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528" /></symbol>
-  <symbol id="l-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></symbol>
-  <symbol id="l-gamepad-2" viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11" /> <line x1="8" x2="8" y1="9" y2="13" /> <line x1="15" x2="15.01" y1="12" y2="12" /> <line x1="18" x2="18.01" y1="10" y2="10" /> <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></symbol>
-  <symbol id="l-graduation-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /> <path d="M22 10v6" /> <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></symbol>
-  <symbol id="l-headphones" viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></symbol>
-  <symbol id="l-heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></symbol>
-  <symbol id="l-hourglass" viewBox="0 0 24 24"><path d="M5 22h14" /> <path d="M5 2h14" /> <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /> <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></symbol>
-  <symbol id="l-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
-  <symbol id="l-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /> <circle cx="9" cy="9" r="2" /> <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
-  <symbol id="l-key" viewBox="0 0 24 24"><path d="m2 21 9.6-9.6" /> <path d="m7.5 15.5 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19" /> <circle cx="15.5" cy="7.5" r="5.5" /></symbol>
-  <symbol id="l-languages" viewBox="0 0 24 24"><path d="m5 8 6 6" /> <path d="m4 14 6-6 2-3" /> <path d="M2 5h12" /> <path d="M7 2h1" /> <path d="m22 22-5-10-5 10" /> <path d="M14 18h6" /></symbol>
-  <symbol id="l-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z" /> <path d="M20.054 15.987H3.946" /></symbol>
-  <symbol id="l-lightbulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" /> <path d="M9 18h6" /> <path d="M10 22h4" /></symbol>
-  <symbol id="l-list-checks" viewBox="0 0 24 24"><path d="M13 5h8" /> <path d="M13 12h8" /> <path d="M13 19h8" /> <path d="m3 17 2 2 4-4" /> <path d="m3 7 2 2 4-4" /></symbol>
-  <symbol id="l-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /> <path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
-  <symbol id="l-mail" viewBox="0 0 24 24"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /> <rect x="2" y="4" width="20" height="16" rx="2" /></symbol>
-  <symbol id="l-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></symbol>
-  <symbol id="l-message-circle" viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></symbol>
-  <symbol id="l-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2" /> <line x1="8" x2="16" y1="21" y2="21" /> <line x1="12" x2="12" y1="17" y2="21" /></symbol>
-  <symbol id="l-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" /></symbol>
-  <symbol id="l-music" viewBox="0 0 24 24"><path d="M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19" /> <circle cx="18" cy="16" r="3" /> <circle cx="6" cy="19" r="3" /></symbol>
-  <symbol id="l-pause" viewBox="0 0 24 24"><rect x="14" y="3" width="5" height="18" rx="1" /> <rect x="5" y="3" width="5" height="18" rx="1" /></symbol>
-  <symbol id="l-phone" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" /></symbol>
-  <symbol id="l-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /></symbol>
-  <symbol id="l-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></symbol>
-  <symbol id="l-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4" /> <path d="M3 11v-1a4 4 0 0 1 4-4h14" /> <path d="m7 22-4-4 4-4" /> <path d="M21 13v1a4 4 0 0 1-4 4H3" /></symbol>
-  <symbol id="l-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></symbol>
-  <symbol id="l-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /></symbol>
-  <symbol id="l-shopping-cart" viewBox="0 0 24 24"><path d="m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18" /> <path d="M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25" /> <circle cx="18" cy="20" r="2" /> <circle cx="8" cy="20" r="2" /></symbol>
-  <symbol id="l-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path d="M20 2v4" /> <path d="M22 4h-4" /> <circle cx="4" cy="20" r="2" /></symbol>
-  <symbol id="l-star" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" /></symbol>
-  <symbol id="l-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /></symbol>
-  <symbol id="l-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
-  <symbol id="l-terminal" viewBox="0 0 24 24"><path d="M12 19h8" /> <path d="m4 17 6-6-6-6" /></symbol>
-  <symbol id="l-trash-2" viewBox="0 0 24 24"><path d="M10 11v6" /> <path d="M14 11v6" /> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /> <path d="M3 6h18" /> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></symbol>
-  <symbol id="l-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></symbol>
-  <symbol id="l-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></symbol>
-  <symbol id="l-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /> <path d="M7 2v20" /> <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></symbol>
-  <symbol id="l-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /> <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></symbol>
-  <symbol id="l-zap" viewBox="0 0 24 24"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></symbol>
-</defs></svg>
-<svg width="0" height="0" style="position:absolute"><symbol id="oct" viewBox="0 0 128 128" shape-rendering="crispEdges">
-  <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
-  <rect x="28" y="72" width="12" height="24"/><rect x="48" y="72" width="12" height="32"/>
-  <rect x="68" y="72" width="12" height="26"/><rect x="88" y="72" width="12" height="28"/></g>
-  <g fill="#1F1F1F" class="eye"><rect x="46" y="50" width="8" height="12"/><rect x="74" y="50" width="8" height="12"/></g>
-  <rect class="mouth" x="58" y="64" width="12" height="4" fill="#1F1F1F" style="transform-origin:64px 66px"/>
-</symbol></svg>
+  <!-- Меню-бар macOS со значком Стива -->
+  <header class="menubar">
+    <span class="menubar-item"><svg class="icon" data-icon="wifi"></svg> выкл</span>
+    <span class="menubar-item"><svg class="icon" data-icon="bat"></svg> 87%</span>
+    <button class="tray-button" id="tray-button" type="button" title="Стив" aria-label="Стив: открыть всплывающее окно">
+      <span id="tray-icon"></span>
+    </button>
+    <span class="menubar-item">Вс 15 ноя 16:40</span>
+  </header>
 
-<p class="note"><b>Макет приложения «Стив»</b> — кликабельный, без реальной логики. Нажми на Стива, чтобы увидеть состояния
-(слушает → думает → отвечает), нажми на значок Стива в меню-баре, чтобы увидеть, как вылетает окно. Напиши, что менять — цвета, структуру, экраны.</p>
-
-<div class="menubar">
-  <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-wifi"/></svg> выкл</span>
-  <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-bat"/></svg> 87%</span>
-  <span class="tray" id="tray" title="Стив"><span class="trayico" id="trayico"></span></span>
-  <span>Вс 15 ноя 16:40</span>
-</div>
-
-<div class="stage">
-  <!-- ОКНО -->
-  <div class="win">
-    <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="t">Стив</span></div>
-    <div class="body">
-      <nav class="side">
-        <button class="on" data-v="chat"><svg class="i"><use href="#i-chat"/></svg><span class="lbl">Диалог</span></button>
-        <button data-v="skills"><svg class="i"><use href="#i-puzzle"/></svg><span class="lbl">Пресеты</span></button>
-        <button data-v="settings"><svg class="i"><use href="#i-gear"/></svg><span class="lbl">Настройки</span></button>
-        <div class="sp"></div>
-        <div class="offline off" id="net" title="Нажми, чтобы переключить (для макета)"><span class="dot"></span><span class="lbl">Работает офлайн</span></div>
-      </nav>
-
-      <!-- Диалог -->
-      <section class="view on" id="v-chat">
-        <div class="orbwrap">
-          <div class="orb" id="orb" title="Нажми, чтобы говорить"></div>
-          <div class="state" id="state">Готов</div>
+  <main class="desktop" id="desktop">
+    <!-- Окно приложения -->
+    <section class="window glass glass-specular" id="window" aria-label="Стив">
+      <header class="titlebar" id="titlebar">
+        <div class="traffic">
+          <button class="traffic-button traffic-button--close" data-action="close" type="button" aria-label="Закрыть"></button>
+          <button class="traffic-button traffic-button--minimize" data-action="minimize" type="button" aria-label="Свернуть"></button>
+          <button class="traffic-button traffic-button--zoom" data-action="zoom" type="button" aria-label="На весь экран"></button>
         </div>
-        <div class="chat" id="chat">
-          <div class="msg">Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.</div>
-        </div>
-        <form class="composer" id="form">
-          <textarea id="inp" rows="1" placeholder="Или напиши сообщение…" autocomplete="off"></textarea>
-          <button class="btn ghost send" type="submit" title="Отправить (Enter)" aria-label="Отправить"><svg class="i" viewBox="0 0 24 24"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button>
-          <button class="btn ghost" type="button" id="mic"><svg class="i"><use href="#i-mic"/></svg></button>
-        </form>
-      </section>
+        <h1 class="titlebar-title">Стив</h1>
+      </header>
 
-      <!-- Навыки -->
-      <section class="view" id="v-skills"><div class="pad">
-        <h2>Пресеты</h2><p class="sub">Команды быстрого доступа</p>
-        <div class="grid" id="skillGrid"></div>
-      </div></section>
+      <div class="window-body">
+        <nav class="sidebar" id="sidebar" aria-label="Разделы">
+          <button class="sidebar-item is-active" type="button" data-view="chat">
+            <svg class="icon" data-icon="chat"></svg><span class="sidebar-label">Диалог</span>
+          </button>
+          <button class="sidebar-item" type="button" data-view="presets">
+            <svg class="icon" data-icon="puzzle"></svg><span class="sidebar-label">Пресеты</span>
+          </button>
+          <button class="sidebar-item" type="button" data-view="settings">
+            <svg class="icon" data-icon="gear"></svg><span class="sidebar-label">Настройки</span>
+          </button>
+          <div class="sidebar-spacer"></div>
+          <div class="net-status is-offline" id="net-status" title="Нажми, чтобы переключить (для макета)">
+            <span class="net-dot"></span><span class="sidebar-label">Работает офлайн</span>
+          </div>
+        </nav>
 
-      <!-- Настройки -->
-      <section class="view" id="v-settings"><div class="pad">
-        <h2>Настройки</h2>
-        <div class="row glassrow" style="flex-wrap:nowrap"><div>Прозрачность Liquid Glass</div>
-          <div class="rng"><input type="range" id="glass" min="0" max="100" value="60" tabindex="-1" aria-hidden="true"><div class="gs" id="gs" role="slider" tabindex="0" aria-label="Прозрачность Liquid Glass" aria-valuemin="0" aria-valuemax="100"><div class="gs-fill"></div><div class="gs-thumb"></div></div><b id="glassV">60%</b></div></div>
-        <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
-          <div class="qsel" id="qsSel"></div></div>
-        <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
-        <div class="row" style="flex-wrap:wrap"><div style="min-width:min(100%,130px)">Сочетание для запуска</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="kbd modebtn" id="hkMode" type="button" data-m="press" title="Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание">Нажатие</button><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
-        <div class="row"><div>Голос Стива</div>
-          <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
-        <div class="row"><div>Цензура</div><div class="sw on" id="censor"></div></div>
-        <div class="row"><div>Отображение команд<small>Выполненные команды отображаются в сообщениях.</small></div><div class="sw on" id="showCmds"></div></div>
-        <div class="row"><div>Озвучивать ответы</div><div class="sw on"></div></div>
-        <div class="row"><div>Запускать при входе в систему</div><div class="sw"></div></div>
-        <div class="row"><div>Слушать постоянно<small>Ждать слово активации в фоне</small></div><div class="sw on"></div></div>
-      </div></section>
-    </div>
-  
-    <div class="modal" id="ww"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
-      <h2>Слово активации</h2>
-      <p class="sub" style="margin-bottom:6px">Напиши фразу и произнеси её 3 раза обычным голосом. Стив запомнит твой голос и будет реже ошибаться.</p>
-      <input class="field" id="wwPhrase" value="Привет, Стив" maxlength="30">
-      <div class="say"><span class="hint" id="wwHint">Образец 1 из 3 — нажми «Записать» и произнеси:</span>
-        <big id="wwBig">«Привет, Стив»</big>
-        <div class="wave" id="wave"></div></div>
-      <div class="samples"><div class="cur" id="s0">1 · ожидает</div><div id="s1">2 · ожидает</div><div id="s2">3 · ожидает</div></div>
-      <p class="hint" style="margin-bottom:12px">Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
-      <div class="acts"><button class="btn rec-btn" id="wwRec"><span class="rdot"></span> Записать</button>
-        <button class="btn" id="wwSave" disabled>Сохранить</button></div>
-    </div></div>
+        <!-- Диалог -->
+        <section class="view is-active" id="view-chat">
+          <div class="hero">
+            <div class="orb" id="orb-main" title="Нажми, чтобы говорить"></div>
+            <div class="status-label" id="status-main">Готов</div>
+          </div>
+          <div class="messages scroll-y" id="messages-main"></div>
+          <form class="composer" id="composer-form">
+            <textarea class="composer-input" id="composer-input" rows="1" placeholder="Или напиши сообщение…" autocomplete="off"></textarea>
+            <button class="btn btn--glass btn--square" type="submit" title="Отправить (Enter)" aria-label="Отправить">
+              <svg class="icon" data-icon="send"></svg>
+            </button>
+            <button class="btn btn--glass btn--square" type="button" id="mic-button" title="Сказать голосом" aria-label="Сказать голосом">
+              <svg class="icon" data-icon="mic"></svg>
+            </button>
+          </form>
+        </section>
 
-    <div class="modal" id="ip" style="z-index:7"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
-      <h2>Иконка пресета</h2>
-      <p class="sub" style="margin-bottom:10px">Выбери значок, который будет рядом с названием.</p>
-      <div class="ipgrid" id="ipGrid"></div>
-    </div></div>
+        <!-- Пресеты -->
+        <section class="view" id="view-presets">
+          <div class="page scroll-y">
+            <h2 class="page-title">Пресеты</h2>
+            <p class="page-subtitle">Команды быстрого доступа</p>
+            <div class="preset-grid" id="preset-grid"></div>
+          </div>
+        </section>
 
-    <div class="modal" id="nc" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
-      <h2 style="margin-bottom:16px">Новая команда</h2>
-      
-      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:24px">
-        <button class="ic btn ghost" id="ncIcon" type="button" title="Выбрать иконку" style="width:44px;height:44px;min-width:44px;flex:none;aspect-ratio:1/1;padding:0;border-radius:14px"></button>
-        <div class="fw" style="flex:1;min-width:0"><input class="field" id="ncName" maxlength="30" placeholder="Название" style="margin:0;font-size:14px;height:44px"><span class="cnt" data-for="ncName"></span></div>
+        <!-- Настройки -->
+        <section class="view" id="view-settings">
+          <div class="page scroll-y">
+            <h2 class="page-title">Настройки</h2>
+
+            <div class="setting setting--inline">
+              <div class="setting-label">Прозрачность Liquid Glass</div>
+              <div class="setting-controls">
+                <div class="slider" id="glass-slider" role="slider" tabindex="0" aria-label="Прозрачность Liquid Glass" aria-valuemin="0" aria-valuemax="100">
+                  <div class="slider-track"></div><div class="slider-fill"></div><div class="slider-thumb"></div>
+                </div>
+                <b class="slider-value" id="glass-value">60%</b>
+              </div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">
+                Быстрые команды
+                <span class="setting-hint">4 значка рядом со Стивом во всплывающем окне</span>
+              </div>
+              <div class="quick-grid" id="quick-grid"></div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">Слово активации</div>
+              <div class="setting-controls">
+                <span class="chip" id="wake-phrase">«Привет, Стив»</span>
+                <button class="btn btn--glass btn--square" id="wake-edit" type="button" title="Изменить фразу и записать голос" aria-label="Изменить слово активации">
+                  <svg class="icon" data-icon="pencil"></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">Сочетание для запуска</div>
+              <div class="setting-controls">
+                <button class="chip chip--fixed" id="hotkey-mode" type="button" data-mode="press"></button>
+                <button class="chip" id="hotkey-combo" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)"></button>
+              </div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">
+                Голос Стива
+                <span class="setting-hint" id="voice-note" hidden></span>
+              </div>
+              <select class="select" id="voice-select" aria-label="Голос Стива"></select>
+              <input type="file" id="voice-file" accept="audio/*" hidden>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">Цензура</div>
+              <button class="switch" type="button" role="switch" data-setting="censorship" aria-label="Цензура"></button>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">
+                Отображение команд
+                <span class="setting-hint">Выполненные команды отображаются в сообщениях.</span>
+              </div>
+              <button class="switch" type="button" role="switch" data-setting="showCommands" aria-label="Отображение команд"></button>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">Озвучивать ответы</div>
+              <button class="switch" type="button" role="switch" data-setting="speak" aria-label="Озвучивать ответы"></button>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">Запускать при входе в систему</div>
+              <button class="switch" type="button" role="switch" data-setting="autostart" aria-label="Запускать при входе в систему"></button>
+            </div>
+
+            <div class="setting">
+              <div class="setting-label">
+                Слушать постоянно
+                <span class="setting-hint">Ждать слово активации в фоне</span>
+              </div>
+              <button class="switch" type="button" role="switch" data-setting="listenAlways" aria-label="Слушать постоянно"></button>
+            </div>
+          </div>
+        </section>
       </div>
-      <div class="fw" style="margin-bottom:24px"><input class="field" id="ncDesc" maxlength="60" placeholder="Описание" style="margin:0;font-size:14px"><span class="cnt" data-for="ncDesc"></span></div>
-      <div class="fw" style="margin-bottom:28px"><input class="field" id="ncCmd" maxlength="40" placeholder="Фраза быстрой активации" style="margin:0;font-size:14px"><span class="cnt" data-for="ncCmd"></span></div>
-      <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
-    </div></div>
 
-    <div class="modal" id="qp" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
-      <h2>Быстрая команда</h2>
-      <p class="sub" id="qpSub" style="margin-bottom:12px">Выбери команду для кнопки.</p>
-      <div class="qplist" id="qpList"></div>
-    </div></div>
-</div>
+      <!-- Диалог: слово активации -->
+      <div class="modal" id="dialog-wake">
+        <div class="dialog" role="dialog" aria-labelledby="wake-title">
+          <button class="close-button" type="button" aria-label="Закрыть"></button>
+          <h2 class="dialog-title" id="wake-title">Слово активации</h2>
+          <p class="dialog-text">Напиши фразу и произнеси её 3 раза обычным голосом. Стив запомнит твой голос и будет реже ошибаться.</p>
+          <div class="field-wrap" style="margin-bottom: 14px">
+            <input class="field field--large" id="wake-input" value="Привет, Стив" maxlength="30" aria-label="Фраза">
+          </div>
+          <div class="sample-prompt">
+            <span class="sample-hint" id="wake-hint"></span>
+            <span class="sample-phrase" id="wake-big"></span>
+            <div class="wave" id="wake-wave"></div>
+          </div>
+          <div class="samples">
+            <div class="sample is-current">1 · ожидает</div>
+            <div class="sample">2 · ожидает</div>
+            <div class="sample">3 · ожидает</div>
+          </div>
+          <p class="dialog-text sample-hint">Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
+          <div class="dialog-actions">
+            <button class="btn btn--record" id="wake-record" type="button"><span class="rec-dot"></span> Записать</button>
+            <button class="btn" id="wake-save" type="button" disabled>Сохранить</button>
+          </div>
+        </div>
+      </div>
 
-  <!-- ПОПОВЕР ИЗ МЕНЮ-БАРА -->
-  <div class="pop-wrap">
-    <div class="cap">Так выглядит всплывающее окно из меню-бара ↓</div>
-    <div class="pop">
-      <div class="top"><div class="orb" id="orb2"></div>
-        <div class="who"><b>Стив</b><div class="hint" id="state2">Готов</div></div>
-        <div class="qs" id="qs"></div></div>
-      <div class="pchat" id="chat2"></div>
-      <form class="pform" id="form2"><textarea id="inp2" rows="1" placeholder="Сообщение…" autocomplete="off"></textarea></form>
+      <!-- Диалог: своя команда (создание и правка) -->
+      <div class="modal" id="dialog-command" data-layer="command">
+        <div class="dialog" role="dialog" aria-labelledby="command-title">
+          <button class="close-button" type="button" aria-label="Закрыть"></button>
+          <h2 class="dialog-title" id="command-title">Новая команда</h2>
+          <div class="form-row form-gap" style="margin-top: 16px">
+            <button class="glass-control icon-button" id="command-icon" type="button" title="Выбрать иконку" aria-label="Выбрать иконку"></button>
+            <div class="field-wrap">
+              <input class="field" id="command-name" placeholder="Название" autocomplete="off">
+              <span class="counter"></span>
+            </div>
+          </div>
+          <div class="field-wrap form-gap">
+            <input class="field" id="command-description" placeholder="Описание" autocomplete="off">
+            <span class="counter"></span>
+          </div>
+          <div class="field-wrap form-gap--last">
+            <input class="field" id="command-phrase" placeholder="Фраза быстрой активации" autocomplete="off">
+            <span class="counter"></span>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn" id="command-save" type="button" disabled>Создать</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Диалог: выбор иконки -->
+      <div class="modal" id="dialog-icon" data-layer="picker">
+        <div class="dialog" role="dialog" aria-labelledby="icon-title">
+          <button class="close-button" type="button" aria-label="Закрыть"></button>
+          <h2 class="dialog-title" id="icon-title">Иконка пресета</h2>
+          <p class="dialog-text">Выбери значок, который будет рядом с названием.</p>
+          <div class="icon-grid scroll-y" id="icon-grid"></div>
+        </div>
+      </div>
+
+      <!-- Диалог: выбор быстрой команды -->
+      <div class="modal" id="dialog-quick" data-layer="command">
+        <div class="dialog" role="dialog" aria-labelledby="quick-title">
+          <button class="close-button" type="button" aria-label="Закрыть"></button>
+          <h2 class="dialog-title" id="quick-title">Быстрая команда</h2>
+          <p class="dialog-text" id="quick-subtitle"></p>
+          <div class="pick-list scroll-y" id="quick-list"></div>
+        </div>
+      </div>
+<!-- Края и углы для растягивания окна -->
+      <div class="resize-handle" data-edge="n"></div>
+      <div class="resize-handle" data-edge="s"></div>
+      <div class="resize-handle" data-edge="e"></div>
+      <div class="resize-handle" data-edge="w"></div>
+      <div class="resize-handle" data-edge="nw"></div>
+      <div class="resize-handle" data-edge="ne"></div>
+      <div class="resize-handle" data-edge="sw"></div>
+      <div class="resize-handle" data-edge="se"></div>
+    </section>
+
+    <p class="desktop-hint">Макет кликабельный, без реальной логики. Нажми на значок Стива в меню-баре.</p>
+
+    <!-- Dock: отсюда возвращается свёрнутое или закрытое окно -->
+    <nav class="dock glass" aria-label="Dock">
+      <button class="dock-item" id="dock-button" type="button" title="Стив" aria-label="Открыть Стива">
+        <span id="dock-icon"></span>
+      </button>
+    </nav>
+  </main>
+
+  <!-- Всплывающее окно из значка в меню-баре -->
+  <aside class="popover" id="popover" aria-label="Быстрое окно Стива">
+    <div class="popover-panel glass glass-specular">
+      <div class="popover-head">
+        <div class="orb" id="orb-popover" title="Нажми, чтобы говорить"></div>
+        <div class="popover-who">
+          <b class="popover-name">Стив</b>
+          <div class="popover-status" id="status-popover">Готов</div>
+        </div>
+        <div class="quick-buttons" id="quick-buttons"></div>
+      </div>
+      <div class="messages messages--compact scroll-y" id="messages-popover"></div>
+      <form class="compact-form" id="compact-form">
+        <textarea class="composer-input" id="compact-input" rows="1" placeholder="Сообщение…" autocomplete="off"></textarea>
+      </form>
     </div>
-  </div>
-</div>
+  </aside>
 
-<script>
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-// навигация
-$$('.side button').forEach(b=>b.onclick=()=>{
-  $$('.side button').forEach(x=>x.classList.toggle('on',x===b));
-  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));
-});
-$$('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
-
-// демо-ответы
-const demo=[
-  [/спасибо|благодар|thank/i,'да не за что',''],
-  [/пожалуйста/i,'обращайся',''],
-  [/молодец|умница|умничка|супер|отлично|круто|классно|good job|well done/i,'ага, стараюсь',''],
-  [/календар|событи|23 нояб/i,'Добавил в «Календарь» событие «Зал»: 23 ноября, 17:00–19:00.','Calendar.create_event(title="Зал", start="2026-11-23 17:00", end="2026-11-23 19:00")'],
-  [/секундомер|stopwatch/i,'Запустил секундомер в «Часах».','Clock.start_stopwatch()'],
-  [/таймер|timer/i,'Поставил таймер в «Часах». Скажу, когда сработает.','Clock.start_timer(seconds=300)'],
-  [/заметк|запиши|note/i,'Создал заметку в «Заметках».','Notes.create_note(text="…")'],
-  [/safari|открой|open/i,'Открываю Safari.','open_app(name="Safari")'],
-  [/врем|час|time/i,'Сейчас 16:40, воскресенье.','get_time()'],
-  [/громк|тише|громче/i,'громкость 30%','set_volume(percent=30)'],
-  [/батаре|заряд|battery/i,'Заряд 87%, ноутбук не на зарядке.','battery()'],
-];
-function add(text,me,tool){
-  if(!me&&text)text=text[0].toUpperCase()+text.slice(1);
-  const d=document.createElement('div');d.className='msg'+(me?' me':'');d.textContent=text;
-  if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
-  $('#chat').append(d);$('#chat').scrollTop=1e9;const d2=d.cloneNode(true);$('#chat2').append(d2);$('#chat2').scrollTop=1e9;
-}
-const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',working:'Выполняет',speaking:'Выполняет'};
-function setState(s,label){
-  ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
-  $('#state').textContent=PSTAT[s];$('#state2').textContent=PSTAT[s];
-  if(typeof steveState==='function')steveState(s);
-}
-let busy=false;
-const IDLE='Скажи «Привет, Стив» или нажми на Стива';
-function run(q,typed){
-  if(busy)return;busy=true;
-  setState('listening','Слушаю…');
-  setTimeout(()=>{
-    add(q,true);setState('thinking','Думаю…');
-    setTimeout(()=>{
-      const m=demo.find(d=>d[0].test(q))||[0,'Я пока тестовый макет, но в настоящей версии отвечу на это сам, офлайн.',''];
-      const answer=()=>{add(m[1],false,m[2].replace('seconds=300','seconds='+((q.match(/(\d+)\s*мин/)||[0,5])[1]*60)));setState('speaking','Выполняю…');if(JOY.test(q))stPlay('happy');
-        setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на Стива');busy=false},1800)};
-      if(m[2]){setState('working','Выполняю…');setTimeout(answer,900)}else answer();
-    },1100);
-  },typed?0:900);
-}
-$('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';$('#inp').dispatchEvent(new Event('input'));run(v,true)};
-$('#orb2').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';$('#inp2').dispatchEvent(new Event('input'));run(v,true)};
-// пока пользователь печатает, Стив «слушает»
-['#inp','#inp2'].forEach(id=>{const el=$(id);
-  el.addEventListener('input',()=>{if(!busy)setState(el.value.trim()?'listening':'',el.value.trim()?'Слушаю…':IDLE)});
-  el.addEventListener('blur',()=>{if(!busy&&!el.value.trim())setState('',IDLE)})});
-$('#tray').onclick=()=>$('#tray').classList.toggle('on');
-
-// запись слова активации
-const wave=$('#wave');for(let k=0;k<28;k++)wave.append(document.createElement('i'));
-let got=0,recTimer=null;
-function ww_reset(){got=0;for(let k=0;k<3;k++){const e=$('#s'+k);e.className=k?'':'cur';e.textContent=(k+1)+' · ожидает'}
-  $('#wwSave').disabled=true;$('#wwRec').disabled=false;$('#wwHint').textContent='Образец 1 из 3 — нажми «Записать» и произнеси:';$('#wwBig').textContent='«'+$('#wwPhrase').value+'»'}
-$('#wwPhrase').oninput=()=>{ww_reset()};
-$('#wwOpen').onclick=()=>{ww_reset();$('#ww').classList.add('on')};
-$('#wwRec').onclick=()=>{
-  if(recTimer||got>=3)return;
-  wave.classList.add('rec');$('#wwRec').disabled=true;$('#wwHint').textContent='Говори сейчас…';
-  let t=0;recTimer=setInterval(()=>{[...wave.children].forEach(b=>b.style.height=(6+Math.random()*28)+'px');
-    if(++t>22){clearInterval(recTimer);recTimer=null;wave.classList.remove('rec');[...wave.children].forEach(b=>b.style.height='6px');
-      $('#s'+got).className='done';$('#s'+got).textContent=(got+1)+' · готово';got++;
-      if(got<3){$('#s'+got).classList.add('cur');$('#wwRec').disabled=false;$('#wwHint').textContent='Образец '+(got+1)+' из 3 — произнеси ещё раз:'}
-      else{$('#wwSave').disabled=false;$('#wwHint').textContent='Все образцы записаны. Сохрани, чтобы применить.'}}},90)};
-$('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'»';$('#ww').classList.remove('on')};
-
-// прозрачность стекла
-function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#gs').style.setProperty('--f',p/100);$('#gs').classList.toggle('zero',p===0);$('#gs').setAttribute('aria-valuenow',p);$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
-$('#glass').oninput=e=>setGlass(+e.target.value);
-try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
-setGlass(+$('#glass').value);
-
-// быстрые команды
-// быстрые команды берутся из навыков: правка навыка сразу видна в быстрых командах
-function allCmds(){return skills.map((k,i)=>({id:String(i),n:k.n,i:k.i,ph:k.c}))}
-const cmdById=id=>allCmds().find(c=>c.id===id);
-const qic=id=>`<svg class="i"><use href="#${id}"/></svg>`;
-let qsel=['1','2','0','3']; // Таймер и секундомер, Заметки, Приложения, Календарь
-function drawQs(){
-  $('#qs').innerHTML=qsel.map(id=>{const c=cmdById(id);return `<button class="qb" data-id="${id}" title="${c.n}">${qic(c.i)}</button>`}).join('');
-  $$('#qs .qb').forEach(b=>b.onclick=()=>run(cmdById(b.dataset.id).ph));
-  $('#qsSel').innerHTML=qsel.map((id,idx)=>{const c=cmdById(id);return `<button class="qslot" type="button" data-slot="${idx}" title="Сменить команду">${qic(c.i)}<span class="qname">${c.n.replace(/[&<>]/g,'')}</span></button>`}).join('');
-  $$('#qsSel .qslot').forEach(b=>b.onclick=()=>openQP(+b.dataset.slot));
-}
-let qpSlot=0;
-function openQP(slot){
-  qpSlot=slot;
-  $('#qpSub').textContent='Выбери команду для кнопки '+(slot+1)+'. Уже выбранные недоступны.';
-  $('#qpList').innerHTML=allCmds().map(c=>{
-    const mine=qsel[slot]===c.id, taken=qsel.includes(c.id)&&!mine;
-    return `<button class="qpitem${mine?' sel':''}" type="button" data-id="${c.id}"${taken?' disabled title="Уже выбрана"':''}>${qic(c.i)}<span class="qname">${c.n.replace(/[&<>]/g,'')}</span></button>`}).join('');
-  $$('#qpList .qpitem:not([disabled])').forEach(b=>b.onclick=()=>{qsel[qpSlot]=b.dataset.id;drawQs();closeModal($('#qp'))});
-  $('#qp').classList.add('on');
-}
-$('#chat2').append($('#chat .msg').cloneNode(true));
-
-// ---- навыки ----
-const SK_ICONS=['i-globe','i-timer','i-note','i-calendar','i-vol','i-rocket','i-stopwatch','i-bat','i-clock','i-chat','i-mic','i-puzzle',
-  'l-alarm-clock',
-  'l-battery-charging',
-  'l-bell',
-  'l-bluetooth',
-  'l-book-open',
-  'l-bookmark',
-  'l-calculator',
-  'l-camera',
-  'l-car',
-  'l-clapperboard',
-  'l-cloud',
-  'l-code',
-  'l-coffee',
-  'l-cpu',
-  'l-credit-card',
-  'l-download',
-  'l-dumbbell',
-  'l-file-text',
-  'l-flag',
-  'l-folder',
-  'l-gamepad-2',
-  'l-graduation-cap',
-  'l-headphones',
-  'l-heart',
-  'l-hourglass',
-  'l-house',
-  'l-image',
-  'l-key',
-  'l-languages',
-  'l-laptop',
-  'l-lightbulb',
-  'l-list-checks',
-  'l-lock',
-  'l-mail',
-  'l-map-pin',
-  'l-message-circle',
-  'l-monitor',
-  'l-moon',
-  'l-music',
-  'l-pause',
-  'l-phone',
-  'l-plane',
-  'l-play',
-  'l-repeat',
-  'l-search',
-  'l-send',
-  'l-shopping-cart',
-  'l-sparkles',
-  'l-star',
-  'l-sun',
-  'l-tag',
-  'l-terminal',
-  'l-trash-2',
-  'l-user',
-  'l-users',
-  'l-utensils',
-  'l-wallet',
-  'l-zap'];
-let skills=[
-  {n:'Открыть Safari',d:'Открывает Safari на Mac',c:'Открой Safari',i:'i-globe'},
-  {n:'Таймер на 10 минут',d:'Запускает таймер на 10 минут в приложении «Часы»',c:'Таймер на 10 минут',i:'i-timer'},
-  {n:'Новая заметка',d:'Создаёт новую заметку в приложении «Заметки»',c:'Запиши заметку: купить молоко',i:'i-note'},
-  {n:'Событие в календаре',d:'Добавляет событие в приложение «Календарь»',c:'23 ноября с 17 до 19 событие Зал',i:'i-calendar'},
-  {n:'Громкость 30%',d:'Системный звук становится на уровень 30%',c:'Громкость 30%',i:'i-vol'}];
-const esc=t=>t.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-const sv=id=>`<svg class="i"><use href="#${id}"/></svg>`;
-function drawSkills(){
-  $('#skillGrid').innerHTML=skills.map((k,idx)=>`<div class="card editable" data-idx="${idx}"><div class="chead"><div class="ic">${sv(k.i)}</div><h3>${esc(k.n)}</h3></div><p>${esc(k.d)}</p><div class="cmd">«${esc(k.c)}»</div></div>`).join('')+
-  `<div class="card add" id="addSkill"><div class="chead"><div class="ic" style="width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:var(--rim);color:#fff">${sv('i-plus')}</div><h3>Новая команда</h3></div><p>Создайте свою собственную команду для Стива</p></div>`;
-  $$('#skillGrid .card.editable').forEach(c=>c.onclick=()=>openNC(+c.dataset.idx));
-  $('#addSkill').onclick=()=>openNC();
-}
-let ipCb=null;
-function pickIcon(cur,cb){
-  ipCb=cb;
-  $('#ipGrid').innerHTML=SK_ICONS.map(id=>`<button type="button" data-id="${id}" class="${id===cur?'sel':''}">${sv(id)}</button>`).join('');
-  $$('#ipGrid button').forEach(b=>b.onclick=()=>{const f=ipCb;$('#ip').classList.remove('on');f&&f(b.dataset.id)});
-  $('#ip').classList.add('on');
-}
-let ncI='i-puzzle';
-function ncCheck(){$('#ncSave').disabled=!($('#ncName').value.trim()&&$('#ncCmd').value.trim())}
-let ncEdit=null;
-function openNC(idx){
-  ncEdit=(typeof idx==='number')?idx:null;
-  const k=ncEdit!==null?skills[ncEdit]:null;
-  ncI=k?k.i:'i-puzzle';
-  $('#ncIcon').innerHTML=sv(ncI);
-  $('#ncName').value=k?k.n:'';$('#ncDesc').value=k?k.d:'';$('#ncCmd').value=k?k.c:'';
-  $('#nc h2').textContent=k?'Редактирование команды':'Новая команда';
-  $('#ncSave').textContent=k?'Сохранить':'Создать';
-  ncCheck();['ncName','ncDesc','ncCmd'].forEach(updCnt);$('#nc').classList.add('on');
-}
-$('#ncIcon').onclick=()=>pickIcon(ncI,id=>{ncI=id;$('#ncIcon').innerHTML=sv(id)});
-['#ncName','#ncCmd'].forEach(x=>$(x).oninput=ncCheck);
-$('#ncSave').onclick=()=>{
-  const k={n:$('#ncName').value.trim(),d:$('#ncDesc').value.trim()||'Своя команда',c:$('#ncCmd').value.trim(),i:ncI};
-  if(ncEdit!==null)skills[ncEdit]=k;else skills.push(k);
-  drawSkills();drawQs();closeModal($('#nc'));
-};
-drawSkills();
-drawQs();
-
-// закрытие окон: крестик, клик по пустой области, Escape
-function closeModal(m){
-  if(!m.classList.contains('on'))return;
-  m.classList.remove('on');
-  if(m.id==='ww'&&recTimer){clearInterval(recTimer);recTimer=null;wave.classList.remove('rec');[...wave.children].forEach(b=>b.style.height='6px')}
-  if(m.id==='ip')ipCb=null;
-}
-$$('.modal').forEach(m=>{
-  m.addEventListener('mousedown',e=>{if(e.target===m)closeModal(m)});
-  m.querySelector('.xbtn').onclick=()=>closeModal(m);
-});
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Escape')return;
-  const open=$$('.modal.on').sort((a,b)=>(+getComputedStyle(b).zIndex||0)-(+getComputedStyle(a).zIndex||0));
-  if(open.length){e.preventDefault();closeModal(open[0])}
-});
-
-// запись сочетания клавиш: от 1 до 3 клавиш
-const hk=$('#hk');let hkRec=false,hkCur=hk.textContent,hkPeak=[],hkWarnT=null;
-const HK_MAX=3;
-const HK_MODS=[['ctrlKey','⌃'],['altKey','⌥'],['shiftKey','⇧'],['metaKey','⌘']];
-const HK_KEYS={' ':'Пробел',Enter:'Return',Tab:'Tab',Backspace:'⌫',Delete:'⌦',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
-const isMod=k=>['Control','Alt','Shift','Meta'].includes(k);
-const hkMods=e=>HK_MODS.filter(m=>e[m[0]]).map(m=>m[1]);
-function hkKey(e){
-  if(/^Key[A-Z]$/.test(e.code))return e.code.slice(3);
-  if(/^Digit\d$/.test(e.code))return e.code.slice(5);
-  return HK_KEYS[e.key]||(e.key.length===1?e.key.toUpperCase():e.key);
-}
-const HK_PROMPT='Нажми сочетание…';
-function hkStop(){clearTimeout(hkWarnT);hkRec=false;hkPeak=[];hk.classList.remove('rec','warn');hk.textContent=hkCur;hk.blur()}
-function hkWarn(){
-  hk.classList.add('warn');hk.textContent='Максимум '+HK_MAX+' клавиши';
-  clearTimeout(hkWarnT);hkWarnT=setTimeout(()=>{hk.classList.remove('warn');if(hkRec)hk.textContent=HK_PROMPT},1300);
-}
-function hkLive(m){hk.classList.remove('warn');hk.textContent=m.length?m.join(' + ')+' + …':HK_PROMPT}
-hk.onclick=()=>{if(hkRec)return;hkRec=true;hkPeak=[];hk.classList.add('rec');hk.textContent=HK_PROMPT};
-document.addEventListener('keydown',e=>{
-  if(!hkRec)return;
-  e.preventDefault();e.stopPropagation();
-  if(e.key==='Escape'&&!e.repeat){hkStop();return}
-  if(isMod(e.key)){
-    const m=hkMods(e);
-    if(m.length>HK_MAX){hkWarn();return}
-    if(m.length>=hkPeak.length)hkPeak=m;
-    hkLive(m);return;
-  }
-  const parts=[...hkMods(e),hkKey(e)];
-  if(parts.length>HK_MAX){hkWarn();return}
-  hkCur=parts.join(' + ');hkStop();
-},true);
-// одна клавиша-модификатор тоже подходит: нажал, отпустил — сохранилось
-document.addEventListener('keyup',e=>{
-  if(!hkRec||!isMod(e.key))return;
-  const m=hkMods(e);
-  if(m.length===0&&hkPeak.length){hkCur=hkPeak.join(' + ');hkStop();return}
-  hkLive(m);
-},true);
-document.addEventListener('mousedown',e=>{if(hkRec&&e.target!==hk)hkStop()});
-// режим запуска: нажатие или удерживание
-$('#hkMode').onclick=()=>{
-  const b=$('#hkMode'),hold=b.dataset.m==='press';
-  b.dataset.m=hold?'hold':'press';
-  b.textContent=hold?'Удерживание':'Нажатие';
-  b.title=hold?'Стив слушает, пока держишь сочетание. Нажми, чтобы переключить на нажатие'
-              :'Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание';
-};
-
-// счётчики символов в окне команды
-function updCnt(id){
-  const el=$('#'+id),c=document.querySelector('.cnt[data-for="'+id+'"]');
-  const left=el.maxLength-el.value.length;
-  c.textContent=el.value.length+'/'+el.maxLength;
-  c.classList.toggle('low',left<=5);
-}
-['ncName','ncDesc','ncCmd'].forEach(id=>{$('#'+id).addEventListener('input',()=>updCnt(id));updCnt(id)});
-
-// строка ввода: автоподгон высоты по тексту
-[['#inp',42,'#form'],['#inp2',38,'#form2']].forEach(([id,min,form])=>{
-  const el=$(id);
-  const fit=()=>{el.style.height=min+'px';if(!el.value)return;el.style.height=Math.max(min,Math.min(el.scrollHeight+2,124))+'px'};
-  el.addEventListener('input',fit);
-  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$(form).requestSubmit()}});
-});
-
-// ================= Стив: живая анимация везде (меню-бар, всплывающее окно, главное окно) =================
-const Z_PATH='<rect x="0" y="0" width="10" height="2"/><rect x="6" y="2" width="2" height="2"/><rect x="4" y="4" width="2" height="2"/><rect x="2" y="6" width="2" height="2"/><rect x="0" y="8" width="10" height="2"/>';
-const NOTE='<rect x="0" y="8" width="6" height="6"/><rect x="4" y="0" width="2" height="10"/><rect x="4" y="0" width="8" height="2"/>';
-function steveSVG(extra){
-  const zs=[1,2,3].map(n=>`<g transform="translate(92 14)"><g class="st-z st-z${n}" fill="#E8DAFF"><g class="st-zz">${Z_PATH}</g></g></g>`).join('');
-  return `<svg class="st ${extra||''}" viewBox="0 -30 128 150" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-hidden="true">
-  <g class="st-root"><g class="st-body">
-    <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
-      <rect class="st-leg st-leg1" x="28" y="72" width="12" height="24"/><rect class="st-leg st-leg2" x="48" y="72" width="12" height="32"/>
-      <rect class="st-leg st-leg3" x="68" y="72" width="12" height="26"/><rect class="st-leg st-leg4" x="88" y="72" width="12" height="28"/></g>
-    <g class="st-eyes" fill="#1F1F1F"><rect class="st-eye" x="46" y="50" width="8" height="12"/><rect class="st-eye" x="74" y="50" width="8" height="12"/></g>
-    <rect class="st-mouth" x="58" y="64" width="12" height="4" fill="#1F1F1F"/>
-  </g></g>
-  <g class="st-fx" style="opacity:1">${zs}
-    <g class="st-dots" fill="#F4F6FF"><rect class="st-d1" x="100" y="10" width="4" height="4"/><rect class="st-d2" x="108" y="0" width="6" height="6"/><rect class="st-d3" x="118" y="-14" width="10" height="10"/></g>
-    <g class="st-bang" fill="#FFD95A"><rect x="61" y="-22" width="6" height="16"/><rect x="61" y="-2" width="6" height="6"/></g>
-    <g class="st-sparks" fill="#FFF3A8">
-      <g class="st-sp st-sp1"><rect x="16" y="22" width="2" height="8"/><rect x="13" y="25" width="8" height="2"/></g>
-      <g class="st-sp st-sp2"><rect x="110" y="14" width="2" height="8"/><rect x="107" y="17" width="8" height="2"/></g>
-      <g class="st-sp st-sp3"><rect x="114" y="52" width="2" height="6"/><rect x="112" y="54" width="6" height="2"/></g></g>
-    <g class="st-notes" fill="#F4F6FF">
-      <g transform="translate(104 20)"><g class="st-note st-n1">${NOTE}</g></g>
-      <g transform="translate(14 24)"><g class="st-note st-n2">${NOTE}</g></g></g>
-  </g></svg>`;
-}
-$('#orb').innerHTML=steveSVG();
-$('#orb2').innerHTML=steveSVG();
-$('#trayico').innerHTML=steveSVG('tiny');
-
-const STEVES=$$('.st');
-const ANIM_MS={blink:300,lookl:1800,lookr:1800,around:3600,hop:1000,wiggle:1400,wave:2200,yawn:2600,think:2800,happy:2000,surprise:1800,dance:3200,stretch:2200};
-let stAnim=null,stTimer=null,stSleep=false,stLoop=false;
-function stClear(){clearTimeout(stTimer);STEVES.forEach(e=>{[...e.classList].filter(c=>c.startsWith('a-')||c==='loop').forEach(c=>e.classList.remove(c))});stAnim=null;stLoop=false}
-function stPlay(id,loop){
-  stClear();void document.body.offsetHeight;                // перезапуск анимации
-  STEVES.forEach(e=>{e.classList.add('a-'+id);if(loop)e.classList.add('loop')});
-  stAnim=id;stLoop=!!loop;
-  if(!loop)stTimer=setTimeout(()=>{stClear()},(ANIM_MS[id]||1500)+60);
-}
-// состояние Стива -> анимация (держится, пока состояние активно)
-const STATE_ANIM={listening:'listen',thinking:'think',working:'work',speaking:'talk'};
-function steveState(st){
-  if(st){wake(false);stPlay(STATE_ANIM[st],true)}
-  else if(stLoop)stClear();
-}
-// сон после 5 минут без запросов (для проверки: index.html?sleep=10, секунд)
-let SLEEP_AFTER=(+new URLSearchParams(location.search).get('sleep')||300)*1000;
-let lastAct=Date.now();
-function fallAsleep(){stClear();stSleep=true;STEVES.forEach(e=>e.classList.add('st-sleep'))}
-function wake(stretch){
-  lastAct=Date.now();
-  if(!stSleep)return;
-  stSleep=false;STEVES.forEach(e=>e.classList.remove('st-sleep'));
-  if(stretch)stPlay('stretch');
-}
-function activity(){wake(true);lastAct=Date.now()}
-['#orb','#orb2','#tray'].forEach(id=>$(id).addEventListener('click',activity));
-setInterval(()=>{if(!stSleep&&!stLoop&&!busy&&Date.now()-lastAct>SLEEP_AFTER)fallAsleep()},500);
-// моргает чаще остальных анимаций: примерно раз в 3-6 секунд, как живой
-let BLINK_EVERY=3000,BLINK_RANGE=3000;
-(function blinker(){
-  setTimeout(()=>{
-    if(!stSleep&&!stAnim&&!busy&&document.visibilityState==='visible')stPlay('blink');
-    blinker();
-  },BLINK_EVERY+Math.random()*BLINK_RANGE);
-})();
-// анимации в простое: раз в 40 секунд (для проверки: ?idle=5, секунд)
-let IDLE_EVERY=(+new URLSearchParams(location.search).get('idle')||40)*1000;
-// сам в простое: моргает, смотрит по сторонам, подпрыгивает, машет, зевает
-const IDLE_BAG=['lookl','lookl','lookr','lookr','around','around','hop','hop','wiggle','wiggle','wave','yawn'];
-(function director(){
-  setTimeout(()=>{
-    if(!stSleep&&!stAnim&&!busy){
-      const left=SLEEP_AFTER-(Date.now()-lastAct);
-      stPlay(left<60000&&Math.random()<.5?'yawn':IDLE_BAG[Math.floor(Math.random()*IDLE_BAG.length)]);
-    }
-    director();
-  },IDLE_EVERY);
-})();
-
-// отображение выполненных команд в сообщениях
-$('#showCmds').addEventListener('click',()=>document.body.classList.toggle('hide-tools',!$('#showCmds').classList.contains('on')));
-
-// статус сети: офлайн жёлтый, онлайн зелёный
-function setNet(on){
-  const el=$('#net');
-  el.classList.toggle('off',!on);
-  el.querySelector('.lbl').textContent=on?'Работает онлайн':'Работает офлайн';
-}
-$('#net').addEventListener('click',()=>setNet($('#net').classList.contains('off')));
-addEventListener('online',()=>setNet(true));
-addEventListener('offline',()=>setNet(false));
-
-// после выбора пункта панель сразу сворачивается; снова раскрывается, когда курсор уйдёт и вернётся
-const sideEl=$('.side');
-sideEl.addEventListener('click',e=>{if(e.target.closest('button')){sideEl.classList.add('lock');if(document.activeElement)document.activeElement.blur()}});
-sideEl.addEventListener('mouseleave',()=>sideEl.classList.remove('lock'));
-
-// свой ползунок прозрачности: мышь/касание и клавиатура
-(function(){
-  const gs=$('#gs'),inp=$('#glass'),W=38;
-  const set=v=>{v=Math.max(0,Math.min(100,Math.round(v)));inp.value=v;inp.dispatchEvent(new Event('input'))};
-  const fromX=x=>{const r=gs.getBoundingClientRect();return (x-r.left)/r.width*100};
-  gs.addEventListener('pointerdown',e=>{try{gs.setPointerCapture(e.pointerId)}catch(_){}set(fromX(e.clientX));
-    const mv=ev=>set(fromX(ev.clientX)),up=()=>{gs.removeEventListener('pointermove',mv);gs.removeEventListener('pointerup',up)};
-    gs.addEventListener('pointermove',mv);gs.addEventListener('pointerup',up)});
-  gs.addEventListener('keydown',e=>{
-    const v=+inp.value;
-    if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();set(v+5)}
-    else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();set(v-5)}
-    else if(e.key==='Home'){e.preventDefault();set(0)}
-    else if(e.key==='End'){e.preventDefault();set(100)}
-  });
-  setGlass(+inp.value);
-})();
-
-// Стив следит глазами за набираемым текстом: взгляд вниз и вслед за кареткой слева направо
-function followCaret(el){
-  const col=el.value.slice(0,el.selectionStart).split('\n').pop().length;      // позиция каретки в текущей строке
-  const frac=Math.min(1,col/36);
-  const ex=(-6+12*frac).toFixed(1)+'px';
-  STEVES.forEach(e=>{e.style.setProperty('--ex',ex);e.style.setProperty('--ey','4px')});
-}
-['#inp','#inp2'].forEach(id=>{
-  const el=$(id);
-  const upd=()=>{
-    if(!el.value.trim())return;                 // пустое поле: обычное состояние
-    if(stAnim!=='follow')stPlay('follow',true);  // перекрывает общую позу «Слушает»
-    followCaret(el);
-  };
-  el.addEventListener('input',upd);
-  el.addEventListener('keyup',upd);
-  el.addEventListener('click',upd);
-  el.addEventListener('blur',()=>{if(stAnim==='follow'&&!busy)stClear()});
-});
-
-// слова-триггеры радости: только на них Стив радуется
-const JOY=/спасибо|благодар|пожалуйста|молодец|умница|умничка|супер|отлично|круто|классно|thank|good job|well done/i;
-
-// всплывающее окно вылетает из значка Стива в меню-баре
-const popw=$('.pop-wrap'),tray=$('#tray');
-function placePop(){
-  const r=tray.getBoundingClientRect(),w=Math.min(340,innerWidth-16);
-  const left=Math.max(8,Math.min(r.left+r.width/2-w/2,innerWidth-w-8));
-  popw.style.left=(left+scrollX)+'px';popw.style.top=(r.bottom+scrollY+8)+'px';
-  popw.style.setProperty('--ox',(r.left+r.width/2-left)+'px');      // откуда «вылетает»
-}
-let popTimer=null;
-function openPop(){clearTimeout(popTimer);placePop();popw.classList.remove('closing');popw.classList.remove('open');void popw.offsetWidth;popw.classList.add('open');tray.classList.add('on')}
-function closePop(){
-  if(!popw.classList.contains('open'))return;
-  tray.classList.remove('on');popw.classList.remove('open');popw.classList.add('closing');
-  popTimer=setTimeout(()=>popw.classList.remove('closing'),220);
-}
-tray.onclick=()=>{popw.classList.contains('open')?closePop():openPop()};
-document.addEventListener('mousedown',e=>{if(popw.classList.contains('open')&&!popw.contains(e.target)&&!tray.contains(e.target))closePop()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popw.classList.contains('open')&&!document.querySelector('.modal.on')&&!hkRec)closePop()});
-addEventListener('resize',()=>{if(popw.classList.contains('open'))placePop()});
-setTimeout(openPop,600);                                              // первый показ: сразу видно, как он вылетает
-</script>
+  <script src="scripts/dom.js"></script>
+  <script src="scripts/store.js"></script>
+  <script src="scripts/icons.js"></script>
+  <script src="scripts/character.js"></script>
+  <script src="scripts/idle.js"></script>
+  <script src="scripts/dialogs.js"></script>
+  <script src="scripts/settings.js"></script>
+  <script src="scripts/hotkey.js"></script>
+  <script src="scripts/wake.js"></script>
+  <script src="scripts/voice.js"></script>
+  <script src="scripts/assistant.js"></script>
+  <script src="scripts/presets.js"></script>
+  <script src="scripts/chat.js"></script>
+  <script src="scripts/navigation.js"></script>
+  <script src="scripts/windowing.js"></script>
+  <script src="scripts/popover.js"></script>
+  <script src="scripts/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,290 @@
+/* Меню-бар, рабочий стол, окно приложения, его заголовок, края для растягивания и Dock. */
+
+/* ---------- меню-бар ---------- */
+.menubar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  height: var(--menubar-height);
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(20, 22, 40, calc(var(--glass-alpha) * 0.9));
+  box-shadow: var(--rim);
+  font-size: 12px;
+  color: #eef;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+
+.menubar-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tray-button {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  transition: background 0.15s;
+}
+
+.tray-button:hover,
+.tray-button.is-open {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tray-button .character {
+  width: 18px;
+  height: 21px;
+  overflow: hidden;
+}
+
+/* ---------- рабочий стол ---------- */
+.desktop {
+  position: fixed;
+  top: var(--menubar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.desktop-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  max-width: 260px;
+  font-size: 12px;
+  color: rgba(244, 246, 255, 0.7);
+  pointer-events: none;
+}
+
+/* ---------- окно ---------- */
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-window);
+  container: window / inline-size;
+  transition: opacity 0.25s ease, transform 0.25s ease, border-radius 0.2s ease;
+}
+
+.window.is-dragging,
+.window.is-resizing {
+  transition: none;
+  user-select: none;
+}
+
+.window.is-fullscreen {
+  border-radius: 0;
+}
+
+.window.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.94);
+}
+
+/* свёрнутое окно улетает в Dock: смещение и масштаб задаёт скрипт */
+.window.is-minimized {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(var(--to-x, 0), var(--to-y, 0)) scale(0.08);
+}
+
+.titlebar {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  user-select: none;
+}
+
+.titlebar-title {
+  position: absolute;
+  right: 80px;
+  left: 80px;
+  overflow: hidden;
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.traffic {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.traffic-button {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+}
+
+.traffic-button--close {
+  background: var(--danger);
+}
+
+.traffic-button--minimize {
+  background: #febc2e;
+}
+
+.traffic-button--zoom {
+  background: #28c840;
+}
+
+/* значок появляется, когда курсор над группой кнопок, как в macOS */
+.traffic-button::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+}
+
+.traffic:hover .traffic-button::after {
+  opacity: 1;
+}
+
+.traffic-button--close::after {
+  content: '×';
+  font-size: 12px;
+}
+
+.traffic-button--minimize::after {
+  content: '−';
+}
+
+.traffic-button--zoom::after {
+  content: '+';
+}
+
+.window-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding-left: 76px;
+}
+
+/* ---------- края и углы для растягивания ---------- */
+.resize-handle {
+  position: absolute;
+  z-index: 20;
+}
+
+.resize-handle[data-edge='n'],
+.resize-handle[data-edge='s'] {
+  right: 16px;
+  left: 16px;
+  height: 7px;
+  cursor: ns-resize;
+}
+
+.resize-handle[data-edge='e'],
+.resize-handle[data-edge='w'] {
+  top: 16px;
+  bottom: 16px;
+  width: 7px;
+  cursor: ew-resize;
+}
+
+.resize-handle[data-edge='nw'],
+.resize-handle[data-edge='ne'],
+.resize-handle[data-edge='sw'],
+.resize-handle[data-edge='se'] {
+  width: 16px;
+  height: 16px;
+}
+
+.resize-handle[data-edge='n'] { top: 0; }
+.resize-handle[data-edge='s'] { bottom: 0; }
+.resize-handle[data-edge='e'] { right: 0; }
+.resize-handle[data-edge='w'] { left: 0; }
+.resize-handle[data-edge='nw'] { top: 0; left: 0; cursor: nwse-resize; }
+.resize-handle[data-edge='ne'] { top: 0; right: 0; cursor: nesw-resize; }
+.resize-handle[data-edge='sw'] { bottom: 0; left: 0; cursor: nesw-resize; }
+.resize-handle[data-edge='se'] { right: 0; bottom: 0; cursor: nwse-resize; }
+
+.window.is-fullscreen .resize-handle {
+  display: none;
+}
+
+/* ---------- Dock ---------- */
+.dock {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 22px;
+  transform: translateX(-50%);
+}
+
+.dock-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.15s ease;
+}
+
+.dock-item:hover {
+  transform: translateY(-4px) scale(1.08);
+}
+
+.dock-item .character {
+  width: 36px;
+  height: 42px;
+}
+
+.dock-item::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* плавное изменение размера при переходе в полный экран и обратно */
+.window.is-animating {
+  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, border-radius 0.3s ease,
+    opacity 0.25s ease, transform 0.25s ease;
+}

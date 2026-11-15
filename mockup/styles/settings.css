@@ -1,0 +1,103 @@
+/* Экран «Настройки»: каждая настройка — отдельная стеклянная плашка. */
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  min-width: 0;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-plate);
+  background: var(--plate-fill);
+  box-shadow: var(--plate-rim);
+  overflow-wrap: break-word;
+}
+
+.setting--inline {
+  flex-wrap: nowrap;
+}
+
+.setting-label {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.setting-hint {
+  display: block;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.setting-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+/* строка с ползунком не переносится: подпись, ползунок и процент в одну линию */
+.setting--inline .setting-label {
+  flex-basis: 90px;
+  min-width: 104px;
+}
+
+/* быстрые команды: четыре слота 2×2 одного размера */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 56px;
+  gap: 8px;
+  width: 100%;
+}
+
+.slot,
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--control-fill);
+  box-shadow: var(--control-rim);
+  color: var(--text);
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.slot:hover,
+.pick:hover:not(:disabled) {
+  background: var(--hover-fill);
+}
+
+.slot-name {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pick.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(143, 169, 255, 0.45);
+}
+
+.pick:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@container window (max-width: 560px) {
+  .page {
+    padding: 16px 14px;
+  }
+}

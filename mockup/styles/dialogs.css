@@ -1,0 +1,265 @@
+/*
+ * Диалоги поверх окна. Фон за ними размывается, сама панель плотная (прозрачность 10%),
+ * потому что стекло на стекле Apple не рекомендует.
+ * Закрываются крестиком, кликом по пустой области и клавишей Escape.
+ */
+.modal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal[data-layer='command'] { z-index: 6; }
+.modal[data-layer='picker'] { z-index: 7; }
+
+.modal.is-open {
+  display: flex;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 34, 0.32);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.dialog {
+  position: relative;
+  width: 440px;
+  max-width: 92%;
+  max-height: calc(100% - 24px);
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-window);
+  background: rgba(24, 27, 52, 0.9);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.dialog-title {
+  margin-bottom: 4px;
+  padding-right: 30px;
+  font-size: 18px;
+}
+
+.dialog-text {
+  margin-bottom: 14px;
+  color: var(--text-muted);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog-actions .btn {
+  padding: 9px 16px;
+}
+
+/* красный кружок закрытия, как в macOS: × появляется при наведении */
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.3);
+  transition: filter 0.15s;
+}
+
+.close-button:hover {
+  filter: brightness(1.1);
+}
+
+.close-button::before,
+.close-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 1.4px;
+  margin: -0.7px 0 0 -3.5px;
+  border-radius: 1px;
+  background: rgba(77, 0, 0, 0.85);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.close-button::before { transform: rotate(45deg); }
+.close-button::after { transform: rotate(-45deg); }
+
+.close-button:hover::before,
+.close-button:hover::after {
+  opacity: 1;
+}
+
+/* ---------- запись слова активации ---------- */
+.sample-prompt {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  background: var(--fill-1);
+  text-align: center;
+}
+
+.sample-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sample-phrase {
+  display: block;
+  margin: 4px 0 8px;
+  font-size: 20px;
+}
+
+.wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 36px;
+}
+
+.wave i {
+  width: 4px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--text-muted);
+  transition: height 0.08s;
+}
+
+.wave.is-recording i {
+  background: var(--accent-2);
+}
+
+.samples {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sample {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--fill-2);
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.sample.is-current {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.sample.is-done {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+/* ---------- редактирование команды ---------- */
+.form-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.form-row .field-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-gap {
+  margin-bottom: 24px;
+}
+
+.form-gap--last {
+  margin-bottom: 28px;
+}
+
+.icon-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-control);
+  aspect-ratio: 1;
+}
+
+.icon-button .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.form-row .field {
+  height: 44px;
+}
+
+/* ---------- выбор иконки и быстрой команды ---------- */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  max-height: 250px;
+  padding: 2px;
+}
+
+.icon-option {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--fill-2);
+  color: #fff;
+  aspect-ratio: 1;
+}
+
+.icon-option:hover {
+  background: var(--hover-fill);
+}
+
+.icon-option.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(143, 169, 255, 0.5);
+}
+
+.icon-option .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.pick-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 56px;
+  gap: 8px;
+  max-height: 320px;
+}
+
+/* если диалог не помещается в маленькое окно, он прокручивается без полосы */
+.dialog {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.dialog::-webkit-scrollbar {
+  display: none;
+}
