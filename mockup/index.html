@@ -524,20 +524,11 @@ try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catc
 setGlass(+$('#glass').value);
 
 // быстрые команды
-const BASE_CMDS=[
-  {id:'timer',n:'Таймер',i:'i-timer',ph:'Поставь таймер на 5 минут'},
-  {id:'stopwatch',n:'Секундомер',i:'i-stopwatch',ph:'Запусти секундомер'},
-  {id:'note',n:'Заметка',i:'i-note',ph:'Запиши заметку'},
-  {id:'safari',n:'Safari',i:'i-globe',ph:'Открой Safari'},
-  {id:'calendar',n:'Календарь',i:'i-calendar',ph:'23 ноября с 17:00 до 19:00 событие Зал'},
-  {id:'time',n:'Время',i:'i-clock',ph:'Сколько времени?'},
-  {id:'volume',n:'Громкость',i:'i-vol',ph:'Сделай потише'},
-  {id:'battery',n:'Заряд',i:'i-bat',ph:'Сколько заряда?'}];
-// свои команды (созданные через «Новая команда») тоже можно выбрать
-function allCmds(){let extra=[];try{extra=skills.slice(5).map((k,x)=>({id:'c'+(x+5),n:k.n,i:k.i,ph:k.c}))}catch(e){}return BASE_CMDS.concat(extra)}
+// быстрые команды берутся из навыков: правка навыка сразу видна в быстрых командах
+function allCmds(){return skills.map((k,i)=>({id:String(i),n:k.n,i:k.i,ph:k.c}))}
 const cmdById=id=>allCmds().find(c=>c.id===id);
 const qic=id=>`<svg class="i"><use href="#${id}"/></svg>`;
-let qsel=['timer','note','safari','calendar'];
+let qsel=['1','2','0','3']; // Таймер и секундомер, Заметки, Приложения, Календарь
 function drawQs(){
   $('#qs').innerHTML=qsel.map(id=>{const c=cmdById(id);return `<button class="qb" data-id="${id}" title="${c.n}">${qic(c.i)}</button>`}).join('');
   $$('#qs .qb').forEach(b=>b.onclick=()=>run(cmdById(b.dataset.id).ph));
@@ -554,7 +545,6 @@ function openQP(slot){
   $$('#qpList .qpitem:not([disabled])').forEach(b=>b.onclick=()=>{qsel[qpSlot]=b.dataset.id;drawQs();closeModal($('#qp'))});
   $('#qp').classList.add('on');
 }
-drawQs();
 $('#chat2').append($('#chat .msg').cloneNode(true));
 
 // ---- навыки ----
@@ -661,6 +651,7 @@ $('#ncSave').onclick=()=>{
   drawSkills();drawQs();closeModal($('#nc'));
 };
 drawSkills();
+drawQs();
 
 // закрытие окон: крестик, клик по пустой области, Escape
 function closeModal(m){
