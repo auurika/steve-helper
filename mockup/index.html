@@ -155,14 +155,14 @@
   .state{text-align:center;padding:0 12px}
   .side{width:150px}
   .kbd{white-space:nowrap}
-  .stage{grid-template-columns:1fr 340px}
-  .pop .orb{width:48px;height:48px}
+  .stage{grid-template-columns:1fr 270px}
+  .pop .orb{width:60px;height:60px}
   .pop .who{min-width:0}.pop .who b{display:block}
-  .qs{margin-left:auto;display:flex;gap:5px}
-  .qb{all:unset;cursor:pointer;width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
+  .qs{margin-left:auto;display:grid;grid-template-columns:repeat(2,38px);gap:6px}
+  .qb{all:unset;cursor:pointer;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
   .qb:hover{background:rgba(255,255,255,.3)}
-  .qb svg.i{width:15px;height:15px}
-  .pchat{height:168px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
+  .qb svg.i{width:18px;height:18px}
+  .pchat{height:200px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
   .pchat .msg{max-width:92%;font-size:12.5px;padding:6px 10px;border-radius:14px}
   .pform{display:flex;gap:6px}
   .pform input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--text);font:inherit;font-size:13px;outline:none}
@@ -295,7 +295,7 @@
         <div class="who"><b>Стив</b><div class="hint" id="state2">Готов</div></div>
         <div class="qs" id="qs"></div></div>
       <div class="pchat" id="chat2"></div>
-      <form class="pform" id="form2"><input id="inp2" placeholder="Сообщение…" autocomplete="off"><button class="btn" style="padding:0 12px"><svg class="i"><use href="#i-mic"/></svg></button></form>
+      <form class="pform" id="form2"><input id="inp2" placeholder="Сообщение…" autocomplete="off"></form>
     </div>
   </div>
 </div>
@@ -346,6 +346,7 @@ function run(q){
 }
 $('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
 $('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v)};
+$('#orb2').onclick=()=>run('Поставь таймер на 5 минут');
 $('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';run(v)};
 $('#tray').onclick=()=>$('#tray').classList.toggle('on');
 
