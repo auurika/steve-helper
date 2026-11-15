@@ -45,7 +45,7 @@ final class AppModel {
     @ObservationIgnored var openMainWindow: (() -> Void)?
 
     @ObservationIgnored private let parser = CommandParser()
-    @ObservationIgnored private let engine: ChatEngine?
+    @ObservationIgnored private let engine: OllamaEngine?
     @ObservationIgnored private var isCapturingVoice = false
     @ObservationIgnored private var isProcessing = false
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
@@ -63,7 +63,11 @@ final class AppModel {
         } else {
             settings = AppSettings()
         }
-        engine = ProcessInfo.processInfo.environment["STEVE_ENGINE"] == "ollama" ? OllamaEngine() : nil
+        let local = OllamaEngine()
+        engine = ProcessInfo.processInfo.environment["STEVE_ENGINE"] == "off" ? nil : local
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { local.shutdown() }
+        }
     }
 
     var isBusy: Bool { status != .idle }
@@ -94,6 +98,7 @@ final class AppModel {
             restartWakeWord()
         }
         Task { await keepMenuBarIconFresh() }
+        Task { _ = await engine?.reply(to: "привет", history: []) } // прогрев: модель загружается в память заранее
     }
 
     // MARK: - Диалог
@@ -122,7 +127,8 @@ final class AppModel {
         // то, что приложение не умеет само, пробует закрыть языковая модель, если она подключена
         var chatReply: String?
         if case .unknown = command, let engine {
-            chatReply = await engine.reply(to: trimmed)
+            let history = messages.dropLast().suffix(8).map { ChatTurn(isUser: $0.role == .user, text: $0.text) }
+            chatReply = await engine.reply(to: trimmed, history: history)
         }
         if case .unknown = command, chatReply == nil { command = .unknown(trimmed) }
 
@@ -176,9 +182,22 @@ final class AppModel {
     func captureVoice() async {
         guard !isCapturingVoice, status == .idle else { return }
         isCapturingVoice = true
-        character.touch()
-        status = .listening
         defer { isCapturingVoice = false }
+        character.touch()
+
+        // без доступа к микрофону и речи слушать нечем: спрашиваем сейчас, а не молчим
+        await permissions.refresh()
+        if !permissions.isReadyForVoice, Packaging.isPackaged {
+            if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
+            if !permissions.isReadyForVoice {
+                let missing = permissions.microphone != .granted ? "микрофону" : "распознаванию речи"
+                messages.append(ChatMessage(role: .steve, text: "Нет доступа к \(missing). Разреши его в Настройках → Разрешения или в системных настройках, раздел «Конфиденциальность»."))
+                Permissions.openSettings(permissions.microphone != .granted ? .microphone : .speech)
+                return
+            }
+            restartWakeWord()
+        }
+        status = .listening
         do {
             let text = try await listener.listenOnce(hints: [settings.wakePhrase])
             status = .idle

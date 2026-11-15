@@ -31,10 +31,10 @@ enum SelfTest {
             note("голоса: \(model.voices.count) шт., русские: \(model.voices.filter { $0.language.hasPrefix("ru") }.map(\.name))")
 
             // 1) команды через полный цикл ask(): проверяем, что ответ приходит и статус возвращается в «Готов»
-            for phrase in ["сколько времени", "сколько заряда", "запусти секундомер", "останови секундомер", "таймер на 2 секунды", "привет", "спасибо"] {
+            for phrase in ["сколько времени", "сколько заряда", "запусти секундомер", "останови секундомер", "таймер на 2 секунды", "привет", "спасибо", "почему небо голубое", "как лучше выучить английский"] {
                 let before = model.messages.count
                 let started = Date()
-                let finished = await finishes(within: 25) { await model.ask(phrase, typed: true) }
+                let finished = await finishes(within: 120) { await model.ask(phrase, typed: true) }
                 let reply = model.messages.dropFirst(before).last(where: { $0.role == .steve })
                 note("[\(finished ? "OK" : "ЗАВИС")] «\(phrase)» -> «\(reply?.text ?? "нет ответа")» tool=\(reply?.tool ?? "-") за \(String(format: "%.1f", Date().timeIntervalSince(started))) с, статус после: \(model.status.label)")
             }

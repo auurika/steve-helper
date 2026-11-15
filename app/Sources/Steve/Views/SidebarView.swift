@@ -53,10 +53,11 @@ struct SidebarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
-        .onHover { hovering in
+        // свой трекер мыши: SwiftUI onHover молчит, пока окно не в фокусе
+        .background(HoverTracker { hovering in
             isHovering = hovering
             if !hovering { isLocked = false }
-        }
+        })
     }
 
     private func row(for item: Item) -> some View {
@@ -114,5 +115,31 @@ struct SidebarView: View {
         .foregroundStyle(color)
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
+    }
+}
+
+/// Сообщает, находится ли курсор над вьюхой, даже когда окно неактивно.
+private struct HoverTracker: NSViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeNSView(context: Context) -> TrackerView {
+        let view = TrackerView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateNSView(_ view: TrackerView, context: Context) { view.onChange = onChange }
+
+    final class TrackerView: NSView {
+        var onChange: ((Bool) -> Void)?
+
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            trackingAreas.forEach(removeTrackingArea)
+            addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+        }
+        override func mouseEntered(with event: NSEvent) { onChange?(true) }
+        override func mouseExited(with event: NSEvent) { onChange?(false) }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }

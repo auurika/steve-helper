@@ -127,13 +127,19 @@ struct PresetEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Выбрать иконку")
-                CountedField(title: "Название", text: $name, limit: Preset.nameLimit, height: 44)
-                    .focused($focus, equals: .name)
+                labeled("Название") {
+                    CountedField(title: "Например: Таймер", text: $name, limit: Preset.nameLimit, height: 44)
+                        .focused($focus, equals: .name)
+                }
             }
-            CountedField(title: "Описание", text: $description, limit: Preset.descriptionLimit)
-                .focused($focus, equals: .description)
-            CountedField(title: "Фраза быстрой активации", text: $phrase, limit: Preset.phraseLimit)
-                .focused($focus, equals: .phrase)
+            labeled("Описание") {
+                CountedField(title: "Что делает команда", text: $description, limit: Preset.descriptionLimit)
+                    .focused($focus, equals: .description)
+            }
+            labeled("Фраза быстрой активации") {
+                CountedField(title: "Что сказать Стиву", text: $phrase, limit: Preset.phraseLimit)
+                    .focused($focus, equals: .phrase)
+            }
 
             HStack {
                 Spacer()
@@ -155,6 +161,13 @@ struct PresetEditorView: View {
         }
         .sheet(isPresented: $showingIcons) {
             IconPickerView(selection: $symbol)
+        }
+    }
+
+    private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.steveMuted)
+            content()
         }
     }
 
