@@ -36,6 +36,54 @@ final class Permissions {
         set { UserDefaults.standard.set(newValue, forKey: notesKey) }
     }
 
+    private(set) var isRequesting = false
+    /// Подсказка под названием: что сейчас запрашивается или чего не хватает.
+    private(set) var currentStep: String?
+
+    private var all: [(name: String, state: PermissionState)] {
+        [("Микрофон", microphone), ("Распознавание речи", speech), ("Календарь", calendar), ("Уведомления", notifications), ("«Заметки»", notes)]
+    }
+    var totalCount: Int { all.count }
+    var grantedCount: Int { all.filter { $0.state == .granted }.count }
+    var allGranted: Bool { grantedCount == totalCount }
+    var progressHint: String {
+        if let currentStep { return currentStep }
+        if allGranted { return "Всё разрешено" }
+        let missing = all.filter { $0.state != .granted }.map(\.name).joined(separator: ", ")
+        return "Не хватает: \(missing)"
+    }
+
+    /// Запрашивает разрешения по очереди: сначала те, о которых система ещё не спрашивала, потом ведёт в настройки за отказанными.
+    func requestAll() async {
+        guard !isRequesting else { return }
+        isRequesting = true
+        defer { isRequesting = false; currentStep = nil }
+        await refresh()
+        if microphone == .notAsked || speech == .notAsked {
+            currentStep = "Микрофон и распознавание речи…"
+            await requestVoice()
+        }
+        if calendar == .notAsked {
+            currentStep = "Календарь…"
+            await requestCalendar()
+        }
+        if notifications == .notAsked {
+            currentStep = "Уведомления…"
+            await requestNotifications()
+        }
+        if notes != .granted {
+            currentStep = "«Заметки»: ответь на вопрос macOS…"
+            await checkNotes()
+        }
+        await refresh()
+        // то, что запрещено раньше, система повторно не спросит: открываем нужный раздел настроек
+        if microphone == .denied { Self.openSettings(.microphone) }
+        else if speech == .denied { Self.openSettings(.speech) }
+        else if calendar == .denied { Self.openSettings(.calendars) }
+        else if notifications == .denied { Self.openSettings(.notifications) }
+        else if notes == .denied { Self.openSettings(.automation) }
+    }
+
     var isReadyForVoice: Bool { microphone == .granted && speech == .granted }
 
     func refresh() async {

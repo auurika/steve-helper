@@ -51,46 +51,25 @@ struct SettingsView: View {
 
     private var permissionsRow: some View {
         let permissions = model.permissions
-        return SettingRow(title: "Разрешения", hint: "Без них часть умений не работает", fullWidthControls: true) {
-            VStack(spacing: 8) {
-                permission("Микрофон", state: permissions.microphone, ask: { await permissions.requestVoice() }, fix: .microphone)
-                permission("Распознавание речи", state: permissions.speech, ask: { await permissions.requestVoice() }, fix: .speech)
-                permission("Календарь", state: permissions.calendar, ask: { await permissions.requestCalendar() }, fix: .calendars)
-                permission("Уведомления", state: permissions.notifications, ask: { await permissions.requestNotifications() }, fix: .notifications)
-                HStack {
-                    Text("«Заметки»").font(.system(size: 13))
-                    Spacer(minLength: 8)
-                    if permissions.notes == .granted {
-                        Text("Разрешено").font(.system(size: 12)).foregroundStyle(Color.steveOK)
-                    } else {
-                        Button {
-                            Permissions.openSettings(.automation)
-                            Task { await permissions.checkNotes() }
-                        } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
+        return SettingRow(title: "Разрешения, необходимые для работы", hint: permissions.progressHint, inline: true) {
+            HStack(spacing: 12) {
+                Text("\(permissions.grantedCount)/\(permissions.totalCount) разрешено")
+                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(permissions.allGranted ? Color.steveOK : Color.steveText)
+                if !permissions.allGranted {
+                    Button { Task { await permissions.requestAll() } } label: {
+                        Chip(permissions.isRequesting ? "Запрашиваю…" : "Разрешить", highlighted: true)
                     }
+                    .buttonStyle(.plain)
+                    .disabled(permissions.isRequesting)
                 }
             }
             .task {
-                // пока экран открыт, проверяем права каждую секунду: «Разрешено» появляется сразу после ответа
+                // пока экран открыт, проверяем права каждую секунду: счётчик растёт сразу после ответа
                 while !Task.isCancelled {
                     await permissions.refresh()
                     try? await Task.sleep(for: .seconds(1))
                 }
-            }
-        }
-    }
-
-    private func permission(_ title: String, state: PermissionState, ask: @escaping () async -> Void, fix: Permissions.Pane) -> some View {
-        HStack {
-            Text(title).font(.system(size: 13))
-            Spacer(minLength: 8)
-            if state == .granted {
-                Text("Разрешено").font(.system(size: 12)).foregroundStyle(Color.steveOK)
-            } else {
-                // ещё не спрашивали: показываем системный вопрос; отказано раньше: ведём в настройки macOS
-                Button {
-                    if state == .notAsked { Task { await ask() } } else { Permissions.openSettings(fix) }
-                } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
             }
         }
     }
