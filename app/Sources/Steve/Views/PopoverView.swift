@@ -43,7 +43,6 @@ struct PopoverView: View {
         .frame(width: 340)
         .foregroundStyle(Color.steveText)
         .background(Color.steveNavy.opacity(model.settings.glassAlpha)) // скругление и размытие даёт само окно меню-бара
-        .containerBackground(.ultraThinMaterial, for: .window)
         .environment(\.colorScheme, .dark)
         .onAppear { DispatchQueue.main.async { Self.roundWindow() } }
     }
@@ -60,6 +59,19 @@ struct PopoverView: View {
                 view?.layer?.cornerRadius = 22
                 view?.layer?.cornerCurve = .continuous
                 view?.layer?.masksToBounds = true
+            }
+            // то же стекло, что у главного окна: размытие рабочего стола под окном и тонировка по ползунку прозрачности
+            if let frameView = window.contentView?.superview, let content = window.contentView {
+                let id = NSUserInterfaceItemIdentifier("steve.window.glass")
+                if !frameView.subviews.contains(where: { $0.identifier == id }) {
+                    let effect = NSVisualEffectView(frame: frameView.bounds)
+                    effect.identifier = id
+                    effect.material = .hudWindow
+                    effect.blendingMode = .behindWindow
+                    effect.state = .active
+                    effect.autoresizingMask = [.width, .height]
+                    frameView.addSubview(effect, positioned: .below, relativeTo: content)
+                }
             }
             window.invalidateShadow()
         }

@@ -57,14 +57,55 @@ final class Tools {
     private func startTimer(seconds: Int) -> ToolResult {
         requestNotificationAccess()
         let id = UUID()
-        timers[id] = Timer.scheduledTimer(withTimeInterval: TimeInterval(seconds), repeats: false) { [weak self] _ in
-            Task { @MainActor in self?.timerFired(id: id, seconds: seconds) }
-        }
+        schedule(id: id, seconds: seconds, total: seconds)
         activeTimers.append(ActiveTimer(id: id, end: Date().addingTimeInterval(TimeInterval(seconds)), total: seconds))
         onTimersChanged?()
-        // у «Часов» нет программного интерфейса: открываем приложение, а отсчёт и сигнал ведёт Стив
-        Task { _ = await run("/usr/bin/open", ["-a", "Clock"]) }
+        // «Часы» не имеют программного интерфейса: если есть доступ к универсальному доступу, Стив ставит таймер там руками,
+        // иначе просто открывает приложение, а отсчёт и сигнал ведёт сам
+        Task {
+            if await ClockController.startTimer(seconds: seconds) {
+                markViaClock(id)
+            } else {
+                _ = await run("/usr/bin/open", ["-a", "Clock"])
+            }
+        }
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
+    }
+
+    private func schedule(id: UUID, seconds: Int, total: Int) {
+        timers[id]?.invalidate()
+        timers[id] = Timer.scheduledTimer(withTimeInterval: TimeInterval(max(1, seconds)), repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.timerFired(id: id, seconds: total) }
+        }
+    }
+
+    private func markViaClock(_ id: UUID) {
+        guard let index = activeTimers.firstIndex(where: { $0.id == id }) else { return }
+        activeTimers[index].viaClock = true
+        onTimersChanged?()
+    }
+
+    /// Пауза и продолжение: в панели Стива и, если таймер стоит в «Часах», там же.
+    func togglePause(_ id: UUID) {
+        guard let index = activeTimers.firstIndex(where: { $0.id == id }) else { return }
+        if let left = activeTimers[index].pausedLeft {
+            activeTimers[index].end = Date().addingTimeInterval(left)
+            activeTimers[index].pausedLeft = nil
+            schedule(id: id, seconds: Int(left.rounded(.up)), total: activeTimers[index].total)
+        } else {
+            activeTimers[index].pausedLeft = max(1, activeTimers[index].end.timeIntervalSinceNow)
+            timers[id]?.invalidate()
+            timers[id] = nil
+        }
+        onTimersChanged?()
+        if activeTimers[index].viaClock { Task { _ = await ClockController.togglePause() } }
+    }
+
+    /// Останавливает таймер, убирает его из панели и закрывает окно «Часов».
+    func stop(_ id: UUID) {
+        let viaClock = activeTimers.first { $0.id == id }?.viaClock ?? false
+        cancel(id)
+        if viaClock { Task { await ClockController.stopAndClose() } }
     }
 
     private func timerStatus() -> ToolResult {
@@ -75,7 +116,9 @@ final class Tools {
 
     private func cancelTimers() -> ToolResult {
         let count = activeTimers.count
+        let anyClock = activeTimers.contains { $0.viaClock }
         cancel(nil)
+        if anyClock { Task { await ClockController.stopAndClose() } }
         return ToolResult(reply: count == 0 ? "Таймеров нет" : (count == 1 ? "Таймер отменён" : "Таймеры отменены"), tool: "cancel_timers()")
     }
 
@@ -91,9 +134,11 @@ final class Tools {
 
     private func timerFired(id: UUID, seconds: Int) {
         timers[id] = nil
+        let firedViaClock = activeTimers.first { $0.id == id }?.viaClock ?? false
         activeTimers.removeAll { $0.id == id }
         onTimersChanged?()
         guard Packaging.isPackaged else { onTimerFired?(seconds); return }
+        guard !firedViaClock else { return } // сигналит сам таймер «Часов»
         let content = UNMutableNotificationContent()
         content.title = "Стив"
         content.body = "Таймер на \(Self.describe(seconds: seconds)) сработал"
@@ -254,6 +299,10 @@ final class Tools {
 /// Запущенный таймер для показа в окне.
 struct ActiveTimer: Identifiable, Equatable {
     let id: UUID
-    let end: Date
+    var end: Date
     let total: Int
+    /// Сколько осталось, пока таймер на паузе.
+    var pausedLeft: TimeInterval?
+    /// Таймер поставлен и в «Часах»: паузу и остановку Стив передаёт туда, а сигналит сами «Часы».
+    var viaClock = false
 }

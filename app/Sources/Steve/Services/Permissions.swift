@@ -36,12 +36,14 @@ final class Permissions {
         set { UserDefaults.standard.set(newValue, forKey: notesKey) }
     }
 
+    /// Универсальный доступ: нужен, чтобы Стив сам ставил таймер в «Часах». Различить «не спрашивали» и «запрещено» система не даёт.
+    private(set) var accessibility = PermissionState.notAsked
     private(set) var isRequesting = false
     /// Подсказка под названием: что сейчас запрашивается или чего не хватает.
     private(set) var currentStep: String?
 
     private var all: [(name: String, state: PermissionState)] {
-        [("Микрофон", microphone), ("Распознавание речи", speech), ("Календарь", calendar), ("Уведомления", notifications), ("«Заметки»", notes)]
+        [("Микрофон", microphone), ("Распознавание речи", speech), ("Календарь", calendar), ("Уведомления", notifications), ("«Заметки»", notes), ("Универсальный доступ", accessibility)]
     }
     var totalCount: Int { all.count }
     var grantedCount: Int { all.filter { $0.state == .granted }.count }
@@ -75,6 +77,12 @@ final class Permissions {
             currentStep = "«Заметки»: ответь на вопрос macOS…"
             await checkNotes()
         }
+        if accessibility != .granted {
+            currentStep = "Универсальный доступ: включи Стива в списке…"
+            ClockController.requestTrust()
+            Self.openSettings(.accessibility)
+            for _ in 0..<60 where !ClockController.isTrusted { try? await Task.sleep(for: .seconds(1)) } // ждём, пока включат
+        }
         await refresh()
         // то, что запрещено раньше, система повторно не спросит: открываем нужный раздел настроек
         if microphone == .denied { Self.openSettings(.microphone) }
@@ -91,6 +99,7 @@ final class Permissions {
         speech = Self.state(speechStatus: SFSpeechRecognizer.authorizationStatus())
         calendar = Self.state(calendarStatus: EKEventStore.authorizationStatus(for: .event))
         notes = Self.notesState()
+        accessibility = ClockController.isTrusted ? .granted : .notAsked
         if Packaging.isPackaged {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             notifications = Self.state(notificationStatus: settings.authorizationStatus)
@@ -175,6 +184,7 @@ final class Permissions {
         case speech = "com.apple.preference.security?Privacy_SpeechRecognition"
         case calendars = "com.apple.preference.security?Privacy_Calendars"
         case automation = "com.apple.preference.security?Privacy_Automation"
+        case accessibility = "com.apple.preference.security?Privacy_Accessibility"
         case notifications = "com.apple.Notifications-Settings.extension"
         case spokenContent = "com.apple.Accessibility-Settings.extension?SpokenContent"
     }

@@ -193,7 +193,8 @@ final class AppModel {
     }
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
-    func cancelTimer(_ id: UUID) { tools.cancel(id) }
+    func pauseTimer(_ id: UUID) { tools.togglePause(id) }
+    func stopTimer(_ id: UUID) { tools.stop(id) }
 
     func stopVoiceCapture() {
         stopRequested = true

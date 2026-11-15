@@ -21,22 +21,24 @@ public struct Preset: Codable, Identifiable, Equatable {
         self.symbol = symbol
     }
 
-    /// Пять готовых пресетов. Идентификаторы фиксированы, чтобы быстрые команды переживали обновления.
+    /// Два готовых пресета: открыть приложение и громкость. Идентификаторы фиксированы, чтобы быстрые команды переживали обновления.
     public static let defaults: [Preset] = [
         Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, name: "Открыть Safari",
                description: "Открывает Safari на Mac", phrase: "Открой Safari", symbol: "safari"),
-        Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, name: "Таймер на 10 минут",
-               description: "Запускает таймер на 10 минут", phrase: "Таймер на 10 минут", symbol: "timer"),
-        Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, name: "Новая заметка",
-               description: "Создаёт новую заметку в приложении «Заметки»", phrase: "Запиши заметку: купить молоко", symbol: "note.text"),
-        Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!, name: "Событие в календаре",
-               description: "Добавляет событие в приложение «Календарь»", phrase: "23 ноября с 17 до 19 событие Зал", symbol: "calendar"),
         Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000005")!, name: "Громкость 30%",
                description: "Системный звук становится на уровень 30%", phrase: "Громкость 30%", symbol: "speaker.wave.2"),
     ]
 
-    /// Какие четыре пресета стоят во всплывающем окне по умолчанию: таймер, заметка, Safari, календарь.
-    public static let defaultQuick: [UUID] = [defaults[1].id, defaults[2].id, defaults[0].id, defaults[3].id]
+    /// Бывшие готовые пресеты (таймер, заметка, календарь): из сохранённых настроек они убираются.
+    public static let retiredIDs: Set<UUID> = [
+        UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+        UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+        UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
+    ]
+
+    /// Во всплывающем окне стоят две кнопки: громкость и открытие приложения.
+    public static let defaultQuick: [UUID] = [defaults[1].id, defaults[0].id]
+    public static let quickCount = 2
 }
 
 public enum HotkeyMode: String, Codable, CaseIterable {
@@ -146,5 +148,16 @@ public struct AppSettings: Codable, Equatable {
         selectedCustomVoice = try container.decodeIfPresent(UUID.self, forKey: .selectedCustomVoice)
         presets = try container.decodeIfPresent([Preset].self, forKey: .presets) ?? presets
         quick = try container.decodeIfPresent([UUID].self, forKey: .quick) ?? quick
+        removeRetiredPresets()
+    }
+
+    /// Убирает бывшие готовые пресеты и приводит быстрые команды к двум кнопкам.
+    public mutating func removeRetiredPresets() {
+        presets.removeAll { Preset.retiredIDs.contains($0.id) }
+        var ids = quick.filter { id in presets.contains { $0.id == id } }
+        for id in Preset.defaultQuick + presets.map(\.id) where ids.count < Preset.quickCount && !ids.contains(id) && presets.contains(where: { $0.id == id }) {
+            ids.append(id)
+        }
+        quick = Array(ids.prefix(Preset.quickCount))
     }
 }

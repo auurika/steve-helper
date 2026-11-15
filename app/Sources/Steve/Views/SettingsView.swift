@@ -82,7 +82,7 @@ struct SettingsView: View {
     }
 
     private var quickCommands: some View {
-        SettingRow(title: "Быстрые команды", hint: "4 значка рядом со Стивом во всплывающем окне", fullWidthControls: true) {
+        SettingRow(title: "Быстрые команды", hint: "2 значка рядом со Стивом во всплывающем окне", fullWidthControls: true) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(Array(model.quickPresets.enumerated()), id: \.offset) { slot, preset in
                     Button { pickingSlot = SlotPick(slot: slot) } label: {

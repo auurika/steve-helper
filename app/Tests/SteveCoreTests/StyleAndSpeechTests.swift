@@ -68,7 +68,7 @@ final class SettingsTests: XCTestCase {
     func testDefaults() {
         let settings = AppSettings()
         XCTAssertTrue(settings.censorship)
-        XCTAssertEqual(settings.quick.count, 4)
+        XCTAssertEqual(settings.quick.count, 2)
         XCTAssertEqual(settings.hotkey.display, "⌥ + Пробел")
         XCTAssertEqual(settings.glassAlpha, 0.39, accuracy: 0.001)
     }
@@ -78,7 +78,7 @@ final class SettingsTests: XCTestCase {
         let settings = try JSONDecoder().decode(AppSettings.self, from: json)
         XCTAssertFalse(settings.censorship)
         XCTAssertEqual(settings.glassAlpha, 0.05, accuracy: 0.001)
-        XCTAssertEqual(settings.presets.count, 5) // недостающее взято по умолчанию
+        XCTAssertEqual(settings.presets.count, 2) // недостающее взято по умолчанию
     }
 
     func testRoundTrip() throws {

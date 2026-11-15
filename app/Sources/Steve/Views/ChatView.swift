@@ -225,11 +225,13 @@ struct TimerPanel: View {
             VStack(spacing: 6) {
                 ForEach(model.activeTimers) { timer in
                     TimelineView(.periodic(from: .now, by: 0.5)) { context in
-                        let left = max(0, timer.end.timeIntervalSince(context.date))
+                        let paused = timer.pausedLeft != nil
+                        let left = max(0, timer.pausedLeft ?? timer.end.timeIntervalSince(context.date))
                         HStack(spacing: 10) {
                             Image(systemName: "timer").font(.system(size: 13))
                             Text(Self.format(left))
                                 .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                                .opacity(paused ? 0.6 : 1)
                             GeometryReader { proxy in
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color.white.opacity(0.18))
@@ -237,13 +239,10 @@ struct TimerPanel: View {
                                         .frame(width: proxy.size.width * CGFloat(left / Double(max(1, timer.total))))
                                 }
                             }
-                            .frame(width: compact ? 70 : 120, height: 6)
-                            Button { model.cancelTimer(timer.id) } label: {
-                                Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 22)
-                                    .background(Circle().fill(Color.white.opacity(0.16)))
-                            }
-                            .buttonStyle(.plain)
-                            .help("Отменить таймер")
+                            .frame(width: compact ? 50 : 110, height: 6)
+                            // две кнопки: пауза или продолжение, и остановка с закрытием «Часов»
+                            timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseTimer(timer.id) }
+                            timerButton("stop.fill", help: "Остановить и закрыть") { model.stopTimer(timer.id) }
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -252,6 +251,16 @@ struct TimerPanel: View {
                 }
             }
         }
+    }
+
+    private func timerButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold)).frame(width: 24, height: 24)
+                .background(Circle().fill(Color.white.opacity(0.16)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     static func format(_ seconds: TimeInterval) -> String {
