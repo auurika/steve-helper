@@ -616,7 +616,7 @@ let skills=[
 const esc=t=>t.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const sv=id=>`<svg class="i"><use href="#${id}"/></svg>`;
 function drawSkills(){
-  $('#skillGrid').innerHTML=skills.map((k,idx)=>`<div class="card${idx>=5?' editable':''}" data-idx="${idx}"><div class="chead"><button class="ic" data-idx="${idx}" title="Сменить иконку">${sv(k.i)}</button><h3>${esc(k.n)}</h3></div><p>${esc(k.d)}</p><div class="cmd">«${esc(k.c)}»</div></div>`).join('')+
+  $('#skillGrid').innerHTML=skills.map((k,idx)=>`<div class="card editable" data-idx="${idx}"><div class="chead"><button class="ic" data-idx="${idx}" title="Сменить иконку">${sv(k.i)}</button><h3>${esc(k.n)}</h3></div><p>${esc(k.d)}</p><div class="cmd">«${esc(k.c)}»</div></div>`).join('')+
   `<div class="card add" id="addSkill"><div class="chead"><div class="ic" style="width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:var(--rim);color:#fff">${sv('i-plus')}</div><h3>Новая команда</h3></div><p>Создайте свою собственную команду для Стива</p></div>`;
   $$('#skillGrid .ic[data-idx]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();pickIcon(skills[+b.dataset.idx].i,id=>{skills[+b.dataset.idx].i=id;drawSkills();drawQs()})});
   $$('#skillGrid .card.editable').forEach(c=>c.onclick=()=>openNC(+c.dataset.idx));
