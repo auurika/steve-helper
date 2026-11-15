@@ -12,6 +12,7 @@ struct SteveApp: App {
                 .environment(model)
                 .onAppear { model.start() }
         }
+        .windowStyle(.hiddenTitleBar) // прозрачная шапка: только кнопки окна, как в макете
         .defaultSize(width: 960, height: 640)
         .windowResizability(.contentMinSize)
         .commands {

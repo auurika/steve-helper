@@ -24,11 +24,12 @@ struct RootContent: View {
                 }
             }
             .padding(.leading, 76)
+            .padding(.top, 28) // место под кнопки окна
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             SidebarView()
                 .padding(.leading, 10)
-                .padding(.top, 2)
+                .padding(.top, 30)
                 .padding(.bottom, 10)
         }
         .foregroundStyle(Color.steveText)

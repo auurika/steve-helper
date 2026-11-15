@@ -46,5 +46,5 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # подпись «для себя»: достаточно, чтобы приложение запускалось на этом Mac
-codesign --force --deep --sign - "$APP"
+codesign --force --deep --sign - -r='designated => identifier "app.steve.helper"' "$APP" # фиксированное требование: macOS не забывает разрешения после пересборки
 echo "Готово: $APP"

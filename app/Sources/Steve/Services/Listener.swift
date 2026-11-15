@@ -62,6 +62,7 @@ final class Listener {
         })
         engine.prepare()
         try engine.start()
+        NSLog("Steve.listener started, format=%@", format.description)
 
         return try await withCheckedThrowingContinuation { continuation in
             var resumed = false
@@ -78,13 +79,15 @@ final class Listener {
                     guard let self else { return }
                     if let result {
                         let text = result.bestTranscription.formattedString
+                        NSLog("Steve.listener partial=%@ final=%d", text, result.isFinal ? 1 : 0)
                         if !text.isEmpty { self.hasSpeech = true }
                         onPartial?(text)
                         self.restartSilenceTimer(after: silence)
                         if result.isFinal {
                             complete(text.isEmpty ? .failure(ListenerError.nothingHeard) : .success(text))
                         }
-                    } else if error != nil {
+                    } else if let error {
+                        NSLog("Steve.listener error=%@", error.localizedDescription)
                         complete(.failure(ListenerError.nothingHeard))
                     }
                 }
