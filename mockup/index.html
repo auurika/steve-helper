@@ -242,7 +242,8 @@
   .card.editable{cursor:pointer}
   .card.editable:hover{background:rgba(255,255,255,.3)}
   .fw{position:relative}
-  .cnt{position:absolute;right:8px;top:100%;margin-top:3px;font-size:11px;line-height:1;color:var(--muted);opacity:0;transition:opacity .12s;pointer-events:none;white-space:nowrap}
+  .cnt{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;line-height:1;color:var(--muted);opacity:0;transition:opacity .12s;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .fw input{padding-right:64px}
   .fw:focus-within .cnt{opacity:1}
   .cnt.low{color:#ffb4a8}
   /* строка ввода: высота фиксирована, растёт только вместе с текстом */
@@ -737,7 +738,7 @@ $('#hkMode').onclick=()=>{
 function updCnt(id){
   const el=$('#'+id),c=document.querySelector('.cnt[data-for="'+id+'"]');
   const left=el.maxLength-el.value.length;
-  c.textContent='осталось '+left+' из '+el.maxLength;
+  c.textContent=el.value.length+'/'+el.maxLength;
   c.classList.toggle('low',left<=5);
 }
 ['ncName','ncDesc','ncCmd'].forEach(id=>{$('#'+id).addEventListener('input',()=>updCnt(id));updCnt(id)});
