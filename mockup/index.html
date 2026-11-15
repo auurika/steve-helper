@@ -102,6 +102,28 @@
   .pop-wrap{display:flex;flex-direction:column;gap:8px}
   .cap{color:#99a;font-size:12px}
   .hint{color:var(--muted);font-size:12px}
+
+  /* окно записи слова активации */
+  .win{position:relative}
+  .modal{position:absolute;inset:0;background:rgba(5,6,9,.62);display:none;align-items:center;justify-content:center;z-index:5}
+  .modal.on{display:flex}
+  .dlg{width:440px;max-width:92%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .dlg h2{margin-bottom:2px}
+  .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
+  .dlg .field:focus{border-color:var(--accent)}
+  .say{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px}
+  .say big{display:block;font-size:20px;margin:4px 0 8px}
+  .wave{display:flex;align-items:center;justify-content:center;gap:3px;height:36px}
+  .wave i{width:4px;height:6px;background:var(--muted);border-radius:2px;transition:height .08s}
+  .wave.rec i{background:var(--accent2)}
+  .samples{display:flex;gap:8px;margin-bottom:14px}
+  .samples div{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .samples div.done{color:var(--ok);border-color:var(--ok)}
+  .samples div.cur{border-color:var(--accent);color:var(--text)}
+  .acts{display:flex;gap:8px;justify-content:flex-end}
+  .acts .btn{padding:9px 16px}
+  .btn[disabled]{opacity:.4;cursor:default}
+  .rec-btn{background:#ff5f57;color:#fff}
 </style>
 </head>
 <body>
@@ -168,7 +190,8 @@
       <!-- Настройки -->
       <section class="view" id="v-settings"><div class="pad">
         <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
-        <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается</small></div><span class="kbd">«Привет, Стив»</span></div>
+        <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается. Записанный голос повышает точность</small></div>
+          <div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="padding:6px 12px" id="wwOpen">🎙 Записать</button></div></div>
         <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
@@ -179,7 +202,21 @@
           <div class="bar"><i style="width:62%"></i></div></div><span class="kbd">≈ 3.1 ГБ ОЗУ</span></div>
       </div></section>
     </div>
-  </div>
+  
+    <div class="modal" id="ww"><div class="dlg">
+      <h2>Слово активации</h2>
+      <p class="sub" style="margin-bottom:6px">Напиши фразу и произнеси её 3 раза обычным голосом. Стив запомнит твой голос и будет реже ошибаться.</p>
+      <input class="field" id="wwPhrase" value="Привет, Стив" maxlength="30">
+      <div class="say"><span class="hint" id="wwHint">Образец 1 из 3 — нажми «Записать» и произнеси:</span>
+        <big id="wwBig">«Привет, Стив»</big>
+        <div class="wave" id="wave"></div></div>
+      <div class="samples"><div class="cur" id="s0">1 · ожидает</div><div id="s1">2 · ожидает</div><div id="s2">3 · ожидает</div></div>
+      <p class="hint" style="margin-bottom:12px">💡 Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
+      <div class="acts"><button class="btn ghost" id="wwCancel">Отмена</button>
+        <button class="btn rec-btn" id="wwRec">⏺ Записать</button>
+        <button class="btn" id="wwSave" disabled>Сохранить</button></div>
+    </div></div>
+</div>
 
   <!-- ПОПОВЕР ИЗ МЕНЮ-БАРА -->
   <div class="pop-wrap">
@@ -241,6 +278,24 @@ $('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 
 $('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v)};
 $$('[data-say]').forEach(b=>b.onclick=()=>run(b.dataset.say));
 $('#tray').onclick=()=>$('#tray').classList.toggle('on');
+
+// запись слова активации
+const wave=$('#wave');for(let k=0;k<28;k++)wave.append(document.createElement('i'));
+let got=0,recTimer=null;
+function ww_reset(){got=0;for(let k=0;k<3;k++){const e=$('#s'+k);e.className=k?'':'cur';e.textContent=(k+1)+' · ожидает'}
+  $('#wwSave').disabled=true;$('#wwRec').disabled=false;$('#wwHint').textContent='Образец 1 из 3 — нажми «Записать» и произнеси:';$('#wwBig').textContent='«'+$('#wwPhrase').value+'»'}
+$('#wwPhrase').oninput=()=>{ww_reset()};
+$('#wwOpen').onclick=()=>{ww_reset();$('#ww').classList.add('on')};
+$('#wwCancel').onclick=()=>$('#ww').classList.remove('on');
+$('#wwRec').onclick=()=>{
+  if(recTimer||got>=3)return;
+  wave.classList.add('rec');$('#wwRec').disabled=true;$('#wwHint').textContent='Говори сейчас…';
+  let t=0;recTimer=setInterval(()=>{[...wave.children].forEach(b=>b.style.height=(6+Math.random()*28)+'px');
+    if(++t>22){clearInterval(recTimer);recTimer=null;wave.classList.remove('rec');[...wave.children].forEach(b=>b.style.height='6px');
+      $('#s'+got).className='done';$('#s'+got).textContent=(got+1)+' · готово ✓';got++;
+      if(got<3){$('#s'+got).classList.add('cur');$('#wwRec').disabled=false;$('#wwHint').textContent='Образец '+(got+1)+' из 3 — произнеси ещё раз:'}
+      else{$('#wwSave').disabled=false;$('#wwHint').textContent='Все образцы записаны. Сохрани, чтобы применить.'}}},90)};
+$('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'» · голос записан';$('#ww').classList.remove('on')};
 </script>
 </body>
 </html>
