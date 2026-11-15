@@ -125,7 +125,7 @@
   .modal.on{display:flex}
   .modal::before{content:"";position:absolute;inset:0;background:rgba(10,12,34,.32);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%)}
   .dlg{position:relative}
-  .dlg{width:440px;max-width:92%;background:rgba(28,32,60,calc(var(--a)*.5 + .5));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.32);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(10,10,40,.5),var(--rim)}
+  .dlg{width:440px;max-width:92%;background:rgba(24,27,52,.9);border:1px solid rgba(255,255,255,.16);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
   .dlg h2{margin-bottom:2px}
   .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
   .dlg .field:focus{border-color:var(--accent)}
@@ -202,6 +202,12 @@
   .pop{min-width:0;max-width:100%}
   .pop-wrap,.win{min-width:0}
   .stage>*{min-width:0}
+  .dlg h2{padding-right:30px}
+  .xbtn{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:#ff5f57;border:0;padding:0;cursor:pointer;
+        box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25);transition:filter .15s}
+  .xbtn:hover{filter:brightness(1.1)}
+  .xbtn::before,.xbtn::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:1.8px;margin:-.9px 0 0 -5px;border-radius:1px;background:rgba(77,0,0,.85)}
+  .xbtn::before{transform:rotate(45deg)}.xbtn::after{transform:rotate(-45deg)}
 </style>
 </head>
 <body>
@@ -355,7 +361,7 @@
       </div></section>
     </div>
   
-    <div class="modal" id="ww"><div class="dlg">
+    <div class="modal" id="ww"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
       <h2>Слово активации</h2>
       <p class="sub" style="margin-bottom:6px">Напиши фразу и произнеси её 3 раза обычным голосом. Стив запомнит твой голос и будет реже ошибаться.</p>
       <input class="field" id="wwPhrase" value="Привет, Стив" maxlength="30">
@@ -364,19 +370,17 @@
         <div class="wave" id="wave"></div></div>
       <div class="samples"><div class="cur" id="s0">1 · ожидает</div><div id="s1">2 · ожидает</div><div id="s2">3 · ожидает</div></div>
       <p class="hint" style="margin-bottom:12px">Лучше записывать в тишине. Короткие фразы из 2–3 слов работают надёжнее.</p>
-      <div class="acts"><button class="btn ghost" id="wwCancel">Отмена</button>
-        <button class="btn rec-btn" id="wwRec"><span class="rdot"></span> Записать</button>
+      <div class="acts"><button class="btn rec-btn" id="wwRec"><span class="rdot"></span> Записать</button>
         <button class="btn" id="wwSave" disabled>Сохранить</button></div>
     </div></div>
 
-    <div class="modal" id="ip" style="z-index:7"><div class="dlg">
+    <div class="modal" id="ip" style="z-index:7"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
       <h2>Иконка навыка</h2>
       <p class="sub" style="margin-bottom:10px">Выбери значок, который будет рядом с названием.</p>
       <div class="ipgrid" id="ipGrid"></div>
-      <div class="acts" style="margin-top:14px"><button class="btn ghost" id="ipCancel" type="button">Закрыть</button></div>
     </div></div>
 
-    <div class="modal" id="nc" style="z-index:6"><div class="dlg">
+    <div class="modal" id="nc" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
       <h2>Новая команда</h2>
       <p class="sub" style="margin-bottom:8px">Придумай свою команду для Стива.</p>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
@@ -385,8 +389,7 @@
       </div>
       <input class="field" id="ncDesc" maxlength="80" placeholder="Что она делает" style="margin:0 0 10px;font-size:14px">
       <input class="field" id="ncCmd" maxlength="60" placeholder="Фраза, например: включи музыку" style="margin:0 0 14px;font-size:14px">
-      <div class="acts"><button class="btn ghost" id="ncCancel" type="button">Отмена</button>
-        <button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
+      <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
     </div></div>
 </div>
 
@@ -465,7 +468,6 @@ function ww_reset(){got=0;for(let k=0;k<3;k++){const e=$('#s'+k);e.className=k?'
   $('#wwSave').disabled=true;$('#wwRec').disabled=false;$('#wwHint').textContent='Образец 1 из 3 — нажми «Записать» и произнеси:';$('#wwBig').textContent='«'+$('#wwPhrase').value+'»'}
 $('#wwPhrase').oninput=()=>{ww_reset()};
 $('#wwOpen').onclick=()=>{ww_reset();$('#ww').classList.add('on')};
-$('#wwCancel').onclick=()=>$('#ww').classList.remove('on');
 $('#wwRec').onclick=()=>{
   if(recTimer||got>=3)return;
   wave.classList.add('rec');$('#wwRec').disabled=true;$('#wwHint').textContent='Говори сейчас…';
@@ -578,15 +580,30 @@ function pickIcon(cur,cb){
   $$('#ipGrid button').forEach(b=>b.onclick=()=>{const f=ipCb;$('#ip').classList.remove('on');f&&f(b.dataset.id)});
   $('#ip').classList.add('on');
 }
-$('#ipCancel').onclick=()=>$('#ip').classList.remove('on');
 let ncI='i-puzzle';
 function ncCheck(){$('#ncSave').disabled=!($('#ncName').value.trim()&&$('#ncCmd').value.trim())}
 function openNC(){ncI='i-puzzle';$('#ncIcon').innerHTML=sv(ncI);['#ncName','#ncDesc','#ncCmd'].forEach(x=>$(x).value='');ncCheck();$('#nc').classList.add('on')}
 $('#ncIcon').onclick=()=>pickIcon(ncI,id=>{ncI=id;$('#ncIcon').innerHTML=sv(id)});
 ['#ncName','#ncCmd'].forEach(x=>$(x).oninput=ncCheck);
-$('#ncCancel').onclick=()=>$('#nc').classList.remove('on');
 $('#ncSave').onclick=()=>{skills.push({n:$('#ncName').value.trim(),d:$('#ncDesc').value.trim()||'Своя команда',c:$('#ncCmd').value.trim(),i:ncI});drawSkills();$('#nc').classList.remove('on')};
 drawSkills();
+
+// закрытие окон: крестик, клик по пустой области, Escape
+function closeModal(m){
+  if(!m.classList.contains('on'))return;
+  m.classList.remove('on');
+  if(m.id==='ww'&&recTimer){clearInterval(recTimer);recTimer=null;wave.classList.remove('rec');[...wave.children].forEach(b=>b.style.height='6px')}
+  if(m.id==='ip')ipCb=null;
+}
+$$('.modal').forEach(m=>{
+  m.addEventListener('mousedown',e=>{if(e.target===m)closeModal(m)});
+  m.querySelector('.xbtn').onclick=()=>closeModal(m);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const open=$$('.modal.on').sort((a,b)=>(+getComputedStyle(b).zIndex||0)-(+getComputedStyle(a).zIndex||0));
+  if(open.length){e.preventDefault();closeModal(open[0])}
+});
 </script>
 </body>
 </html>
