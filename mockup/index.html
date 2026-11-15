@@ -245,6 +245,18 @@
   .cnt{position:absolute;right:8px;top:100%;margin-top:3px;font-size:11px;line-height:1;color:var(--muted);opacity:0;transition:opacity .12s;pointer-events:none;white-space:nowrap}
   .fw:focus-within .cnt{opacity:1}
   .cnt.low{color:#ffb4a8}
+  /* строка ввода: высота фиксирована, растёт только вместе с текстом */
+  .composer{align-items:flex-end}
+  .composer textarea,.pform textarea{flex:1;min-width:0;resize:none;overflow-y:auto;scrollbar-width:none;background:var(--panel2);
+        border:1px solid var(--line);border-radius:14px;box-shadow:var(--rim);color:var(--text);font:inherit;outline:none;line-height:20px;
+        padding:10px 12px;height:42px;max-height:124px;display:block}
+  .pform textarea{font-size:13px;height:38px;padding:8px 10px;border-radius:12px;line-height:20px}
+  .composer textarea::-webkit-scrollbar,.pform textarea::-webkit-scrollbar{display:none}
+  .composer textarea:focus,.pform textarea:focus{border-color:var(--accent)}
+  .pform{align-items:flex-end}
+  .composer .btn{flex:none;white-space:nowrap;height:42px;overflow-wrap:normal;word-break:keep-all}
+  .composer .btn.send{padding:0 18px}
+  .composer #mic{width:42px;padding:0}
 </style>
 </head>
 <body>
@@ -366,9 +378,9 @@
           <div class="msg">Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.</div>
         </div>
         <form class="composer" id="form">
-          <input id="inp" placeholder="Или напиши сообщение…" autocomplete="off">
+          <textarea id="inp" rows="1" placeholder="Или напиши сообщение…" autocomplete="off"></textarea>
+          <button class="btn ghost send" type="submit">Отправить</button>
           <button class="btn ghost" type="button" id="mic"><svg class="i"><use href="#i-mic"/></svg></button>
-          <button class="btn" style="padding:0 18px">Отправить</button>
         </form>
       </section>
 
@@ -416,8 +428,8 @@
     </div></div>
 
     <div class="modal" id="nc" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
-      <h2>Новая команда</h2>
-      <p class="sub" style="margin-bottom:8px">Придумай свою команду для Стива.</p>
+      <h2 style="margin-bottom:16px">Новая команда</h2>
+      
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:24px">
         <button class="ic btn ghost" id="ncIcon" type="button" title="Выбрать иконку" style="width:44px;height:44px;min-width:44px;flex:none;aspect-ratio:1/1;padding:0;border-radius:14px"></button>
         <div class="fw" style="flex:1;min-width:0"><input class="field" id="ncName" maxlength="30" placeholder="Название" style="margin:0;font-size:14px;height:44px"><span class="cnt" data-for="ncName"></span></div>
@@ -442,7 +454,7 @@
         <div class="who"><b>Стив</b><div class="hint" id="state2">Готов</div></div>
         <div class="qs" id="qs"></div></div>
       <div class="pchat" id="chat2"></div>
-      <form class="pform" id="form2"><input id="inp2" placeholder="Сообщение…" autocomplete="off"></form>
+      <form class="pform" id="form2"><textarea id="inp2" rows="1" placeholder="Сообщение…" autocomplete="off"></textarea></form>
     </div>
   </div>
 </div>
@@ -493,9 +505,9 @@ function run(q,typed){
   },typed?0:900);
 }
 $('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v,true)};
+$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';$('#inp').dispatchEvent(new Event('input'));run(v,true)};
 $('#orb2').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';run(v,true)};
+$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';$('#inp2').dispatchEvent(new Event('input'));run(v,true)};
 // пока пользователь печатает, Стив «слушает»
 ['#inp','#inp2'].forEach(id=>{const el=$(id);
   el.addEventListener('input',()=>{if(!busy)setState(el.value.trim()?'listening':'',el.value.trim()?'Слушаю…':IDLE)});
@@ -640,7 +652,6 @@ function openNC(idx){
   $('#ncIcon').innerHTML=sv(ncI);
   $('#ncName').value=k?k.n:'';$('#ncDesc').value=k?k.d:'';$('#ncCmd').value=k?k.c:'';
   $('#nc h2').textContent=k?'Редактирование команды':'Новая команда';
-  $('#nc .sub').textContent=k?'Измени название, иконку, описание или фразу.':'Придумай свою команду для Стива.';
   $('#ncSave').textContent=k?'Сохранить':'Создать';
   ncCheck();['ncName','ncDesc','ncCmd'].forEach(updCnt);$('#nc').classList.add('on');
 }
@@ -730,6 +741,14 @@ function updCnt(id){
   c.classList.toggle('low',left<=5);
 }
 ['ncName','ncDesc','ncCmd'].forEach(id=>{$('#'+id).addEventListener('input',()=>updCnt(id));updCnt(id)});
+
+// строка ввода: автоподгон высоты по тексту
+[['#inp',42,'#form'],['#inp2',38,'#form2']].forEach(([id,min,form])=>{
+  const el=$(id);
+  const fit=()=>{el.style.height=min+'px';if(!el.value)return;el.style.height=Math.max(min,Math.min(el.scrollHeight+2,124))+'px'};
+  el.addEventListener('input',fit);
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$(form).requestSubmit()}});
+});
 </script>
 </body>
 </html>
