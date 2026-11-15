@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <style>
+    .bob{animation:bob 2s ease-in-out infinite;transform-origin:64px 118px}
+    .blink{animation:blink 4s infinite;transform-box:fill-box;transform-origin:center}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+    @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+  </style>
+  <ellipse cx="64" cy="118" rx="34" ry="6" fill="#000" opacity=".12"/>
+  <g class="bob">
+    <path d="M92 104 q26 -4 20 -30" fill="none" stroke="#F5A04B" stroke-width="9" stroke-linecap="round"/>
+    <ellipse cx="64" cy="98" rx="28" ry="20" fill="#F5A04B"/>
+    <ellipse cx="64" cy="102" rx="16" ry="13" fill="#FFE2BD"/>
+    <path d="M26 54 L30 14 L58 34 Z" fill="#F5A04B"/>
+    <path d="M102 54 L98 14 L70 34 Z" fill="#F5A04B"/>
+    <path d="M33 40 L34 24 L47 34 Z" fill="#F7A9B8"/>
+    <path d="M95 40 L94 24 L81 34 Z" fill="#F7A9B8"/>
+    <ellipse cx="64" cy="62" rx="40" ry="34" fill="#F5A04B"/>
+    <path d="M58 30 v9 M64 28 v11 M70 30 v9" stroke="#D9803A" stroke-width="4" stroke-linecap="round"/>
+    <g class="blink"><ellipse cx="47" cy="60" rx="5" ry="7" fill="#2B2B2B"/><circle cx="49" cy="57" r="2" fill="#fff"/></g>
+    <g class="blink"><ellipse cx="81" cy="60" rx="5" ry="7" fill="#2B2B2B"/><circle cx="83" cy="57" r="2" fill="#fff"/></g>
+    <circle cx="38" cy="73" r="6" fill="#F7A9B8" opacity=".7"/>
+    <circle cx="90" cy="73" r="6" fill="#F7A9B8" opacity=".7"/>
+    <path d="M60 71 h8 l-4 5 z" fill="#E86A8A"/>
+    <path d="M64 76 v3 M64 79 q-5 5 -10 1 M64 79 q5 5 10 1" fill="none" stroke="#2B2B2B" stroke-width="2" stroke-linecap="round"/>
+    <path d="M30 66 l-14 -3 M30 72 l-14 2 M98 66 l14 -3 M98 72 l14 2" stroke="#7a4a1e" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

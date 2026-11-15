@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Стив — макет</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --line:#272c37;
+    --text:#e8eaf0; --muted:#8b93a7; --accent:#7c9cff; --accent2:#b58cff;
+    --ok:#4ade80; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;background:#2a2d36;color:var(--text);
+       min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px;gap:18px}
+  .note{color:#aab;font-size:12px;text-align:center;max-width:720px}
+  .note b{color:#fff}
+
+  /* menu bar */
+  .menubar{width:min(960px,100%);height:26px;background:rgba(20,22,28,.9);border-radius:8px;display:flex;
+           align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:12px;color:#ccd}
+  .tray{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:5px}
+  .tray:hover,.tray.on{background:rgba(255,255,255,.14)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+
+  .stage{width:min(960px,100%);display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+  @media(max-width:860px){.stage{grid-template-columns:1fr}}
+
+  /* window */
+  .win{background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+       box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;height:640px}
+  .titlebar{height:40px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:8px}
+  .tl{width:12px;height:12px;border-radius:50%}
+  .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+  .titlebar .t{flex:1;text-align:center;color:var(--muted);font-size:13px;margin-right:52px}
+  .body{flex:1;display:flex;min-height:0}
+  .side{width:150px;background:var(--panel);border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+  .side button{all:unset;cursor:pointer;padding:8px 10px;border-radius:8px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .side button:hover{background:var(--panel2)}
+  .side button.on{background:var(--panel2);color:var(--text)}
+  .side .sp{flex:1}
+  .offline{font-size:11px;color:var(--ok);padding:8px 10px;display:flex;gap:6px;align-items:center}
+
+  .view{flex:1;display:none;flex-direction:column;min-width:0}
+  .view.on{display:flex}
+
+  /* chat view */
+  .orbwrap{padding:22px 0 8px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .orb{width:96px;height:96px;border-radius:50%;cursor:pointer;position:relative;
+       background:radial-gradient(circle at 35% 30%,#bcd0ff,var(--accent) 45%,var(--accent2));
+       box-shadow:0 0 40px rgba(124,156,255,.45);transition:.3s}
+  .orb::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid var(--accent);opacity:0}
+  .orb.listening{animation:pulse 1.2s infinite}
+  .orb.listening::after{animation:ring 1.2s infinite}
+  .orb.thinking{animation:spin 1.4s linear infinite;filter:hue-rotate(40deg)}
+  .orb.speaking{animation:talk .45s ease-in-out infinite alternate}
+  @keyframes pulse{50%{transform:scale(1.07)}}
+  @keyframes ring{from{opacity:.7;transform:scale(.95)}to{opacity:0;transform:scale(1.35)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes talk{to{transform:scale(1.1);box-shadow:0 0 70px rgba(181,140,255,.7)}}
+  .state{color:var(--muted);font-size:13px;height:18px}
+
+  .chat{flex:1;overflow:auto;padding:10px 22px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:78%;padding:9px 13px;border-radius:14px;background:var(--panel2)}
+  .msg.me{align-self:flex-end;background:#2b3a6b}
+  .msg .tool{display:block;margin-top:6px;font-size:12px;color:var(--ok);font-family:ui-monospace,Menlo,monospace}
+  .composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+  .composer input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;outline:none}
+  .composer input:focus{border-color:var(--accent)}
+  .btn{background:var(--accent);color:#0b1020;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+
+  /* settings & skills */
+  .pad{padding:22px;overflow:auto}
+  h2{font-size:18px;margin-bottom:4px}
+  .sub{color:var(--muted);margin-bottom:16px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .row small{display:block;color:var(--muted)}
+  select,.kbd{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit}
+  .sw{width:38px;height:22px;border-radius:11px;background:#3a3f4d;position:relative;cursor:pointer;flex:none;transition:.2s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .sw.on{background:var(--accent)}.sw.on::after{left:18px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card .ic{font-size:22px}
+  .card h3{font-size:14px;margin:6px 0 2px}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:10px}
+  .card .cmd{font-size:12px;color:var(--accent);font-style:italic}
+  .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+  /* popover */
+  .pop{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px}
+  .pop .orb{width:64px;height:64px}
+  .pop .top{display:flex;align-items:center;gap:12px}
+  .pop .q{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pop .q button{all:unset;cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center;font-size:13px}
+  .pop .q button:hover{border-color:var(--accent)}
+  .pop-wrap{display:flex;flex-direction:column;gap:8px}
+  .cap{color:#99a;font-size:12px}
+  .hint{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<p class="note"><b>Макет приложения «Стив»</b> — кликабельный, без реальной логики. Нажми на шар, чтобы увидеть состояния
+(слушает → думает → отвечает), загляни во вкладки слева и в меню-бар. Напиши, что менять — цвета, структуру, экраны.</p>
+
+<div class="menubar">
+  <span>Wi-Fi: выкл</span>
+  <span>🔋 87%</span>
+  <span class="tray on" id="tray"><span class="dot"></span> Стив</span>
+  <span>Вс 15 ноя 16:40</span>
+</div>
+
+<div class="stage">
+  <!-- ОКНО -->
+  <div class="win">
+    <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="t">Стив</span></div>
+    <div class="body">
+      <nav class="side">
+        <button class="on" data-v="chat">💬 Диалог</button>
+        <button data-v="skills">🧩 Навыки</button>
+        <button data-v="settings">⚙️ Настройки</button>
+        <div class="sp"></div>
+        <div class="offline"><span class="dot"></span> Работает офлайн</div>
+      </nav>
+
+      <!-- Диалог -->
+      <section class="view on" id="v-chat">
+        <div class="orbwrap">
+          <div class="orb" id="orb" title="Нажми, чтобы говорить"></div>
+          <div class="state" id="state">Скажи «Привет, Стив» или нажми на шар</div>
+        </div>
+        <div class="chat" id="chat">
+          <div class="msg">Привет! Я Стив. Могу открывать приложения, ставить таймеры, записывать заметки и просто болтать.</div>
+        </div>
+        <form class="composer" id="form">
+          <input id="inp" placeholder="Или напиши сообщение…" autocomplete="off">
+          <button class="btn ghost" type="button" id="mic">🎙</button>
+          <button class="btn">Отправить</button>
+        </form>
+      </section>
+
+      <!-- Навыки -->
+      <section class="view" id="v-skills"><div class="pad">
+        <h2>Навыки</h2><p class="sub">Что Стив умеет делать на этом Mac без интернета</p>
+        <div class="grid">
+          <div class="card"><div class="ic">🚀</div><h3>Приложения</h3><p>Открывает любые программы</p><div class="cmd">«Открой Safari»</div></div>
+          <div class="card"><div class="ic">⏱</div><h3>Таймеры</h3><p>Напоминает голосом и уведомлением</p><div class="cmd">«Таймер на 10 минут»</div></div>
+          <div class="card"><div class="ic">📝</div><h3>Заметки</h3><p>Сохраняет мысли в одном файле</p><div class="cmd">«Запиши: купить молоко»</div></div>
+          <div class="card"><div class="ic">🔊</div><h3>Громкость</h3><p>Управляет звуком системы</p><div class="cmd">«Сделай потише, 30%»</div></div>
+          <div class="card"><div class="ic">🔋</div><h3>Система</h3><p>Батарея, время, дата</p><div class="cmd">«Сколько осталось заряда?»</div></div>
+          <div class="card" style="border-style:dashed"><div class="ic">＋</div><h3>Скоро</h3><p>Файлы, календарь, музыка, скриншоты</p></div>
+        </div>
+      </div></section>
+
+      <!-- Настройки -->
+      <section class="view" id="v-settings"><div class="pad">
+        <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
+        <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается</small></div><span class="kbd">«Привет, Стив»</span></div>
+        <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
+        <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
+          <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
+        <div class="row"><div>Озвучивать ответы</div><div class="sw on"></div></div>
+        <div class="row"><div>Запускать при входе в систему</div><div class="sw"></div></div>
+        <div class="row"><div>Слушать постоянно<small>Ждать слово активации в фоне</small></div><div class="sw on"></div></div>
+        <div class="row"><div style="flex:1">Встроенная модель<small>Qwen · работает целиком на устройстве</small>
+          <div class="bar"><i style="width:62%"></i></div></div><span class="kbd">≈ 3.1 ГБ ОЗУ</span></div>
+      </div></section>
+    </div>
+  </div>
+
+  <!-- ПОПОВЕР ИЗ МЕНЮ-БАРА -->
+  <div class="pop-wrap">
+    <div class="cap">Так выглядит всплывающее окно из меню-бара ↓</div>
+    <div class="pop">
+      <div class="top"><div class="orb" id="orb2"></div>
+        <div><b>Стив</b><div class="hint" id="state2">Готов слушать</div></div></div>
+      <div class="q">
+        <button data-say="Поставь таймер на 5 минут">⏱ Таймер</button>
+        <button data-say="Запиши заметку">📝 Заметка</button>
+        <button data-say="Открой Safari">🚀 Safari</button>
+        <button data-say="Сколько времени?">🕐 Время</button>
+      </div>
+      <div class="hint">⌥ Пробел — говорить · ⌘ , — настройки</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// навигация
+$$('.side button').forEach(b=>b.onclick=()=>{
+  $$('.side button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));
+});
+$$('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+
+// демо-ответы
+const demo=[
+  [/таймер|timer/i,'Поставил таймер. Скажу, когда сработает.','set_timer(seconds=300)'],
+  [/заметк|запиши|note/i,'Записал в заметки.','create_note(text="…")'],
+  [/safari|открой|open/i,'Открываю.','open_app(name="Safari")'],
+  [/врем|час|time/i,'Сейчас 16:40, воскресенье.','get_time()'],
+  [/батаре|заряд|battery/i,'Заряд 87%, ноутбук не на зарядке.','battery()'],
+];
+function add(text,me,tool){
+  const d=document.createElement('div');d.className='msg'+(me?' me':'');d.textContent=text;
+  if(tool){const t=document.createElement('span');t.className='tool';t.textContent='⚙ '+tool;d.append(t)}
+  $('#chat').append(d);$('#chat').scrollTop=1e9;
+}
+function setState(s,label){
+  ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
+  $('#state').textContent=label;$('#state2').textContent=label;
+}
+let busy=false;
+function run(q){
+  if(busy)return;busy=true;
+  setState('listening','Слушаю…');
+  setTimeout(()=>{
+    add(q,true);setState('thinking','Думаю…');
+    setTimeout(()=>{
+      const m=demo.find(d=>d[0].test(q))||[0,'Я пока тестовый макет, но в настоящей версии отвечу на это сам, офлайн.',''];
+      add(m[1],false,m[2]);setState('speaking','Отвечаю…');
+      setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на шар');busy=false},1800);
+    },1100);
+  },900);
+}
+$('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
+$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v)};
+$$('[data-say]').forEach(b=>b.onclick=()=>run(b.dataset.say));
+$('#tray').onclick=()=>$('#tray').classList.toggle('on');
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" shape-rendering="crispEdges">
+  <style>.b{animation:b 1.6s ease-in-out infinite}@keyframes b{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}</style>
+  <g class="b">
+    <g fill="#7A9CC6">
+      <rect x="32" y="48" width="64" height="40"/>
+      <rect x="32" y="32" width="12" height="16"/>
+      <rect x="84" y="32" width="12" height="16"/>
+      <rect x="36" y="88" width="12" height="16"/>
+      <rect x="80" y="88" width="12" height="16"/>
+      <rect x="96" y="72" width="16" height="8"/>
+      <rect x="108" y="52" width="8" height="28"/>
+    </g>
+    <g fill="#1F1F1F">
+      <rect x="46" y="60" width="8" height="12"/>
+      <rect x="74" y="60" width="8" height="12"/>
+      <rect x="60" y="74" width="8" height="4"/>
+    </g>
+  </g>
+</svg>

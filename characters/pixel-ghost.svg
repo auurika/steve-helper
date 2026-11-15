@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" shape-rendering="crispEdges">
+  <style>.b{animation:b 2s ease-in-out infinite}@keyframes b{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}</style>
+  <g class="b">
+    <g fill="#E8E4F5">
+      <rect x="44" y="24" width="40" height="8"/>
+      <rect x="36" y="32" width="56" height="64"/>
+      <rect x="36" y="96" width="16" height="8"/>
+      <rect x="56" y="96" width="16" height="8"/>
+      <rect x="76" y="96" width="16" height="8"/>
+    </g>
+    <g fill="#1F1F1F">
+      <rect x="52" y="52" width="8" height="12"/>
+      <rect x="72" y="52" width="8" height="12"/>
+      <rect x="60" y="72" width="8" height="8"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <style>
+    .squish{animation:squish 1.8s ease-in-out infinite;transform-origin:64px 114px}
+    .blink{animation:blink 3.5s infinite;transform-box:fill-box;transform-origin:center}
+    @keyframes squish{0%,100%{transform:scale(1,1)}50%{transform:scale(1.06,.93)}}
+    @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+  </style>
+  <ellipse cx="64" cy="116" rx="40" ry="6" fill="#000" opacity=".12"/>
+  <g class="squish">
+    <path d="M14 108 C10 74 34 36 64 36 C94 36 118 74 114 108 C100 116 28 116 14 108 Z" fill="#6FD37A" stroke="#3FA853" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M64 36 C60 28 62 20 68 16 C72 24 70 32 64 36 Z" fill="#6FD37A" stroke="#3FA853" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="38" cy="62" rx="9" ry="5" fill="#fff" opacity=".5" transform="rotate(-30 38 62)"/>
+    <g class="blink"><circle cx="48" cy="80" r="7" fill="#1F3A28"/><circle cx="50" cy="77" r="2.5" fill="#fff"/></g>
+    <g class="blink"><circle cx="80" cy="80" r="7" fill="#1F3A28"/><circle cx="82" cy="77" r="2.5" fill="#fff"/></g>
+    <path d="M56 92 q8 8 16 0" fill="none" stroke="#1F3A28" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="36" cy="90" r="5" fill="#FF9DB5" opacity=".6"/>
+    <circle cx="92" cy="90" r="5" fill="#FF9DB5" opacity=".6"/>
+  </g>
+</svg>
