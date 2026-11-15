@@ -9,15 +9,19 @@ struct ChatView: View {
             // сообщения идут на всю высоту и уходят вверх прямо за Стива: там они размываются и бледнеют
             ZStack(alignment: .top) {
                 MessageList(messages: model.messages, showCommands: model.settings.showCommands, compact: false,
-                            isThinking: model.status == .thinking || model.status == .working, topInset: Self.heroHeight)
+                            isThinking: model.status == .thinking || model.status == .working, topInset: heroHeight)
                 hero
+                    .background(GeometryReader { proxy in Color.clear.preference(key: HeroHeightKey.self, value: proxy.size.height) })
             }
+            .onPreferenceChange(HeroHeightKey.self) { heroHeight = max(Self.minHeroHeight, $0) }
             ComposerView(compact: false)
         }
     }
 
-    /// Высота Стива со статусом: с неё начинаются сообщения, выше них они уходят за Стива.
-    static let heroHeight: CGFloat = 164
+    /// Высота Стива со статусом и панелями: с неё начинаются сообщения, чтобы панели не лежали поверх текста.
+    /// Выше этой линии сообщения при прокрутке уходят за Стива и размываются.
+    static let minHeroHeight: CGFloat = 164
+    @State private var heroHeight: CGFloat = 164
 
     private var hero: some View {
         VStack(spacing: 10) {
@@ -35,8 +39,7 @@ struct ChatView: View {
                 .foregroundStyle(Color.steveMuted)
                 .frame(height: 18)
 
-            TimerPanel(compact: false)
-            StopwatchPanel(compact: false)
+            PanelsView(compact: false)
         }
         .padding(.top, 14)
         .padding(.bottom, 8)
@@ -80,7 +83,9 @@ struct MessageList: View {
                 .padding(compact ? 10 : 0)
                 .padding(.top, compact ? 0 : max(12, topInset))
                 .padding(.bottom, compact ? 0 : 12)
+                Color.clear.frame(height: 1).id("end")
             }
+            .defaultScrollAnchor(.bottom)
             .coordinateSpace(name: "msgScroll")
             // сообщения, уходящие вверх за Стива, плавно растворяются, а не обрезаются жёсткой линией
             .mask(
@@ -91,14 +96,19 @@ struct MessageList: View {
                 }
             )
             .onChange(of: messages.count) { scrollToEnd(proxy) }
+            .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
+            .onAppear { scrollToEnd(proxy) }
             .onChange(of: isThinking) { scrollToEnd(proxy) }
         }
     }
 
+    /// Прокручивает чат к последнему сообщению. Ждём кадр, пока новый пузырь встанет в список, иначе прокрутка промахивается.
     private func scrollToEnd(_ proxy: ScrollViewProxy) {
-        let target: AnyHashable? = isThinking ? AnyHashable("thinking") : messages.last.map { AnyHashable($0.id) }
-        guard let target else { return }
-        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(target, anchor: .bottom) }
+        for delay in [0.0, 0.25] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("end", anchor: .bottom) }
+            }
+        }
     }
 
     private func bubble(_ message: ChatMessage) -> some View {
@@ -254,54 +264,94 @@ struct MicButton: View {
 }
 
 
-/// Идущие таймеры с обратным отсчётом и кнопкой отмены. Так таймер работает у любого пользователя,
-/// даже если приложение «Часы» не удалось настроить.
-struct TimerPanel: View {
+/// Таймеры и секундомер под Стивом: если помещаются, стоят в одну строку по центру, иначе переносятся на следующую.
+struct PanelsView: View {
     let compact: Bool
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        if !model.activeTimers.isEmpty {
-            VStack(spacing: 6) {
-                ForEach(model.activeTimers) { timer in
-                    TimelineView(.periodic(from: .now, by: 0.5)) { context in
-                        let paused = timer.pausedLeft != nil
-                        let left = max(0, timer.pausedLeft ?? timer.end.timeIntervalSince(context.date))
-                        HStack(spacing: 10) {
-                            Image(systemName: "timer").font(.system(size: 13))
-                            Text(Self.format(left))
-                                .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
-                                .opacity(paused ? 0.6 : 1)
-                            GeometryReader { proxy in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.white.opacity(0.18))
-                                    Capsule().fill(Color.steveAccent)
-                                        .frame(width: proxy.size.width * CGFloat(left / Double(max(1, timer.total))))
-                                }
-                            }
-                            .frame(width: compact ? 50 : 110, height: 6)
-                            // две кнопки: пауза или продолжение, и остановка
-                            Self.timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseTimer(timer.id) }
-                            Self.timerButton("stop.fill", help: "Остановить") { model.stopTimer(timer.id) }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous)) // сообщения за панелью не просвечивают
-                        .glassControl(cornerRadius: 14)
-                    }
-                }
+        CenteredFlow(spacing: 8) {
+            ForEach(model.activeTimers) { timer in
+                TimerRow(timer: timer, compact: compact)
+            }
+            if model.stopwatch != nil {
+                StopwatchRow(compact: compact)
             }
         }
+        .frame(maxWidth: .infinity)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.activeTimers.count)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.stopwatch != nil)
+    }
+}
+
+/// Раскладка: элементы по строкам, каждая строка по центру. Высота растёт только когда строка не помещается.
+struct CenteredFlow: Layout {
+    var spacing: CGFloat = 8
+
+    private func rows(_ subviews: Subviews, width: CGFloat) -> [[Int]] {
+        var rows: [[Int]] = [[]]
+        var used: CGFloat = 0
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+            if used > 0, used + spacing + size.width > width { rows.append([]); used = 0 }
+            rows[rows.count - 1].append(index)
+            used += (used > 0 ? spacing : 0) + size.width
+        }
+        return rows.filter { !$0.isEmpty }
     }
 
-    fileprivate static func timerButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 10, weight: .bold)).frame(width: 24, height: 24)
-                .background(Circle().fill(Color.white.opacity(0.16)))
-                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 400
+        let laid = rows(subviews, width: width)
+        let heights = laid.map { row in row.map { subviews[$0].sizeThatFits(.unspecified).height }.max() ?? 0 }
+        return CGSize(width: width, height: heights.reduce(0, +) + spacing * CGFloat(max(0, laid.count - 1)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in rows(subviews, width: bounds.width) {
+            let sizes = row.map { subviews[$0].sizeThatFits(.unspecified) }
+            let total = sizes.map(\.width).reduce(0, +) + spacing * CGFloat(row.count - 1)
+            var x = bounds.minX + (bounds.width - total) / 2
+            for (offset, index) in row.enumerated() {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+                x += sizes[offset].width + spacing
+            }
+            y += (sizes.map(\.height).max() ?? 0) + spacing
         }
-        .buttonStyle(.plain)
-        .help(help)
+    }
+}
+
+/// Один таймер: обратный отсчёт, полоса и две кнопки.
+struct TimerRow: View {
+    let timer: ActiveTimer
+    let compact: Bool
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+            let paused = timer.pausedLeft != nil
+            let left = max(0, timer.pausedLeft ?? timer.end.timeIntervalSince(context.date))
+            HStack(spacing: 10) {
+                Image(systemName: "timer").font(.system(size: 13))
+                Text(Self.format(left))
+                    .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                    .opacity(paused ? 0.6 : 1)
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.18))
+                        Capsule().fill(Color.steveAccent)
+                            .frame(width: proxy.size.width * CGFloat(left / Double(max(1, timer.total))))
+                    }
+                }
+                .frame(width: compact ? 40 : 90, height: 6)
+                // две кнопки: пауза или продолжение, и остановка
+                PanelButton(symbol: paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseTimer(timer.id) }
+                PanelButton(symbol: "stop.fill", help: "Остановить") { model.stopTimer(timer.id) }
+            }
+            .panelBackground()
+        }
+        .fixedSize()
     }
 
     static func format(_ seconds: TimeInterval) -> String {
@@ -311,7 +361,67 @@ struct TimerPanel: View {
     }
 }
 
+/// Секундомер: время вперёд с десятыми долями и те же две кнопки.
+struct StopwatchRow: View {
+    let compact: Bool
+    @Environment(AppModel.self) private var model
 
+    var body: some View {
+        if let stopwatch = model.stopwatch {
+            TimelineView(.periodic(from: .now, by: 0.1)) { context in
+                let paused = stopwatch.pausedElapsed != nil
+                HStack(spacing: 10) {
+                    Image(systemName: "stopwatch").font(.system(size: 13))
+                    Text(Self.format(stopwatch.elapsed(at: context.date)))
+                        .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                        .opacity(paused ? 0.6 : 1)
+                    PanelButton(symbol: paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseStopwatch() }
+                    PanelButton(symbol: "stop.fill", help: "Остановить") { model.stopStopwatch() }
+                }
+                .panelBackground()
+            }
+            .fixedSize()
+        }
+    }
+
+    static func format(_ seconds: TimeInterval) -> String {
+        let tenths = Int(seconds * 10)
+        let h = tenths / 36000, m = (tenths / 600) % 60, s = (tenths / 10) % 60
+        let base = h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+        return base + String(format: ".%d", tenths % 10)
+    }
+}
+
+private struct PanelButton: View {
+    let symbol: String
+    let help: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold)).frame(width: 24, height: 24)
+                .background(Circle().fill(Color.white.opacity(0.16)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
+private extension View {
+    /// Плотная стеклянная плашка: сообщения за ней не просвечивают.
+    func panelBackground() -> some View {
+        padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .glassControl(cornerRadius: 14)
+    }
+}
+
+private struct HeroHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
 /// Пузырь «Стив думает»: три точки по очереди набирают высоту.
 struct ThinkingBubble: View {
     let compact: Bool
@@ -343,35 +453,4 @@ struct ThinkingBubble: View {
 }
 
 
-/// Секундомер с отсчётом вперёд, кнопками паузы и остановки. Стоит там же, где таймеры, прямо под Стивом.
-struct StopwatchPanel: View {
-    let compact: Bool
-    @Environment(AppModel.self) private var model
 
-    var body: some View {
-        if let stopwatch = model.stopwatch {
-            TimelineView(.periodic(from: .now, by: 0.1)) { context in
-                let paused = stopwatch.pausedElapsed != nil
-                HStack(spacing: 10) {
-                    Image(systemName: "stopwatch").font(.system(size: 13))
-                    Text(Self.format(stopwatch.elapsed(at: context.date)))
-                        .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
-                        .opacity(paused ? 0.6 : 1)
-                    TimerPanel.timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseStopwatch() }
-                    TimerPanel.timerButton("stop.fill", help: "Остановить") { model.stopStopwatch() }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .glassControl(cornerRadius: 14)
-            }
-        }
-    }
-
-    static func format(_ seconds: TimeInterval) -> String {
-        let tenths = Int(seconds * 10)
-        let h = tenths / 36000, m = (tenths / 600) % 60, s = (tenths / 10) % 60
-        let base = h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
-        return base + String(format: ".%d", tenths % 10)
-    }
-}

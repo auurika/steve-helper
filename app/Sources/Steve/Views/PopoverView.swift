@@ -42,8 +42,7 @@ struct PopoverView: View {
                 }
             }
 
-            TimerPanel(compact: true)
-            StopwatchPanel(compact: true)
+            PanelsView(compact: true)
 
             MessageList(messages: Array(model.messages.suffix(30)), showCommands: model.settings.showCommands, compact: true, isThinking: model.status == .thinking || model.status == .working)
                 .frame(height: 168)
