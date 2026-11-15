@@ -5,7 +5,6 @@ import SwiftUI
 struct RootView: View {
     var body: some View {
         RootContent()
-            .containerBackground(.ultraThinMaterial, for: .window)
             .background(WindowConfigurator())
             .frame(minWidth: 420, minHeight: 460)
     }
@@ -33,7 +32,7 @@ struct RootContent: View {
                 .padding(.bottom, 10)
         }
         .foregroundStyle(Color.steveText)
-        .background { Color.steveNavy.opacity(model.settings.glassAlpha) }
+        .background { ZStack { WindowGlass(); Color.steveNavy.opacity(model.settings.glassAlpha) }.ignoresSafeArea() }
         .preferredColorScheme(.dark)
     }
 }

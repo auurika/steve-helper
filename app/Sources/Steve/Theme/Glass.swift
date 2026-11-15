@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Цвета и стеклянные поверхности в стиле Liquid Glass, как в макете.
@@ -88,3 +89,18 @@ struct GlassIconButton: View {
     }
 }
 
+
+
+/// Настоящее стекло окна: размытие того, что лежит под окном на рабочем столе.
+/// Окно прозрачное, поэтому стекло показывает рабочий стол, а не серую заливку.
+struct WindowGlass: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let effect = NSVisualEffectView()
+        effect.material = .hudWindow
+        effect.blendingMode = .behindWindow
+        effect.state = .active
+        return effect
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}

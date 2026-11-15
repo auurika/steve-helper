@@ -94,6 +94,10 @@ final class AppModel {
         hotkeys.register(settings.hotkey)
 
         applyLaunchAtLogin()
+        // вернулся из системных настроек: права могли измениться, показываем сразу
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in await self?.permissions.refresh() }
+        }
         Task {
             await permissions.refresh()
             if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
@@ -268,10 +272,27 @@ final class AppModel {
             let normalized = CommandParser.normalize(heard)
             guard let range = normalized.range(of: phrase) else { return }
             let tail = String(normalized[range.upperBound...]).trimmingCharacters(in: CharacterSet(charactersIn: " ,.!"))
+            showMenuBarPopover() // услышал слово активации: открываем маленькое окно из меню-бара
             if tail.isEmpty { await captureVoice() } else { await ask(tail) }
         } catch {
             // нет разрешения или ничего не расслышал: ждём немного и пробуем снова
             try? await Task.sleep(for: .seconds(error is Listener.ListenerError ? 3 : 1))
+        }
+    }
+
+    /// Открывает маленькое окно у значка Стива в меню-баре, как будто на него нажали.
+    func showMenuBarPopover() {
+        func findButton(in view: NSView) -> NSStatusBarButton? {
+            if let button = view as? NSStatusBarButton { return button }
+            for sub in view.subviews { if let found = findButton(in: sub) { return found } }
+            return nil
+        }
+        for window in NSApp.windows {
+            guard String(describing: type(of: window)).contains("StatusBar"),
+                  let content = window.contentView, let button = findButton(in: content) else { continue }
+            let isOpen = NSApp.windows.contains { $0.isVisible && String(describing: type(of: $0)).contains("MenuBarExtra") }
+            if !isOpen { button.performClick(nil) }
+            return
         }
     }
 

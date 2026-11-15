@@ -102,6 +102,9 @@ final class CommandParserTests: XCTestCase {
 
     func testGreetingAndThanks() {
         XCTAssertEqual(parser.parse("привет, как дела"), .greeting)
+        XCTAssertEqual(parser.parse("Привет Стив"), .greeting)
+        XCTAssertEqual(parser.parse("привет стив подскажи какая погода сейчас в москве"), .unknown("подскажи какая погода сейчас в москве"))
+        XCTAssertEqual(parser.parse("привет стив сколько времени"), .currentTime)
         XCTAssertEqual(parser.parse("спасибо"), .thanks)
         XCTAssertEqual(parser.parse("молодец"), .thanks)
     }

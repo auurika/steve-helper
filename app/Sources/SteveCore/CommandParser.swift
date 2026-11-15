@@ -38,8 +38,21 @@ public struct CommandParser {
         if let app = openAppCommand(in: text) {
             return app
         }
-        if text.range(of: "^(привет|здарова|здравствуй|добрый|hello|hi)\\b", options: .regularExpression) != nil {
-            return .greeting
+        if let greeting = text.range(of: "^(привет|здарова|здравствуй|добрый (день|вечер|утро)|hello|hi)\\b[,!. ]*(стив\\b[,!. ]*)?", options: .regularExpression) {
+            // «привет» с продолжением это обращение, а не приветствие: отвечаем на сам вопрос
+            let rest = String(text[greeting.upperBound...]).trimmingCharacters(in: .whitespaces)
+            if rest.isEmpty || rest.range(of: "^(как (дела|ты|жизнь)|что нового|ты (тут|здесь))\\??$", options: .regularExpression) != nil {
+                return .greeting
+            }
+            let original = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedOriginal = original.split(separator: " ", omittingEmptySubsequences: true)
+                .drop { word in
+                    let w = word.lowercased().trimmingCharacters(in: .punctuationCharacters)
+                    return ["привет", "здарова", "здравствуй", "hello", "hi", "стив"].contains(w)
+                }.joined(separator: " ")
+            let command = parse(rest)
+            if case .unknown = command { return .unknown(trimmedOriginal.isEmpty ? original : trimmedOriginal) }
+            return command
         }
         if JoyWords.matches(text) {
             return .thanks

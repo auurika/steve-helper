@@ -70,7 +70,13 @@ struct SettingsView: View {
                     }
                 }
             }
-            .task { await permissions.refresh() }
+            .task {
+                // пока экран открыт, проверяем права каждую секунду: «Разрешено» появляется сразу после ответа
+                while !Task.isCancelled {
+                    await permissions.refresh()
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
         }
     }
 
