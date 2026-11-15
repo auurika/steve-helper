@@ -25,9 +25,15 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
-            WindowButtons()
-                .padding(.top, 6)
-                .padding(.bottom, 8)
+            // кнопки привязаны к левому краю панели и не двигаются, когда она раскрывается
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 12)
+                .overlay(alignment: .leading) {
+                    WindowButtons().fixedSize().offset(x: -4)
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 10)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -38,6 +44,7 @@ struct SidebarView: View {
         .padding(.horizontal, 8)
         .frame(width: isExpanded ? 180 : 56)
         .frame(maxHeight: .infinity)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous)) // размытие: текст под панелью не просвечивает
         .glassControl(cornerRadius: 18) // тот же цвет и рамка, что у поля ввода
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
@@ -126,7 +133,7 @@ private struct WindowButtons: View {
     ]
 
     var body: some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(buttons) { button in
                 SwiftUI.Button {
                     if let window = NSApp.keyWindow ?? NSApp.mainWindow { button.action(window) }
