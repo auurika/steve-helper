@@ -235,6 +235,12 @@
   svg.i{display:block}
   .btn{align-items:center}
   #ncIcon{display:grid;place-items:center}
+  .grid{grid-auto-rows:1fr}
+  .card{display:flex;flex-direction:column;min-height:0}
+  .card p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .card .cmd{margin-top:auto;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  .card.editable{cursor:pointer}
+  .card.editable:hover{background:rgba(255,255,255,.3)}
 </style>
 </head>
 <body>
@@ -414,8 +420,8 @@
         <button class="ic btn ghost" id="ncIcon" type="button" title="Выбрать иконку" style="width:44px;height:44px;min-width:44px;flex:none;aspect-ratio:1/1;padding:0;border-radius:14px"></button>
         <input class="field" id="ncName" maxlength="30" placeholder="Название (до 30 символов)" style="margin:0;font-size:14px;height:44px">
       </div>
-      <input class="field" id="ncDesc" maxlength="80" placeholder="Описание" style="margin:0 0 10px;font-size:14px">
-      <input class="field" id="ncCmd" maxlength="60" placeholder="Фраза быстрой активации" style="margin:0 0 14px;font-size:14px">
+      <input class="field" id="ncDesc" maxlength="60" placeholder="Описание" style="margin:0 0 10px;font-size:14px">
+      <input class="field" id="ncCmd" maxlength="40" placeholder="Фраза быстрой активации" style="margin:0 0 14px;font-size:14px">
       <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
     </div></div>
 
@@ -620,10 +626,11 @@ let skills=[
 const esc=t=>t.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const sv=id=>`<svg class="i"><use href="#${id}"/></svg>`;
 function drawSkills(){
-  $('#skillGrid').innerHTML=skills.map((k,idx)=>`<div class="card"><div class="chead"><button class="ic" data-idx="${idx}" title="Сменить иконку">${sv(k.i)}</button><h3>${esc(k.n)}</h3></div><p>${esc(k.d)}</p><div class="cmd">«${esc(k.c)}»</div></div>`).join('')+
+  $('#skillGrid').innerHTML=skills.map((k,idx)=>`<div class="card${idx>=5?' editable':''}" data-idx="${idx}"><div class="chead"><button class="ic" data-idx="${idx}" title="Сменить иконку">${sv(k.i)}</button><h3>${esc(k.n)}</h3></div><p>${esc(k.d)}</p><div class="cmd">«${esc(k.c)}»</div></div>`).join('')+
   `<div class="card add" id="addSkill"><div class="chead"><div class="ic" style="width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:var(--rim);color:#fff">${sv('i-plus')}</div><h3>Новая команда</h3></div><p>Создайте свою собственную команду для Стива</p></div>`;
-  $$('#skillGrid .ic[data-idx]').forEach(b=>b.onclick=()=>pickIcon(skills[+b.dataset.idx].i,id=>{skills[+b.dataset.idx].i=id;drawSkills()}));
-  $('#addSkill').onclick=openNC;
+  $$('#skillGrid .ic[data-idx]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();pickIcon(skills[+b.dataset.idx].i,id=>{skills[+b.dataset.idx].i=id;drawSkills();drawQs()})});
+  $$('#skillGrid .card.editable').forEach(c=>c.onclick=()=>openNC(+c.dataset.idx));
+  $('#addSkill').onclick=()=>openNC();
 }
 let ipCb=null;
 function pickIcon(cur,cb){
@@ -634,10 +641,25 @@ function pickIcon(cur,cb){
 }
 let ncI='i-puzzle';
 function ncCheck(){$('#ncSave').disabled=!($('#ncName').value.trim()&&$('#ncCmd').value.trim())}
-function openNC(){ncI='i-puzzle';$('#ncIcon').innerHTML=sv(ncI);['#ncName','#ncDesc','#ncCmd'].forEach(x=>$(x).value='');ncCheck();$('#nc').classList.add('on')}
+let ncEdit=null;
+function openNC(idx){
+  ncEdit=(typeof idx==='number')?idx:null;
+  const k=ncEdit!==null?skills[ncEdit]:null;
+  ncI=k?k.i:'i-puzzle';
+  $('#ncIcon').innerHTML=sv(ncI);
+  $('#ncName').value=k?k.n:'';$('#ncDesc').value=k?k.d:'';$('#ncCmd').value=k?k.c:'';
+  $('#nc h2').textContent=k?'Редактирование команды':'Новая команда';
+  $('#nc .sub').textContent=k?'Измени название, иконку, описание или фразу.':'Придумай свою команду для Стива.';
+  $('#ncSave').textContent=k?'Сохранить':'Создать';
+  ncCheck();$('#nc').classList.add('on');
+}
 $('#ncIcon').onclick=()=>pickIcon(ncI,id=>{ncI=id;$('#ncIcon').innerHTML=sv(id)});
 ['#ncName','#ncCmd'].forEach(x=>$(x).oninput=ncCheck);
-$('#ncSave').onclick=()=>{skills.push({n:$('#ncName').value.trim(),d:$('#ncDesc').value.trim()||'Своя команда',c:$('#ncCmd').value.trim(),i:ncI});drawSkills();$('#nc').classList.remove('on')};
+$('#ncSave').onclick=()=>{
+  const k={n:$('#ncName').value.trim(),d:$('#ncDesc').value.trim()||'Своя команда',c:$('#ncCmd').value.trim(),i:ncI};
+  if(ncEdit!==null)skills[ncEdit]=k;else skills.push(k);
+  drawSkills();drawQs();closeModal($('#nc'));
+};
 drawSkills();
 
 // закрытие окон: крестик, клик по пустой области, Escape
