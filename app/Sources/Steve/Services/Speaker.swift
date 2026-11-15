@@ -7,6 +7,7 @@ import SteveCore
 final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
     private let synthesizer = AVSpeechSynthesizer()
     private var finished: CheckedContinuation<Void, Never>?
+    private var currentToken: UUID?
 
     override init() {
         super.init()
@@ -38,6 +39,23 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
         }
     }
 
+    /// Язык текста: русский, если есть кириллица, иначе английский.
+    static func language(of text: String) -> String {
+        text.range(of: "\\p{Cyrillic}", options: .regularExpression) != nil ? "ru-RU" : "en-US"
+    }
+
+    /// Голос для нужного языка. Выбранный голос подходит, только если говорит на этом языке: английский голос
+    /// молчит или коверкает русский текст. Иначе берём лучший голос языка: личный, затем улучшенный.
+    static func voice(for language: String, preferred: AVSpeechSynthesisVoice?) -> AVSpeechSynthesisVoice? {
+        let prefix = String(language.prefix(2))
+        if let preferred, preferred.language.hasPrefix(prefix) { return preferred }
+        let candidates = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix(prefix) }
+        let best = candidates.max { lhs, rhs in
+            (isPersonal(lhs) ? 1 : 0, lhs.quality.rawValue) < (isPersonal(rhs) ? 1 : 0, rhs.quality.rawValue)
+        }
+        return best ?? AVSpeechSynthesisVoice(language: language)
+    }
+
     /// Произносит текст и ждёт, пока речь закончится. Кавычки, скобки и значки разметки не читаются.
     func speak(_ text: String, voice: AVSpeechSynthesisVoice?, pitch: Float = 1) async {
         let clean = SpeechText.clean(text)
@@ -47,14 +65,23 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .word) }
 
         let utterance = AVSpeechUtterance(string: clean)
-        utterance.voice = voice ?? AVSpeechSynthesisVoice(language: clean.range(of: "\\p{Cyrillic}", options: .regularExpression) != nil ? "ru-RU" : "en-US")
+        utterance.voice = Self.voice(for: Self.language(of: clean), preferred: voice)
         if pitch != 1 { utterance.pitchMultiplier = pitch }
         utterance.postUtteranceDelay = 0.15 // даём звуку допеть до конца, чтобы речь не обрывалась щелчком
 
+        // Если синтезатор по какой-то причине не сообщит об окончании, Стив не должен зависнуть в «Выполняет».
+        let token = UUID()
+        let limit = max(4, Double(clean.count) / 8 + 3)
         await withCheckedContinuation { continuation in
             finished?.resume() // предыдущая фраза прервана, отпускаем тех, кто её ждал
             finished = continuation
+            currentToken = token
             synthesizer.speak(utterance)
+            DispatchQueue.main.asyncAfter(deadline: .now() + limit) { [weak self] in
+                guard let self, self.currentToken == token else { return }
+                self.finished?.resume()
+                self.finished = nil
+            }
         }
     }
 

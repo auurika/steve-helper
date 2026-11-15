@@ -52,6 +52,10 @@ enum SnapshotTool {
                 model.section = section
                 await capture(RootContent().environment(model), size: CGSize(width: 960, height: 640), to: folder.appendingPathComponent("\(name).png"))
             }
+            model.section = .chat
+            model.previewSidebarExpanded = true
+            await capture(RootContent().environment(model), size: CGSize(width: 960, height: 640), to: folder.appendingPathComponent("sidebar-expanded.png"))
+            model.previewSidebarExpanded = false
             model.character.play(.happy)
             await capture(PopoverView().environment(model), size: CGSize(width: 340, height: 330), to: folder.appendingPathComponent("popover.png"))
             await capture(iconSheet, size: CGSize(width: 720, height: 150), to: folder.appendingPathComponent("menubar-icon.png"))

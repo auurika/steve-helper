@@ -28,6 +28,7 @@ struct SettingsView: View {
                     }
                 }
 
+                permissionsRow
                 quickCommands
                 wakePhrase
                 hotkey
@@ -44,6 +45,47 @@ struct SettingsView: View {
         }
         .sheet(item: $pickingSlot) { pick in QuickCommandPicker(slot: pick.slot) }
         .sheet(isPresented: $showingWake) { WakePhraseSheet() }
+    }
+
+    // MARK: - Разрешения
+
+    private var permissionsRow: some View {
+        let permissions = model.permissions
+        return SettingRow(title: "Разрешения", hint: "Без них часть умений не работает", fullWidthControls: true) {
+            VStack(spacing: 8) {
+                permission("Микрофон и речь", state: permissions.isReadyForVoice ? .granted : (permissions.microphone == .denied || permissions.speech == .denied ? .denied : .notAsked),
+                           ask: { await permissions.requestVoice() }, fix: .speech)
+                permission("Календарь", state: permissions.calendar, ask: { await permissions.requestCalendar() }, fix: .calendars)
+                permission("Уведомления", state: permissions.notifications, ask: { await permissions.requestNotifications() }, fix: .notifications)
+                HStack {
+                    Text("«Заметки»").font(.system(size: 13))
+                    Spacer(minLength: 8)
+                    if let result = permissions.notesResult {
+                        Text(result).font(.system(size: 12)).foregroundStyle(result == "Разрешено" ? Color.steveOK : Color.steveMuted).lineLimit(2)
+                    }
+                    Button { Task { await permissions.checkNotes() } } label: { Chip("Проверить", highlighted: true) }
+                        .buttonStyle(.plain)
+                    Button { Permissions.openSettings(.automation) } label: { Chip("Настройки") }
+                        .buttonStyle(.plain)
+                }
+            }
+            .task { await permissions.refresh() }
+        }
+    }
+
+    private func permission(_ title: String, state: PermissionState, ask: @escaping () async -> Void, fix: Permissions.Pane) -> some View {
+        HStack {
+            Text(title).font(.system(size: 13))
+            Spacer(minLength: 8)
+            Text(state.label)
+                .font(.system(size: 12))
+                .foregroundStyle(state == .granted ? Color.steveOK : (state == .denied ? Color.steveDanger : Color.steveMuted))
+            if state == .notAsked {
+                Button { Task { await ask() } } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
+            } else if state == .denied {
+                Button { Permissions.openSettings(fix) } label: { Chip("Открыть настройки") }.buttonStyle(.plain)
+            }
+        }
     }
 
     // MARK: - Быстрые команды
@@ -109,8 +151,13 @@ struct SettingsView: View {
     // MARK: - Голос Стива
 
     private var voice: some View {
-        SettingRow(title: "Голос Стива", hint: model.voiceNote) {
-            VoicePicker()
+        SettingRow(title: "Голос Стива",
+                   hint: model.voiceNote ?? "Русский текст читает русский голос. Больше голосов: кнопка справа") {
+            HStack(spacing: 8) {
+                VoicePicker()
+                GlassIconButton(symbol: "arrow.down.circle", size: 34) { Permissions.openSettings(.spokenContent) }
+                    .help("Скачать другие голоса в настройках macOS: Универсальный доступ → Устная речь")
+            }
         }
     }
 

@@ -106,7 +106,7 @@ final class Tools {
 
     private func createNote(_ text: String) async -> ToolResult {
         let title = String(text.split(separator: "\n").first?.prefix(40) ?? "Заметка")
-        let result = await run("/usr/bin/osascript", ["-e", Self.noteScript, title, text])
+        let result = await run("/usr/bin/osascript", ["-e", Self.noteScript, title, text], timeout: 40)
         let tool = "Notes.create_note(text=\"\(title)\")"
         if result.status == 0 { return ToolResult(reply: "Создал заметку в «Заметках»", tool: tool) }
         return ToolResult(reply: Self.automationHint(result.err, app: "Заметкам"), tool: tool)
@@ -117,6 +117,7 @@ final class Tools {
     private func createEvent(title: String, start: Date, end: Date) async -> ToolResult {
         let tool = "Calendar.create_event(title=\"\(title)\", start=\"\(Self.isoFormatter.string(from: start))\", end=\"\(Self.isoFormatter.string(from: end))\")"
         guard Packaging.isPackaged else { return ToolResult(reply: Packaging.notPackagedHint, tool: tool) }
+        NSApp.activate(ignoringOtherApps: true)
         do {
             guard try await eventStore.requestFullAccessToEvents() else {
                 return ToolResult(reply: "Нет доступа к «Календарю». Разрешите его в настройках macOS", tool: tool)
@@ -164,7 +165,10 @@ final class Tools {
     // MARK: - Помощники
 
     private static func automationHint(_ error: String, app: String) -> String {
-        error.contains("-1743")
+        if error.contains("нет ответа") {
+            return "Нет ответа от приложения. Ответь на вопрос macOS о доступе к \(app) и повтори"
+        }
+        return error.contains("-1743")
             ? "Нет доступа к \(app). Разрешите Стиву управлять приложением в настройках macOS: Конфиденциальность → Автоматизация"
             : "Не получилось. \(error.trimmingCharacters(in: .whitespacesAndNewlines))"
     }
@@ -181,26 +185,9 @@ final class Tools {
     private static let weekdayFormatter = formatter("EEEE")
     private static let isoFormatter = formatter("yyyy-MM-dd HH:mm")
 
-    /// Запускает программу и ждёт её завершения.
-    private func run(_ path: String, _ arguments: [String]) async -> (status: Int32, out: String, err: String) {
-        await withCheckedContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: path)
-            process.arguments = arguments
-            let out = Pipe()
-            let err = Pipe()
-            process.standardOutput = out
-            process.standardError = err
-            process.terminationHandler = { finished in
-                let output = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let error = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                continuation.resume(returning: (finished.terminationStatus, output, error))
-            }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(returning: (-1, "", error.localizedDescription))
-            }
-        }
+    /// Запускает программу и ждёт её завершения, но не дольше положенного.
+    private func run(_ path: String, _ arguments: [String], timeout: TimeInterval = 20) async -> (status: Int32, out: String, err: String) {
+        let result = await ProcessRunner.run(path, arguments, timeout: timeout)
+        return (result.status, result.output, result.error)
     }
 }

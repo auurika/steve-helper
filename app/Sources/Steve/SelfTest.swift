@@ -1,0 +1,105 @@
+import AppKit
+import AVFoundation
+import EventKit
+import Speech
+import SteveCore
+
+/// Служебный режим для разработки: `Steve --selftest <файл>` прогоняет настоящие команды через приложение
+/// и пишет в файл, что получилось. Запускать через `open -n -a Стив.app --args --selftest <файл>`,
+/// чтобы разрешения брались у самого приложения, а не у терминала.
+@MainActor
+enum SelfTest {
+    static var isRequested: Bool { CommandLine.arguments.contains("--selftest") }
+
+    static func runIfRequested(model: AppModel) {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--selftest"), arguments.indices.contains(index + 1) else { return }
+        let output = URL(fileURLWithPath: arguments[index + 1])
+
+        Task {
+            var log = ""
+            func note(_ line: String) {
+                log += line + "\n"
+                try? log.write(to: output, atomically: true, encoding: .utf8)
+            }
+
+            try? await Task.sleep(for: .milliseconds(800))
+            note("упаковано в .app: \(Packaging.isPackaged)")
+            note("доступ: речь=\(SFSpeechRecognizer.authorizationStatus().rawValue) (3=есть), микрофон=\(AVCaptureDevice.authorizationStatus(for: .audio).rawValue) (3=есть), календарь=\(EKEventStore.authorizationStatus(for: .event).rawValue) (3=полный)")
+            let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))
+            note("распознавание ru-RU: доступно=\(recognizer?.isAvailable ?? false), на устройстве=\(recognizer?.supportsOnDeviceRecognition ?? false)")
+            note("голоса: \(model.voices.count) шт., русские: \(model.voices.filter { $0.language.hasPrefix("ru") }.map(\.name))")
+
+            // 1) команды через полный цикл ask(): проверяем, что ответ приходит и статус возвращается в «Готов»
+            for phrase in ["сколько времени", "сколько заряда", "запусти секундомер", "останови секундомер", "таймер на 2 секунды", "привет", "спасибо"] {
+                let before = model.messages.count
+                let started = Date()
+                let finished = await finishes(within: 25) { await model.ask(phrase, typed: true) }
+                let reply = model.messages.dropFirst(before).last(where: { $0.role == .steve })
+                note("[\(finished ? "OK" : "ЗАВИС")] «\(phrase)» -> «\(reply?.text ?? "нет ответа")» tool=\(reply?.tool ?? "-") за \(String(format: "%.1f", Date().timeIntervalSince(started))) с, статус после: \(model.status.label)")
+            }
+
+            // 2) быстрая команда после предыдущих: не должна блокироваться
+            let before = model.messages.count
+            if let preset = model.quickPresets.first(where: { $0.phrase.contains("Safari") }) {
+                _ = preset // Safari не открываем, проверяем только таймер
+            }
+            model.runPreset(Preset(name: "t", description: "t", phrase: "таймер на 1 минуту", symbol: "timer"))
+            try? await Task.sleep(for: .seconds(6))
+            note("быстрая команда: сообщений добавилось \(model.messages.count - before), статус \(model.status.label)")
+
+            // 3) выбор голоса: то, что выбрано в настройках, должно попадать в озвучку
+            if let other = model.voices.first(where: { $0.language.hasPrefix("en") }) {
+                model.settings.voiceIdentifier = other.identifier
+                model.settings.selectedCustomVoice = nil
+                note("голос выбран: \(other.name); озвучка возьмёт: \(model.currentVoice().0?.name ?? "nil")")
+            }
+
+            // 4) распознавание речи по записи, сделанной системным синтезатором
+            if SFSpeechRecognizer.authorizationStatus() == .authorized, let recognizer, recognizer.isAvailable {
+                let file = FileManager.default.temporaryDirectory.appendingPathComponent("steve-selftest.aiff")
+                let say = Process()
+                say.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+                say.arguments = ["-v", "Milena", "-o", file.path, "открой калькулятор"]
+                try? say.run()
+                say.waitUntilExit()
+                let text = await recognize(file: file, with: recognizer)
+                note("распознавание записи: «\(text ?? "ошибка")»")
+            } else {
+                note("распознавание записи пропущено: нет доступа к распознаванию речи")
+            }
+
+            note("конец")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Выполняет работу и сообщает, закончилась ли она за отведённое время.
+    private static func finishes(within seconds: Double, _ work: @escaping @MainActor () async -> Void) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await work(); return true }
+            group.addTask { try? await Task.sleep(for: .seconds(seconds)); return false }
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
+        }
+    }
+
+    private static func recognize(file: URL, with recognizer: SFSpeechRecognizer) async -> String? {
+        await withCheckedContinuation { continuation in
+            let request = SFSpeechURLRecognitionRequest(url: file)
+            request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
+            var resumed = false
+            recognizer.recognitionTask(with: request) { result, error in
+                guard !resumed else { return }
+                if let result, result.isFinal {
+                    resumed = true
+                    continuation.resume(returning: result.bestTranscription.formattedString)
+                } else if error != nil {
+                    resumed = true
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+}

@@ -28,6 +28,8 @@ final class AppModel {
         didSet { character.apply(status: status) }
     }
     var section = AppSection.chat
+    /// Только для снимков экрана: показать боковую панель раскрытой.
+    var previewSidebarExpanded = false
     private(set) var menuBarImage = NSImage()
     private(set) var voices = Speaker.availableVoices()
     var voiceNote: String?
@@ -35,6 +37,7 @@ final class AppModel {
     // MARK: Службы
     let character = CharacterController()
     let network = NetworkMonitor()
+    let permissions = Permissions()
     @ObservationIgnored let tools = Tools()
     @ObservationIgnored let speaker = Speaker()
     @ObservationIgnored let listener = Listener()
@@ -44,6 +47,7 @@ final class AppModel {
     @ObservationIgnored private let parser = CommandParser()
     @ObservationIgnored private let engine: ChatEngine?
     @ObservationIgnored private var isCapturingVoice = false
+    @ObservationIgnored private var isProcessing = false
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
     @ObservationIgnored private var started = false
 
@@ -63,11 +67,15 @@ final class AppModel {
     }
 
     var isBusy: Bool { status != .idle }
+
+    private func waitUntilFinished() async {
+        for _ in 0..<60 where isProcessing { try? await Task.sleep(for: .milliseconds(50)) }
+    }
     var quickPresets: [Preset] { settings.quick.compactMap { id in settings.presets.first { $0.id == id } } }
 
     /// Запускается один раз при старте приложения.
     func start() {
-        guard !started, !SnapshotTool.isRequested else { return } // в режиме снимков микрофон не трогаем
+        guard !started, !SnapshotTool.isRequested, !SelfTest.isRequested else { return } // в режиме снимков микрофон не трогаем
         started = true
 
         character.startIdleLife { [weak self] in self?.isBusy ?? false }
@@ -80,7 +88,11 @@ final class AppModel {
         hotkeys.register(settings.hotkey)
 
         applyLaunchAtLogin()
-        restartWakeWord()
+        Task {
+            await permissions.refresh()
+            if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
+            restartWakeWord()
+        }
         Task { await keepMenuBarIconFresh() }
     }
 
@@ -89,7 +101,18 @@ final class AppModel {
     /// Полный цикл ответа: слушает, думает, выполняет, отвечает.
     func ask(_ text: String, typed: Bool = false) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, status == .idle || typed || isCapturingVoice else { return }
+        guard !trimmed.isEmpty else { return }
+        if isProcessing {
+            // новая просьба во время ответа: прерываем речь и ждём, пока прошлый ответ закончится
+            guard typed || status == .speaking else { return }
+            speaker.stop()
+            await waitUntilFinished()
+        }
+        isProcessing = true
+        defer {
+            isProcessing = false
+            status = .idle // что бы ни случилось внутри, Стив не остаётся «занятым»
+        }
         character.touch()
 
         messages.append(ChatMessage(role: .user, text: trimmed))
@@ -202,8 +225,9 @@ final class AppModel {
     }
 
     private func listenForWakeWordOnce() async {
-        guard status == .idle, !isCapturingVoice else {
-            try? await Task.sleep(for: .seconds(1))
+        await permissions.refresh()
+        guard status == .idle, !isCapturingVoice, permissions.isReadyForVoice else {
+            try? await Task.sleep(for: .seconds(2)) // ждём, пока освободится или разрешат микрофон и распознавание речи
             return
         }
         let phrase = CommandParser.normalize(settings.wakePhrase)
@@ -243,7 +267,9 @@ final class AppModel {
 
     private func speakPreview() async {
         let (voice, pitch) = currentVoice()
-        await speaker.speak("Привет, меня зовут Стив", voice: voice, pitch: pitch)
+        // образец на языке выбранного голоса: английский голос не прочтёт русскую фразу
+        let sample = voice?.language.hasPrefix("en") == true ? "Hi, my name is Steve" : "Привет, меня зовут Стив"
+        await speaker.speak(sample, voice: voice, pitch: pitch)
     }
 
     /// Свой голос из аудиофайла: измеряем тон и говорим системным голосом с этим тоном.

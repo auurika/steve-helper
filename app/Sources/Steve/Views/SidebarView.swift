@@ -21,7 +21,7 @@ struct SidebarView: View {
         Item(section: .settings, symbol: "gearshape", title: "Настройки"),
     ]
 
-    private var isExpanded: Bool { isHovering && !isLocked }
+    private var isExpanded: Bool { (isHovering && !isLocked) || model.previewSidebarExpanded }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -36,15 +36,22 @@ struct SidebarView: View {
         .frame(width: isExpanded ? 180 : 56)
         .frame(maxHeight: .infinity)
         .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isExpanded ? AnyShapeStyle(Color.steveNavy.opacity(0.92)) : AnyShapeStyle(.ultraThinMaterial))
+            // в покое: светлое стекло поверх окна, как в макете; при раскрытии плотнее, чтобы подписи читались
+            let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(isExpanded
+                           ? AnyShapeStyle(Color(red: 26 / 255, green: 30 / 255, blue: 60 / 255).opacity(0.92))
+                           : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0.06), .white.opacity(0.12)],
+                                                          startPoint: .topLeading, endPoint: .bottomTrailing)))
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.32), lineWidth: 1)
+                .strokeBorder(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: .black.opacity(0.25), radius: 14, y: 8)
+        .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
         .onHover { hovering in
             isHovering = hovering

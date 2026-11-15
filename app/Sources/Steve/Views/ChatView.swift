@@ -130,6 +130,7 @@ struct ComposerView: View {
                     }
                     return .handled
                 }
+                .onSubmit { send() } // запасной путь: Return отправляет, даже если поле не отдало клавишу
                 .onChange(of: text) { model.typingChanged(text) }
                 .onChange(of: focused) {
                     if !focused { model.typingChanged(text.isEmpty ? "" : text); if text.isEmpty { model.character.stopFollowing() } }
