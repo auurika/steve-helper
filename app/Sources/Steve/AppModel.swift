@@ -163,6 +163,7 @@ final class AppModel {
         }
         Task { await keepMenuBarIconFresh() }
         guard !Self.isDemo else { return } // для снимков экрана микрофон, права и модель не нужны
+        stripOwnQuarantine()
         Task {
             await permissions.refresh()
             if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
@@ -176,6 +177,17 @@ final class AppModel {
             }
             if case .ready = chatSetup.state { _ = await engine?.reply(to: "привет", history: []) } // прогрев: модель загружается в память заранее
         }
+    }
+
+    // MARK: - Метка карантина
+
+    /// Приложение скачано из интернета и подписано «для себя»: macOS помечает пакет меткой карантина. Первый запуск разрешает
+    /// пользователь сам, а здесь метка снимается, чтобы дальше macOS не запускала Стива из временной копии и не спрашивала снова.
+    private func stripOwnQuarantine() {
+        guard Packaging.isPackaged else { return }
+        let path = Bundle.main.bundlePath
+        guard !path.contains("/AppTranslocation/") else { return } // из временной копии настоящий путь системе не отдаётся
+        Task.detached { _ = await ProcessRunner.run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", path], timeout: 20) }
     }
 
     // MARK: - Диалог
