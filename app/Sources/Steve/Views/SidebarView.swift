@@ -1,11 +1,10 @@
 import SwiftUI
 
 /// Боковая панель: парящая стеклянная плашка. В покое видны только значки, при наведении она выезжает.
-/// После выбора пункта сразу сворачивается и раскрывается снова, когда курсор уйдёт и вернётся.
+/// После выбора пункта остаётся раскрытой и сворачивается, только когда курсор уходит с панели.
 struct SidebarView: View {
     @Environment(AppModel.self) private var model
     @State private var isHovering = false
-    @State private var isLocked = false
     @State private var hoveredItem: AppSection?
 
     private struct Item: Identifiable {
@@ -21,7 +20,7 @@ struct SidebarView: View {
         Item(section: .settings, symbol: "gearshape", title: "Настройки"),
     ]
 
-    private var isExpanded: Bool { (isHovering && !isLocked) || model.previewSidebarExpanded }
+    private var isExpanded: Bool { isHovering || model.previewSidebarExpanded }
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
@@ -44,7 +43,6 @@ struct SidebarView: View {
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
         .onHover { hovering in
             isHovering = hovering
-            if !hovering { isLocked = false }
         }
     }
 
@@ -53,7 +51,6 @@ struct SidebarView: View {
         let isHovered = hoveredItem == item.section
         return Button {
             model.section = item.section
-            isLocked = true // после выбора панель сразу сворачивается
         } label: {
             // выделяется вся строка: в покое это квадрат 40 на 40, у раскрытой панели квадрат с подписью
             HStack(spacing: 0) {

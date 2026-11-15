@@ -21,7 +21,7 @@ struct SettingsView: View {
                 SettingRow(title: "Прозрачность Liquid Glass", inline: true) {
                     HStack(spacing: 14) {
                         GlassSlider(percent: $model.settings.glassTransparency)
-                            .frame(width: 110)
+                            .frame(minWidth: 140, idealWidth: 260, maxWidth: 260)
                         Text("\(model.settings.glassTransparency)%")
                             .font(.system(size: 14, weight: .semibold).monospacedDigit())
                             .frame(minWidth: 44, alignment: .trailing)
@@ -238,36 +238,40 @@ struct Chip: View {
 /// (его середина стоит на конце заливки и может выходить за края).
 struct GlassSlider: View {
     @Binding var percent: Int
+    private let thumbWidth: CGFloat = 38
 
     var body: some View {
         GeometryReader { proxy in
-            let width = proxy.size.width
+            // дорожка короче области жеста на ширину ползунка: так его можно взять и на 0%, и на 100%
+            let track = max(1, proxy.size.width - thumbWidth)
             let value = Double(percent) / 100
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.14))
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.34), lineWidth: 1))
                     .frame(height: 12)
+                    .padding(.horizontal, thumbWidth / 2)
                 if percent > 0 {
                     Capsule()
                         .fill(LinearGradient(colors: [Color(red: 190 / 255, green: 208 / 255, blue: 1).opacity(0.78), .white.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
                         .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 1))
-                        .frame(width: max(12, width * value), height: 12)
+                        .frame(width: max(12, track * value + thumbWidth / 2), height: 12)
+                        .padding(.leading, thumbWidth / 2 - 6)
                 }
                 Capsule()
                     .fill(LinearGradient(colors: [.white.opacity(0.85), .white.opacity(0.55), .white.opacity(0.45), .white.opacity(0.7)], startPoint: .top, endPoint: .bottom))
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.85), lineWidth: 1))
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
-                    .frame(width: 38, height: 26)
-                    .offset(x: width * value - 19)
+                    .frame(width: thumbWidth, height: 26)
+                    .offset(x: track * value)
             }
-            .frame(height: proxy.size.height)
+            .frame(width: proxy.size.width, height: proxy.size.height)
             .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                percent = Int((min(max(drag.location.x / width, 0), 1) * 100).rounded())
+            // тянуть можно за ползунок и за любое место полосы: значение следует за курсором
+            .highPriorityGesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                percent = Int((min(max((drag.location.x - thumbWidth / 2) / track, 0), 1) * 100).rounded())
             })
         }
         .frame(height: 30)
-        .padding(.horizontal, 19)
         .accessibilityLabel("Прозрачность Liquid Glass")
         .accessibilityValue("\(percent)%")
         .accessibilityAdjustableAction { direction in
