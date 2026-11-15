@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Всплывающее окно из значка в меню-баре: Стив, статус, четыре быстрые команды, компактный диалог.
@@ -44,5 +45,23 @@ struct PopoverView: View {
         .background(Color.steveNavy.opacity(model.settings.glassAlpha)) // скругление и размытие даёт само окно меню-бара
         .containerBackground(.ultraThinMaterial, for: .window)
         .environment(\.colorScheme, .dark)
+        .onAppear { DispatchQueue.main.async { Self.roundWindow() } }
+    }
+
+    /// Скругляет окно из меню-бара до 22 пунктов, как боковую панель: системная форма окна у такого меню почти прямая.
+    @MainActor
+    private static func roundWindow() {
+        for window in NSApp.windows where String(describing: type(of: window)).contains("MenuBarExtra") {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = true
+            for view in [window.contentView, window.contentView?.superview] {
+                view?.wantsLayer = true
+                view?.layer?.cornerRadius = 22
+                view?.layer?.cornerCurve = .continuous
+                view?.layer?.masksToBounds = true
+            }
+            window.invalidateShadow()
+        }
     }
 }
