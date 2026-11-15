@@ -137,8 +137,6 @@
   svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
   .card .ic svg.i{width:20px;height:20px}
   /* ползунок прозрачности */
-  input[type=range]{-webkit-appearance:none;appearance:none;width:200px;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.55));outline:none;box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#dfe6ff);border:1px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
   .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:38px;text-align:right;font-weight:600}
   .row>div:first-child{flex:1 1 120px;min-width:0}
   .row{flex-wrap:nowrap}
@@ -397,6 +395,20 @@
   .st.tiny .st-zz{transform:scale(3.4)}
   .msg .tool{white-space:normal}
   .hide-tools .msg .tool{display:none}
+  /* ползунок в стиле Liquid Glass */
+  input[type=range]{-webkit-appearance:none;appearance:none;--p:60%;width:150px;height:28px;background:transparent;outline:none;cursor:pointer;margin:0}
+  input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:999px;
+    background:linear-gradient(90deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) var(--p),rgba(255,255,255,.14) var(--p),rgba(255,255,255,.14) 100%);
+    border:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 2px rgba(0,0,0,.3),0 0 0 .5px rgba(255,255,255,.08)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:20px;margin-top:-6px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(235,240,255,.7));border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 3px 10px rgba(10,10,40,.45),inset 0 1px 0 rgba(255,255,255,1),inset 0 -2px 4px rgba(120,130,200,.25);transition:transform .12s}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.08)}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(143,169,255,.6),0 3px 10px rgba(10,10,40,.45)}
+  input[type=range]::-moz-range-track{height:10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
+  input[type=range]::-moz-range-progress{height:10px;border-radius:999px;background:rgba(255,255,255,.62)}
+  input[type=range]::-moz-range-thumb{width:28px;height:18px;border-radius:999px;background:linear-gradient(180deg,#fff,#e8edff);border:1px solid #fff;box-shadow:0 3px 10px rgba(10,10,40,.45)}
+  .rng b{min-width:44px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -533,7 +545,7 @@
       <!-- Настройки -->
       <section class="view" id="v-settings"><div class="pad">
         <h2>Настройки</h2>
-        <div class="row"><div>Прозрачность стекла<small>От матового до почти невидимого. Применяется ко всему приложению</small></div>
+        <div class="row" style="flex-wrap:wrap"><div style="min-width:min(100%,200px)">Прозрачность Liquid Glass</div>
           <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
@@ -674,7 +686,7 @@ $('#wwRec').onclick=()=>{
 $('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'»';$('#ww').classList.remove('on')};
 
 // прозрачность стекла
-function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';try{localStorage.setItem('glass',p)}catch(e){}}
+function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
 $('#glass').oninput=e=>setGlass(+e.target.value);
 try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
 setGlass(+$('#glass').value);
