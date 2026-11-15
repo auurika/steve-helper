@@ -412,10 +412,10 @@
   /* боковая панель: только значки, при наведении выезжает с подписями */
   .body{position:relative;padding-left:64px}
   .side{position:absolute;left:0;top:0;bottom:0;width:64px;z-index:3;overflow:hidden;transition:width .22s ease,background .22s ease}
-  .side:hover,.side:focus-within{width:176px;background:rgba(30,34,66,.8);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%)}
+  .side:hover,.side:has(:focus-visible){width:176px;background:rgba(30,34,66,.8);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%)}
   .side button{padding:9px 15px;white-space:nowrap}
   .lbl{opacity:0;transition:opacity .15s;white-space:nowrap}
-  .side:hover .lbl,.side:focus-within .lbl{opacity:1}
+  .side:hover .lbl,.side:has(:focus-visible) .lbl{opacity:1}
   /* статус сети: офлайн жёлтый, онлайн зелёный */
   .offline{padding:9px 19px;font-size:12px;cursor:pointer;color:var(--ok);white-space:nowrap}
   .offline .dot{flex:none;background:var(--ok);box-shadow:0 0 0 3px rgba(110,231,160,.2)}
@@ -451,7 +451,7 @@
         background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
         box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.1),inset 0 0 30px rgba(255,255,255,.05),0 12px 32px rgba(10,10,50,.28);
         backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%)}
-  .side:hover,.side:focus-within{width:180px;background:linear-gradient(160deg,rgba(60,66,120,.62),rgba(40,44,92,.5))}
+  .side:hover,.side:has(:focus-visible){width:180px;background:linear-gradient(160deg,rgba(60,66,120,.62),rgba(40,44,92,.5))}
   .side button{padding:9px 11px}
   .offline{padding:9px 16px}
   /* мягкое растворение контента у краёв вместо линий (scroll edge effect) */
@@ -468,6 +468,19 @@
     background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.07));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 18px rgba(255,255,255,.05)}
   .composer textarea::placeholder,.pform textarea::placeholder{color:rgba(244,246,255,.82)}
+
+  /* боковая панель: заметное выделение при наведении, плотный фон при раскрытии, мгновенное сворачивание после выбора */
+  .side:hover,.side:has(:focus-visible){background:rgba(26,30,60,.92);backdrop-filter:blur(30px) saturate(170%);-webkit-backdrop-filter:blur(30px) saturate(170%)}
+  .side button{border-radius:14px;transition:background .15s,box-shadow .15s,color .15s}
+  .side button:hover{color:#fff;background:linear-gradient(160deg,rgba(255,255,255,.46),rgba(255,255,255,.2));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 0 14px rgba(255,255,255,.2),0 5px 16px rgba(10,10,50,.35)}
+  .side button.on{color:#fff;background:linear-gradient(160deg,rgba(255,255,255,.32),rgba(255,255,255,.12));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 1.5px rgba(255,255,255,.6)}
+  .side button.on:hover{background:linear-gradient(160deg,rgba(255,255,255,.5),rgba(255,255,255,.24))}
+  .side.lock,.side.lock:hover,.side.lock:has(:focus-visible){width:56px;
+    background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
+    backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%)}
+  .side.lock .lbl,.side.lock:hover .lbl{opacity:0}
 </style>
 </head>
 <body>
@@ -609,7 +622,7 @@
         <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
-        <div class="row" style="flex-wrap:nowrap"><div>Сочетание для запуска</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="kbd modebtn" id="hkMode" type="button" data-m="press" title="Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание">Нажатие</button><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
+        <div class="row" style="flex-wrap:wrap"><div style="min-width:min(100%,130px)">Сочетание для запуска</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="kbd modebtn" id="hkMode" type="button" data-m="press" title="Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание">Нажатие</button><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
         <div class="row"><div>Голос Стива<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура</div><div class="sw on" id="censor"></div></div>
@@ -1045,6 +1058,11 @@ function setNet(on){
 $('#net').addEventListener('click',()=>setNet($('#net').classList.contains('off')));
 addEventListener('online',()=>setNet(true));
 addEventListener('offline',()=>setNet(false));
+
+// после выбора пункта панель сразу сворачивается; снова раскрывается, когда курсор уйдёт и вернётся
+const sideEl=$('.side');
+sideEl.addEventListener('click',e=>{if(e.target.closest('button')){sideEl.classList.add('lock');if(document.activeElement)document.activeElement.blur()}});
+sideEl.addEventListener('mouseleave',()=>sideEl.classList.remove('lock'));
 </script>
 </body>
 </html>
