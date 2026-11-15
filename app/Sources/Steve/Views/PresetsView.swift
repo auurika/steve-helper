@@ -18,11 +18,11 @@ struct PresetsView: View {
 
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(model.settings.presets) { preset in
-                        PresetCard(symbol: preset.symbol, title: preset.name, description: preset.description, phrase: preset.phrase) {
+                        PresetCard(symbol: preset.symbol, title: preset.name, phrase: preset.phrase) {
                             editing = PresetDraft(preset: preset)
                         }
                     }
-                    PresetCard(symbol: "plus", title: "Новая команда", description: "Создайте свою собственную команду для Стива", phrase: nil, isAddCard: true) {
+                    PresetCard(symbol: "plus", title: "Новая команда", phrase: nil, isAddCard: true) {
                         editing = PresetDraft(preset: nil)
                     }
                 }
@@ -44,7 +44,6 @@ struct PresetDraft: Identifiable {
 private struct PresetCard: View {
     let symbol: String
     let title: String
-    let description: String
     let phrase: String?
     var isAddCard = false
     let action: () -> Void
@@ -65,11 +64,6 @@ private struct PresetCard: View {
                         .multilineTextAlignment(.leading)
                     Spacer(minLength: 0)
                 }
-                Text(description)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.steveMuted)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
                 if let phrase {
                     Text("«\(phrase)»")
@@ -80,7 +74,7 @@ private struct PresetCard: View {
                 }
             }
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112, alignment: .topLeading)
             .background {
                 if isAddCard {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -106,13 +100,12 @@ struct PresetEditorView: View {
     @Environment(\.closeModal) private var dismiss
 
     @State private var name = ""
-    @State private var description = ""
     @State private var phrase = ""
     @State private var symbol = "puzzlepiece"
     @State private var showingIcons = false
     @FocusState private var focus: Field?
 
-    private enum Field { case name, description, phrase }
+    private enum Field { case name, phrase }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -128,14 +121,10 @@ struct PresetEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Выбрать иконку")
-                labeled("Название") {
-                    CountedField(title: "Например: Таймер", text: $name, limit: Preset.nameLimit, height: 44)
+                labeled("Суть задачи") {
+                    CountedField(title: "Что должен сделать Стив", text: $name, limit: Preset.nameLimit, height: 44)
                         .focused($focus, equals: .name)
                 }
-            }
-            labeled("Описание") {
-                CountedField(title: "Что делает команда", text: $description, limit: Preset.descriptionLimit)
-                    .focused($focus, equals: .description)
             }
             labeled("Фраза быстрой активации") {
                 CountedField(title: "Что сказать Стиву", text: $phrase, limit: Preset.phraseLimit)
@@ -155,7 +144,6 @@ struct PresetEditorView: View {
         .onAppear {
             if let preset = draft.preset {
                 name = preset.name
-                description = preset.description
                 phrase = preset.phrase
                 symbol = preset.symbol
             }
@@ -176,7 +164,7 @@ struct PresetEditorView: View {
         let preset = Preset(
             id: draft.preset?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespaces),
-            description: description.trimmingCharacters(in: .whitespaces).isEmpty ? "Своя команда" : description.trimmingCharacters(in: .whitespaces),
+            description: "", // суть задачи хранится в названии, отдельного описания нет
             phrase: phrase.trimmingCharacters(in: .whitespaces),
             symbol: symbol
         )

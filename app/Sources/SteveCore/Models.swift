@@ -9,7 +9,7 @@ public struct Preset: Codable, Identifiable, Equatable {
     /// Имя значка из SF Symbols.
     public var symbol: String
 
-    public static let nameLimit = 30
+    public static let nameLimit = 60
     public static let descriptionLimit = 60
     public static let phraseLimit = 100
 
