@@ -117,17 +117,9 @@ private struct GlassModalLayer<Content: View>: View {
                 .onTapGesture(perform: close)
             content
                 .environment(\.closeModal, close)
-                .background {
-                    let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    ZStack {
-                        shape.fill(.ultraThinMaterial)
-                        shape.fill(Color.steveNavy.opacity(0.88))
-                    }
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(LinearGradient(colors: [.white.opacity(0.4), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-                }
+                // тот же цвет и рамка, что у поля ввода, на размытии: текст под окном не просвечивает
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .glassControl(cornerRadius: 24)
                 .overlay(alignment: .topTrailing) {
                     Button(action: close) {
                         Image(systemName: "xmark")
