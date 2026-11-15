@@ -26,6 +26,6 @@ class Brain:
                 print(f"  [tool] {tc.function.name}({dict(tc.function.arguments)}) -> {result}")
                 messages.append({"role": "tool", "tool_name": tc.function.name, "content": result})
 
-        answer = style.censor((msg.content or "").strip()) or "Готово."
+        answer = style.finalize((msg.content or "").strip()) or "Готово."
         self.history.append({"role": "assistant", "content": answer})
         return answer
