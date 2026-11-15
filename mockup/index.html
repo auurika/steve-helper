@@ -120,9 +120,11 @@
 
   /* окно записи слова активации */
   .win{position:relative}
-  .modal{position:absolute;inset:0;background:rgba(10,10,30,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:5}
+  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5}
   .modal.on{display:flex}
-  .dlg{width:440px;max-width:92%;background:rgba(28,32,60,calc(var(--a)*.6 + .3));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.32);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(10,10,40,.5),var(--rim)}
+  .modal::before{content:"";position:absolute;inset:0;background:rgba(10,12,34,.32);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%)}
+  .dlg{position:relative}
+  .dlg{width:440px;max-width:92%;background:rgba(28,32,60,calc(var(--a)*.5 + .5));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid rgba(255,255,255,.32);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(10,10,40,.5),var(--rim)}
   .dlg h2{margin-bottom:2px}
   .dlg .field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--text);font:inherit;font-size:16px;outline:none;margin:6px 0 14px}
   .dlg .field:focus{border-color:var(--accent)}
@@ -155,14 +157,14 @@
   .state{text-align:center;padding:0 12px}
   .side{width:150px}
   .kbd{white-space:nowrap}
-  .stage{grid-template-columns:1fr 270px}
-  .pop .orb{width:60px;height:60px}
-  .pop .who{min-width:0}.pop .who b{display:block}
-  .qs{margin-left:auto;display:grid;grid-template-columns:repeat(2,38px);gap:6px}
-  .qb{all:unset;cursor:pointer;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
+  .stage{grid-template-columns:1fr 340px}
+  .pop .orb{width:48px;height:48px;flex:none}
+  .pop .top{min-width:0}.pop .who{min-width:0;flex:1 1 auto}.pop .who b{display:block}.pop .who .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qs{margin-left:auto;display:flex;gap:5px;flex:none}
+  .qb{all:unset;cursor:pointer;width:28px;height:28px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:#fff;transition:.15s}
   .qb:hover{background:rgba(255,255,255,.3)}
-  .qb svg.i{width:18px;height:18px}
-  .pchat{height:200px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
+  .qb svg.i{width:15px;height:15px}
+  .pchat{height:168px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--rim)}
   .pchat .msg{max-width:92%;font-size:12.5px;padding:6px 10px;border-radius:14px}
   .pform{display:flex;gap:6px}
   .pform input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--text);font:inherit;font-size:13px;outline:none}
@@ -186,6 +188,19 @@
   .ipgrid button:hover{background:rgba(255,255,255,.3)}
   .ipgrid button.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.5)}
   .ipgrid svg.i{width:20px;height:20px}
+
+  /* никаких полос прокрутки и горизонтального скролла внутри блоков */
+  .chat,.pchat,.ipgrid,.pad,.dlg,.view{overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
+  .chat::-webkit-scrollbar,.pchat::-webkit-scrollbar,.ipgrid::-webkit-scrollbar,.pad::-webkit-scrollbar,.dlg::-webkit-scrollbar{display:none;width:0;height:0}
+  /* адаптивный текст: всё переносится внутри своей рамки */
+  .win,.pop,.dlg,.card,.msg,.row,.say,.samples div{overflow-wrap:anywhere;min-width:0}
+  .msg{min-width:0}
+  .msg .tool{overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.35}
+  .card .cmd,.card p,.sub,.row small{overflow-wrap:break-word}
+  .chat>*,.pchat>*{max-width:100%}
+  .pop{min-width:0;max-width:100%}
+  .pop-wrap,.win{min-width:0}
+  .stage>*{min-width:0}
 </style>
 </head>
 <body>
@@ -412,29 +427,34 @@ function add(text,me,tool){
   if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
   $('#chat').append(d);$('#chat').scrollTop=1e9;const d2=d.cloneNode(true);$('#chat2').append(d2);$('#chat2').scrollTop=1e9;
 }
-const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',working:'Выполняет',speaking:'Отвечает'};
+const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',working:'Выполняет',speaking:'Выполняет'};
 function setState(s,label){
   ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
   $('#state').textContent=label;$('#state2').textContent=PSTAT[s];
 }
 let busy=false;
-function run(q){
+const IDLE='Скажи «Привет, Стив» или нажми на Стива';
+function run(q,typed){
   if(busy)return;busy=true;
   setState('listening','Слушаю…');
   setTimeout(()=>{
     add(q,true);setState('thinking','Думаю…');
     setTimeout(()=>{
       const m=demo.find(d=>d[0].test(q))||[0,'Я пока тестовый макет, но в настоящей версии отвечу на это сам, офлайн.',''];
-      const answer=()=>{add(m[1],false,m[2]);setState('speaking','Отвечаю…');
+      const answer=()=>{add(m[1],false,m[2]);setState('speaking','Выполняю…');
         setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на Стива');busy=false},1800)};
       if(m[2]){setState('working','Выполняю…');setTimeout(answer,900)}else answer();
     },1100);
-  },900);
+  },typed?0:900);
 }
 $('#orb').onclick=$('#mic').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v)};
+$('#form').onsubmit=e=>{e.preventDefault();const v=$('#inp').value.trim();if(!v)return;$('#inp').value='';run(v,true)};
 $('#orb2').onclick=()=>run('Поставь таймер на 5 минут');
-$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';run(v)};
+$('#form2').onsubmit=e=>{e.preventDefault();const v=$('#inp2').value.trim();if(!v)return;$('#inp2').value='';run(v,true)};
+// пока пользователь печатает, Стив «слушает»
+['#inp','#inp2'].forEach(id=>{const el=$(id);
+  el.addEventListener('input',()=>{if(!busy)setState(el.value.trim()?'listening':'',el.value.trim()?'Слушаю…':IDLE)});
+  el.addEventListener('blur',()=>{if(!busy&&!el.value.trim())setState('',IDLE)})});
 $('#tray').onclick=()=>$('#tray').classList.toggle('on');
 
 // запись слова активации
