@@ -61,25 +61,14 @@
 
   /* chat view */
   .orbwrap{padding:22px 0 8px;display:flex;flex-direction:column;align-items:center;gap:10px}
-  .orb{width:112px;height:112px;cursor:pointer;position:relative;animation:bob 1.8s ease-in-out infinite;
-       }
-  .orb svg{width:100%;height:100%;display:block;overflow:visible}
-  .orb .mouth{opacity:0}
-  .orb::after{content:"";position:absolute;inset:-8px;border:2px solid var(--accent2);opacity:0}
+  .orb{width:112px;height:112px;cursor:pointer;position:relative}
+  .orb::after{content:"";position:absolute;inset:-8px;border:2px solid var(--accent2);opacity:0;pointer-events:none}
   .orb.listening::after{animation:ring 1.2s steps(6) infinite}
-  .orb.thinking{animation:wob .5s steps(2) infinite}
-  .orb.thinking .eye{animation:blink 1s steps(1) infinite}
-  .orb.speaking{animation:bob .45s steps(2) infinite}
-  .orb.speaking .mouth{opacity:1;animation:mth .3s steps(1) infinite}
-  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-  @keyframes wob{0%{transform:rotate(-3deg)}100%{transform:rotate(3deg)}}
-  @keyframes blink{50%{opacity:0}}
-  @keyframes mth{50%{transform:scaleY(.4)}}
   @keyframes ring{from{opacity:.8;transform:scale(.95)}to{opacity:0;transform:scale(1.3)}}
   .state{color:var(--muted);font-size:13px;height:18px}
 
   .chat{flex:1;overflow:auto;padding:10px 22px;display:flex;flex-direction:column;gap:10px}
-  .msg{max-width:78%;padding:10px 14px;border-radius:18px;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim)}
+  .msg{white-space:pre-wrap;max-width:78%;padding:10px 14px;border-radius:18px;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim)}
   .msg.me{align-self:flex-end;background:rgba(143,169,255,.38)}
   .msg .tool{display:block;margin-top:6px;font-size:12px;color:var(--ok);font-family:ui-monospace,Menlo,monospace}
   .composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
@@ -172,8 +161,6 @@
   .pform .btn{height:34px}
   .qsel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   input::placeholder{color:rgba(230,234,255,.65)}
-  .orb.working{animation:wob .22s steps(2) infinite}
-  .orb.working .eye{animation:blink .5s steps(1) infinite}
 
   /* навыки */
   .chead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
@@ -196,7 +183,7 @@
   /* адаптивный текст: всё переносится внутри своей рамки */
   .win,.pop,.dlg,.card,.msg,.say,.samples div{overflow-wrap:anywhere;min-width:0}
   .row{min-width:0;overflow-wrap:break-word}
-  .msg{min-width:0}
+  .msg{min-width:0;white-space:pre-wrap}
   .msg .tool{overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.35}
   .card .cmd,.card p,.sub,.row small{overflow-wrap:break-word}
   .chat>*,.pchat>*{max-width:100%}
@@ -256,8 +243,159 @@
   .composer textarea:focus,.pform textarea:focus{border-color:var(--accent)}
   .pform{align-items:flex-end}
   .composer .btn{flex:none;white-space:nowrap;height:42px;overflow-wrap:normal;word-break:keep-all}
-  .composer .btn.send{padding:0 18px}
+  .composer .btn.send{width:42px;padding:0}
   .composer #mic{width:42px;padding:0}
+/* ============ Стив: части ============ */
+  .st *{transform-box:fill-box}
+  .st-root{transform-box:view-box}
+  .st-body{transform-box:view-box;transform-origin:64px 104px}
+  .st-eyes{transform-box:view-box}
+  .st-eye{transform-origin:50% 50%;transition:transform .5s steps(3)}
+  .st-leg{transform-origin:50% 0;transition:transform .6s steps(3)}
+  .st-mouth{transform-origin:50% 0;opacity:0}
+  .st-fx{opacity:0}
+  .st-z{opacity:0;transform-origin:50% 100%}
+  .st-sleepy{opacity:0}
+
+  /* постоянное лёгкое покачивание */
+  .st-root{animation:bob 1.8s steps(1,end) infinite}
+  @keyframes bob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-4px)}}
+
+  /* ============ сон ============ */
+  .st-sleep .st-root{animation:breathe 3.2s steps(1,end) infinite}
+  @keyframes breathe{0%,49%{transform:translateY(9px)}50%,100%{transform:translateY(11px)}}
+  .st-sleep .st-body{transform:scaleY(.95)}
+  .st-sleep .st-eye{transform:scaleY(.14)}
+  .st-sleep .st-leg1{transform:rotate(9deg)}.st-sleep .st-leg2{transform:rotate(3deg)}
+  .st-sleep .st-leg3{transform:rotate(-3deg)}.st-sleep .st-leg4{transform:rotate(-9deg)}
+  .st-sleep .st-z{animation:zfloat 3.6s steps(9,end) infinite}
+  .st-sleep .st-z2{animation-delay:1.2s}.st-sleep .st-z3{animation-delay:2.4s}
+  @keyframes zfloat{
+    0%{opacity:0;transform:translate(0,0) scale(.55)}
+    12%{opacity:1}
+    80%{opacity:1}
+    100%{opacity:0;transform:translate(34px,-52px) scale(1.5)}
+  }
+
+  /* ============ моргание ============ */
+  .a-blink .st-eye{animation:blink .28s steps(1,end) 1}
+  @keyframes blink{0%,100%{transform:scaleY(1)}35%,70%{transform:scaleY(.1)}}
+
+  /* ============ взгляд ============ */
+  .a-lookl .st-eyes{animation:lookl 1.8s steps(2,end) 1}
+  @keyframes lookl{0%,100%{transform:translate(0,0)}15%,80%{transform:translate(-7px,0)}}
+  .a-lookr .st-eyes{animation:lookr 1.8s steps(2,end) 1}
+  @keyframes lookr{0%,100%{transform:translate(0,0)}15%,80%{transform:translate(7px,0)}}
+  .a-around .st-eyes{animation:around 3.6s steps(2,end) 1}
+  @keyframes around{
+    0%,100%{transform:translate(0,0)}
+    10%,28%{transform:translate(-7px,0)}
+    38%,56%{transform:translate(7px,0)}
+    66%,84%{transform:translate(0,-6px)}
+  }
+
+  /* ============ прыжок ============ */
+  .a-hop .st-root{animation:hop 1s steps(1,end) 1}
+  .a-hop .st-body{animation:squash 1s steps(1,end) 1}
+  @keyframes hop{0%,100%{transform:translateY(0)}20%{transform:translateY(-10px)}35%{transform:translateY(-22px)}50%{transform:translateY(-10px)}65%,80%{transform:translateY(0)}90%{transform:translateY(-5px)}}
+  @keyframes squash{0%,16%{transform:scale(1,1)}17%,19%{transform:scale(1.1,.88)}20%,64%{transform:scale(.95,1.06)}65%,78%{transform:scale(1.1,.88)}79%,100%{transform:scale(1,1)}}
+
+  /* ============ покачивание ============ */
+  .a-wiggle .st-body{animation:wiggle 1.4s steps(1,end) 1}
+  @keyframes wiggle{0%,100%{transform:rotate(0)}12%,37%,62%,87%{transform:rotate(-5deg)}25%,50%,75%{transform:rotate(5deg)}}
+
+  /* ============ машет ============ */
+  .a-wave .st-leg4{animation:wave 2.2s steps(1,end) 1}
+  .a-wave .st-eye{transform:scaleY(.55)}
+  @keyframes wave{0%,100%{transform:rotate(0)}8%,40%,72%{transform:rotate(-70deg)}24%,56%,88%{transform:rotate(-35deg)}}
+
+  /* ============ зевает ============ */
+  .a-yawn .st-body{animation:yawnbody 2.6s steps(1,end) 1}
+  .a-yawn .st-eye{animation:yawneye 2.6s steps(1,end) 1}
+  .a-yawn .st-mouth{animation:yawnmouth 2.6s steps(1,end) 1}
+  @keyframes yawnbody{0%,100%{transform:scale(1,1)}20%{transform:scale(1,1.03)}35%,60%{transform:scale(1.03,1.08)}75%{transform:scale(1,1.02)}}
+  @keyframes yawneye{0%,100%{transform:scaleY(1)}20%,80%{transform:scaleY(.15)}}
+  @keyframes yawnmouth{0%,18%{opacity:0;transform:scaleY(.3)}20%{opacity:1;transform:scaleY(1.2)}35%,60%{opacity:1;transform:scaleY(3.4)}75%{opacity:1;transform:scaleY(1.2)}85%,100%{opacity:0;transform:scaleY(.3)}}
+
+  /* ============ задумался ============ */
+  .a-think .st-eyes{animation:thinkeyes 2.8s steps(2,end) 1}
+  .a-think .st-body{animation:tilt 2.8s steps(1,end) 1}
+  .a-think .st-dots{opacity:1}
+  .a-think .st-d1{animation:dot 2.8s steps(1,end) 1}
+  .a-think .st-d2{animation:dot2 2.8s steps(1,end) 1}
+  .a-think .st-d3{animation:dot3 2.8s steps(1,end) 1}
+  @keyframes thinkeyes{0%,100%{transform:translate(0,0)}12%,88%{transform:translate(-6px,-7px)}}
+  @keyframes tilt{0%,100%{transform:rotate(0)}12%,88%{transform:rotate(-3deg)}}
+  @keyframes dot{0%,12%{opacity:0}13%,92%{opacity:1}93%,100%{opacity:0}}
+  @keyframes dot2{0%,32%{opacity:0}33%,92%{opacity:1}93%,100%{opacity:0}}
+  @keyframes dot3{0%,52%{opacity:0}53%,92%{opacity:1}93%,100%{opacity:0}}
+  .st-dots{opacity:0}.st-dots rect{opacity:0}
+
+  /* ============ радуется ============ */
+  .a-happy .st-root{animation:hop 1s steps(1,end) 2}
+  .a-happy .st-body{animation:squash 1s steps(1,end) 2}
+  .a-happy .st-eye{transform:scaleY(.3)}
+  .a-happy .st-sparks{opacity:1}
+  .a-happy .st-sp{animation:spark .5s steps(1,end) 6}
+  .a-happy .st-sp2{animation-delay:.12s}.a-happy .st-sp3{animation-delay:.24s}
+  @keyframes spark{0%,100%{opacity:0;transform:scale(.6)}30%,70%{opacity:1;transform:scale(1)}}
+  .st-sparks{opacity:0}.st-sp{transform-origin:50% 50%}
+
+  /* ============ удивился ============ */
+  .a-surprise .st-root{animation:jump 1.8s steps(1,end) 1}
+  .a-surprise .st-eye{transform:scale(1.35)}
+  .a-surprise .st-bang{opacity:1;animation:bang 1.8s steps(1,end) 1}
+  .a-surprise .st-leg1{transform:rotate(-8deg)}.a-surprise .st-leg4{transform:rotate(8deg)}
+  @keyframes jump{0%,100%{transform:translateY(0)}6%{transform:translateY(-12px)}25%{transform:translateY(-4px)}40%,90%{transform:translateY(0)}}
+  @keyframes bang{0%{opacity:0}5%,85%{opacity:1}100%{opacity:0}}
+  .st-bang{opacity:0}
+
+  /* ============ танцует ============ */
+  .a-dance .st-root{animation:dance 0.8s steps(1,end) 4}
+  .a-dance .st-body{animation:sway 0.8s steps(1,end) 4}
+  .a-dance .st-leg1,.a-dance .st-leg3{animation:legA .8s steps(1,end) 4}
+  .a-dance .st-leg2,.a-dance .st-leg4{animation:legB .8s steps(1,end) 4}
+  .a-dance .st-notes{opacity:1}
+  .a-dance .st-n1{animation:note 1.6s steps(8,end) 2}
+  .a-dance .st-n2{animation:note 1.6s steps(8,end) 2 .8s}
+  @keyframes dance{0%,100%{transform:translateY(0)}25%,75%{transform:translateY(-8px)}50%{transform:translateY(0)}}
+  @keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+  @keyframes legA{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-14deg)}}
+  @keyframes legB{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+  @keyframes note{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translate(16px,-44px)}}
+  .st-notes{opacity:0}.st-note{opacity:0}
+
+  /* ============ потягивается (пробуждение) ============ */
+  .a-stretch .st-body{animation:stretch 2.2s steps(1,end) 1}
+  .a-stretch .st-mouth{animation:smallyawn 2.2s steps(1,end) 1}
+  .a-stretch .st-leg1{animation:legspread 2.2s steps(1,end) 1}
+  .a-stretch .st-leg4{animation:legspread2 2.2s steps(1,end) 1}
+  @keyframes stretch{0%,100%{transform:scale(1,1)}10%,45%{transform:scale(.9,1.16)}55%{transform:scale(1.06,.96)}70%{transform:scale(1,1)}}
+  @keyframes smallyawn{0%,40%{opacity:0;transform:scaleY(.3)}45%,65%{opacity:1;transform:scaleY(2.2)}70%,100%{opacity:0}}
+  @keyframes legspread{0%,100%{transform:rotate(0)}12%,45%{transform:rotate(-16deg)}}
+  @keyframes legspread2{0%,100%{transform:rotate(0)}12%,45%{transform:rotate(16deg)}}
+
+  .st-zz{transform:scale(1.7);transform-origin:0 100%}
+
+  /* состояния Стива: слушает, выполняет, говорит; держатся, пока состояние активно */
+  .st.loop *{animation-iteration-count:infinite !important}
+  .a-listen .st-eye{transform:scale(1.2)}
+  .a-listen .st-body{animation:listen 1.6s steps(1,end) infinite}
+  @keyframes listen{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+  .a-work .st-eye{transform:scaleY(.6)}
+  .a-work .st-leg1,.a-work .st-leg3{animation:legA .4s steps(1,end) infinite}
+  .a-work .st-leg2,.a-work .st-leg4{animation:legB .4s steps(1,end) infinite}
+  .a-work .st-root{animation:workbob .4s steps(1,end) infinite}
+  @keyframes workbob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-3px)}}
+  .a-talk .st-mouth{opacity:1;animation:talk .36s steps(1,end) infinite}
+  @keyframes talk{0%,100%{transform:scaleY(1.2)}50%{transform:scaleY(3)}}
+  .st-sleep .st-mouth{opacity:0}
+  /* размеры Стива в разных местах */
+  .orb .st,.pop .orb .st{width:100%;height:100%;display:block;overflow:visible}
+  .trayico{display:inline-flex;align-items:center}
+  .trayico .st{width:18px;height:21px;display:block;overflow:hidden}
+  .st.tiny .st-zz{transform:scale(3.4)}
+  .msg .tool{white-space:normal}
 </style>
 </head>
 <body>
@@ -352,7 +490,7 @@
 <div class="menubar">
   <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-wifi"/></svg> выкл</span>
   <span style="display:flex;gap:5px;align-items:center"><svg class="i"><use href="#i-bat"/></svg> 87%</span>
-  <span class="tray on" id="tray" title="Стив"><svg width="18" height="18" style="display:block"><use href="#oct"/></svg></span>
+  <span class="tray on" id="tray" title="Стив"><span class="trayico" id="trayico"></span></span>
   <span>Вс 15 ноя 16:40</span>
 </div>
 
@@ -372,7 +510,7 @@
       <!-- Диалог -->
       <section class="view on" id="v-chat">
         <div class="orbwrap">
-          <div class="orb" id="orb" title="Нажми, чтобы говорить"><svg><use href="#oct"/></svg></div>
+          <div class="orb" id="orb" title="Нажми, чтобы говорить"></div>
           <div class="state" id="state">Скажи «Привет, Стив» или нажми на Стива</div>
         </div>
         <div class="chat" id="chat">
@@ -380,7 +518,7 @@
         </div>
         <form class="composer" id="form">
           <textarea id="inp" rows="1" placeholder="Или напиши сообщение…" autocomplete="off"></textarea>
-          <button class="btn ghost send" type="submit">Отправить</button>
+          <button class="btn ghost send" type="submit" title="Отправить (Enter)" aria-label="Отправить"><svg class="i" viewBox="0 0 24 24"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button>
           <button class="btn ghost" type="button" id="mic"><svg class="i"><use href="#i-mic"/></svg></button>
         </form>
       </section>
@@ -400,7 +538,7 @@
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
         <div class="row" style="flex-wrap:nowrap"><div>Сочетание для запуска</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="kbd modebtn" id="hkMode" type="button" data-m="press" title="Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание">Нажатие</button><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
-        <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
+        <div class="row"><div>Голос Стива<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура</div><div class="sw on" id="censor"></div></div>
         <div class="row"><div>Озвучивать ответы</div><div class="sw on"></div></div>
@@ -451,7 +589,7 @@
   <div class="pop-wrap">
     <div class="cap">Так выглядит всплывающее окно из меню-бара ↓</div>
     <div class="pop">
-      <div class="top"><div class="orb" id="orb2"><svg><use href="#oct"/></svg></div>
+      <div class="top"><div class="orb" id="orb2"></div>
         <div class="who"><b>Стив</b><div class="hint" id="state2">Готов</div></div>
         <div class="qs" id="qs"></div></div>
       <div class="pchat" id="chat2"></div>
@@ -489,6 +627,7 @@ const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',
 function setState(s,label){
   ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
   $('#state').textContent=label;$('#state2').textContent=PSTAT[s];
+  if(typeof steveState==='function')steveState(s);
 }
 let busy=false;
 const IDLE='Скажи «Привет, Стив» или нажми на Стива';
@@ -750,6 +889,76 @@ function updCnt(id){
   el.addEventListener('input',fit);
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$(form).requestSubmit()}});
 });
+
+// ================= Стив: живая анимация везде (меню-бар, всплывающее окно, главное окно) =================
+const Z_PATH='<rect x="0" y="0" width="10" height="2"/><rect x="6" y="2" width="2" height="2"/><rect x="4" y="4" width="2" height="2"/><rect x="2" y="6" width="2" height="2"/><rect x="0" y="8" width="10" height="2"/>';
+const NOTE='<rect x="0" y="8" width="6" height="6"/><rect x="4" y="0" width="2" height="10"/><rect x="4" y="0" width="8" height="2"/>';
+function steveSVG(extra){
+  const zs=[1,2,3].map(n=>`<g transform="translate(92 14)"><g class="st-z st-z${n}" fill="#E8DAFF"><g class="st-zz">${Z_PATH}</g></g></g>`).join('');
+  return `<svg class="st ${extra||''}" viewBox="8 -30 128 150" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-hidden="true">
+  <g class="st-root"><g class="st-body">
+    <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
+      <rect class="st-leg st-leg1" x="28" y="72" width="12" height="24"/><rect class="st-leg st-leg2" x="48" y="72" width="12" height="32"/>
+      <rect class="st-leg st-leg3" x="68" y="72" width="12" height="26"/><rect class="st-leg st-leg4" x="88" y="72" width="12" height="28"/></g>
+    <g class="st-eyes" fill="#1F1F1F"><rect class="st-eye" x="46" y="50" width="8" height="12"/><rect class="st-eye" x="74" y="50" width="8" height="12"/></g>
+    <rect class="st-mouth" x="58" y="64" width="12" height="4" fill="#1F1F1F"/>
+  </g></g>
+  <g class="st-fx" style="opacity:1">${zs}
+    <g class="st-dots" fill="#F4F6FF"><rect class="st-d1" x="100" y="10" width="4" height="4"/><rect class="st-d2" x="108" y="0" width="6" height="6"/><rect class="st-d3" x="118" y="-14" width="10" height="10"/></g>
+    <g class="st-bang" fill="#FFD95A"><rect x="61" y="-22" width="6" height="16"/><rect x="61" y="-2" width="6" height="6"/></g>
+    <g class="st-sparks" fill="#FFF3A8">
+      <g class="st-sp st-sp1"><rect x="16" y="22" width="2" height="8"/><rect x="13" y="25" width="8" height="2"/></g>
+      <g class="st-sp st-sp2"><rect x="110" y="14" width="2" height="8"/><rect x="107" y="17" width="8" height="2"/></g>
+      <g class="st-sp st-sp3"><rect x="114" y="52" width="2" height="6"/><rect x="112" y="54" width="6" height="2"/></g></g>
+    <g class="st-notes" fill="#F4F6FF">
+      <g transform="translate(104 20)"><g class="st-note st-n1">${NOTE}</g></g>
+      <g transform="translate(14 24)"><g class="st-note st-n2">${NOTE}</g></g></g>
+  </g></svg>`;
+}
+$('#orb').innerHTML=steveSVG();
+$('#orb2').innerHTML=steveSVG();
+$('#trayico').innerHTML=steveSVG('tiny');
+
+const STEVES=$$('.st');
+const ANIM_MS={blink:300,lookl:1800,lookr:1800,around:3600,hop:1000,wiggle:1400,wave:2200,yawn:2600,think:2800,happy:2000,surprise:1800,dance:3200,stretch:2200};
+let stAnim=null,stTimer=null,stSleep=false,stLoop=false;
+function stClear(){clearTimeout(stTimer);STEVES.forEach(e=>{[...e.classList].filter(c=>c.startsWith('a-')||c==='loop').forEach(c=>e.classList.remove(c))});stAnim=null;stLoop=false}
+function stPlay(id,loop){
+  stClear();void document.body.offsetHeight;                // перезапуск анимации
+  STEVES.forEach(e=>{e.classList.add('a-'+id);if(loop)e.classList.add('loop')});
+  stAnim=id;stLoop=!!loop;
+  if(!loop)stTimer=setTimeout(()=>{stClear()},(ANIM_MS[id]||1500)+60);
+}
+// состояние Стива -> анимация (держится, пока состояние активно)
+const STATE_ANIM={listening:'listen',thinking:'think',working:'work',speaking:'talk'};
+function steveState(st){
+  if(st){wake(false);stPlay(STATE_ANIM[st],true)}
+  else if(stLoop)stClear();
+}
+// сон после 5 минут без запросов (для проверки: index.html?sleep=10, секунд)
+let SLEEP_AFTER=(+new URLSearchParams(location.search).get('sleep')||300)*1000;
+let lastAct=Date.now();
+function fallAsleep(){stClear();stSleep=true;STEVES.forEach(e=>e.classList.add('st-sleep'))}
+function wake(stretch){
+  lastAct=Date.now();
+  if(!stSleep)return;
+  stSleep=false;STEVES.forEach(e=>e.classList.remove('st-sleep'));
+  if(stretch)stPlay('stretch');
+}
+function activity(){wake(true);lastAct=Date.now()}
+['#orb','#orb2','#tray'].forEach(id=>$(id).addEventListener('click',activity));
+setInterval(()=>{if(!stSleep&&!stLoop&&!busy&&Date.now()-lastAct>SLEEP_AFTER)fallAsleep()},500);
+// сам в простое: моргает, смотрит по сторонам, подпрыгивает, машет, зевает
+const IDLE_BAG=['blink','blink','blink','blink','lookl','lookl','lookr','lookr','around','around','hop','hop','wiggle','wiggle','wave','yawn'];
+(function director(){
+  setTimeout(()=>{
+    if(!stSleep&&!stAnim&&!busy){
+      const left=SLEEP_AFTER-(Date.now()-lastAct);
+      stPlay(left<60000&&Math.random()<.5?'yawn':IDLE_BAG[Math.floor(Math.random()*IDLE_BAG.length)]);
+    }
+    director();
+  },2200+Math.random()*3200);
+})();
 </script>
 </body>
 </html>
