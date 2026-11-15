@@ -504,6 +504,16 @@
   .side button{padding:11px 11px}
   /* бегунок снова прозрачный; заливка доходит до его левого края и не просвечивает внутри */
   .gs-fill{width:calc((100% - 38px) * var(--f) + 10px)}
+  /* заливка занимает всю шкалу (0..100%), бегунок стоит серединой на её конце и может выходить за границы */
+  .gs{margin:0 20px}
+  .gs-fill{width:calc(100% * var(--f))}
+  .gs-thumb{left:calc(100% * var(--f) - 19px)}
+  .gs.zero .gs-fill{opacity:0}
+  /* глаза следят за текстом, который печатают */
+  .a-follow .st-eyes{transform:translate(var(--ex,0px),var(--ey,4px));transition:transform .18s steps(3)}
+  .a-follow .st-eye{transform:scale(1.1)}
+  .glassrow .gs{width:96px;margin:0 8px 0 12px}
+  .glassrow>div:first-child{min-width:104px}
 </style>
 </head>
 <body>
@@ -781,7 +791,7 @@ $('#wwRec').onclick=()=>{
 $('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'»';$('#ww').classList.remove('on')};
 
 // прозрачность стекла
-function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#gs').style.setProperty('--f',p/100);$('#gs').setAttribute('aria-valuenow',p);$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
+function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#gs').style.setProperty('--f',p/100);$('#gs').classList.toggle('zero',p===0);$('#gs').setAttribute('aria-valuenow',p);$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
 $('#glass').oninput=e=>setGlass(+e.target.value);
 try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
 setGlass(+$('#glass').value);
@@ -1091,8 +1101,8 @@ sideEl.addEventListener('mouseleave',()=>sideEl.classList.remove('lock'));
 (function(){
   const gs=$('#gs'),inp=$('#glass'),W=38;
   const set=v=>{v=Math.max(0,Math.min(100,Math.round(v)));inp.value=v;inp.dispatchEvent(new Event('input'))};
-  const fromX=x=>{const r=gs.getBoundingClientRect();return (x-r.left-W/2)/(r.width-W)*100};
-  gs.addEventListener('pointerdown',e=>{gs.setPointerCapture(e.pointerId);set(fromX(e.clientX));
+  const fromX=x=>{const r=gs.getBoundingClientRect();return (x-r.left)/r.width*100};
+  gs.addEventListener('pointerdown',e=>{try{gs.setPointerCapture(e.pointerId)}catch(_){}set(fromX(e.clientX));
     const mv=ev=>set(fromX(ev.clientX)),up=()=>{gs.removeEventListener('pointermove',mv);gs.removeEventListener('pointerup',up)};
     gs.addEventListener('pointermove',mv);gs.addEventListener('pointerup',up)});
   gs.addEventListener('keydown',e=>{
@@ -1104,6 +1114,26 @@ sideEl.addEventListener('mouseleave',()=>sideEl.classList.remove('lock'));
   });
   setGlass(+inp.value);
 })();
+
+// Стив следит глазами за набираемым текстом: взгляд вниз и вслед за кареткой слева направо
+function followCaret(el){
+  const col=el.value.slice(0,el.selectionStart).split('\n').pop().length;      // позиция каретки в текущей строке
+  const frac=Math.min(1,col/36);
+  const ex=(-6+12*frac).toFixed(1)+'px';
+  STEVES.forEach(e=>{e.style.setProperty('--ex',ex);e.style.setProperty('--ey','4px')});
+}
+['#inp','#inp2'].forEach(id=>{
+  const el=$(id);
+  const upd=()=>{
+    if(!el.value.trim())return;                 // пустое поле: обычное состояние
+    if(stAnim!=='follow')stPlay('follow',true);  // перекрывает общую позу «Слушает»
+    followCaret(el);
+  };
+  el.addEventListener('input',upd);
+  el.addEventListener('keyup',upd);
+  el.addEventListener('click',upd);
+  el.addEventListener('blur',()=>{if(stAnim==='follow'&&!busy)stClear()});
+});
 </script>
 </body>
 </html>
