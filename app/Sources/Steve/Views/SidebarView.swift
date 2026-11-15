@@ -36,11 +36,14 @@ struct SidebarView: View {
         .frame(width: isExpanded ? 180 : 56)
         .frame(maxHeight: .infinity)
         .background {
-            // в покое: светлое стекло поверх окна, как в макете; при раскрытии плотнее, чтобы подписи читались
+            // плотное стекло: подписи читаются на любом фоне; вид один и тот же в покое и при наведении
             let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-            // один и тот же вид и в покое, и при наведении: меняется только ширина
-            shape.fill(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.1), .white.opacity(0.2)],
-                                      startPoint: .topLeading, endPoint: .bottomTrailing))
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(Color.steveNavy.opacity(0.6))
+                shape.fill(LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0.06), .white.opacity(0.14)],
+                                          startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -63,9 +66,21 @@ struct SidebarView: View {
             isLocked = true // после выбора панель сразу сворачивается
         } label: {
             HStack(spacing: 10) {
+                // значок в квадрате 40 на 40: подсветка и выделение только у квадрата
                 Image(systemName: item.symbol)
-                    .font(.system(size: 15, weight: .medium))
-                    .frame(width: 22)
+                    .font(.system(size: 16, weight: .medium))
+                    .frame(width: 40, height: 40)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(LinearGradient(
+                                colors: [Color.white.opacity(isHovered ? 0.46 : (isSelected ? 0.32 : 0)), Color.white.opacity(isHovered ? 0.2 : (isSelected ? 0.12 : 0))],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                    .overlay {
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.6), lineWidth: 1.5)
+                        }
+                    }
                 if isExpanded {
                     Text(item.title)
                         .lineLimit(1)
@@ -74,19 +89,6 @@ struct SidebarView: View {
                 Spacer(minLength: 0)
             }
             .foregroundStyle(isSelected || isHovered ? Color.white : Color.steveMuted)
-            .padding(.horizontal, 9)
-            .frame(height: 40)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [Color.white.opacity(isHovered ? 0.46 : (isSelected ? 0.32 : 0)), Color.white.opacity(isHovered ? 0.2 : (isSelected ? 0.12 : 0))],
-                        startPoint: .topLeading, endPoint: .bottomTrailing))
-            }
-            .overlay {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.6), lineWidth: 1.5)
-                }
-            }
         }
         .buttonStyle(.plain)
         .onHover { hovering in hoveredItem = hovering ? item.section : (hoveredItem == item.section ? nil : hoveredItem) }
