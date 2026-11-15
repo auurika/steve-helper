@@ -194,7 +194,8 @@
   .chat,.pchat,.ipgrid,.pad,.dlg,.view{overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
   .chat::-webkit-scrollbar,.pchat::-webkit-scrollbar,.ipgrid::-webkit-scrollbar,.pad::-webkit-scrollbar,.dlg::-webkit-scrollbar{display:none;width:0;height:0}
   /* адаптивный текст: всё переносится внутри своей рамки */
-  .win,.pop,.dlg,.card,.msg,.row,.say,.samples div{overflow-wrap:anywhere;min-width:0}
+  .win,.pop,.dlg,.card,.msg,.say,.samples div{overflow-wrap:anywhere;min-width:0}
+  .row{min-width:0;overflow-wrap:break-word}
   .msg{min-width:0}
   .msg .tool{overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.35}
   .card .cmd,.card p,.sub,.row small{overflow-wrap:break-word}
@@ -215,6 +216,15 @@
   .xbtn{top:16px;right:16px;width:12px;height:12px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.3)}
   .xbtn::before,.xbtn::after{width:7px;height:1.4px;margin:-.7px 0 0 -3.5px;opacity:0;transition:opacity .1s}
   .xbtn:hover::before,.xbtn:hover::after{opacity:1}
+  .qsel{gap:8px}
+  .qslot,.qpitem{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 12px;border-radius:14px;
+        background:var(--panel2);border:1px solid var(--line);box-shadow:var(--rim);color:var(--text);min-width:0;transition:.15s}
+  .qslot:hover,.qpitem:hover:not([disabled]){background:rgba(255,255,255,.3)}
+  .qslot svg.i,.qpitem svg.i{width:18px;height:18px}
+  .qname{flex:1;min-width:0;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  .qplist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:320px;overflow-y:auto}
+  .qpitem.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.45)}
+  .qpitem[disabled]{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -350,10 +360,10 @@
 
       <!-- Настройки -->
       <section class="view" id="v-settings"><div class="pad">
-        <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
+        <h2>Настройки</h2>
         <div class="row"><div>Прозрачность стекла<small>От матового до почти невидимого. Применяется ко всему приложению</small></div>
           <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
-        <div class="row" style="flex-wrap:wrap"><div>Быстрые кнопки<small>Четыре значка рядом со Стивом во всплывающем окне. Выбери действие для каждого</small></div>
+        <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:nowrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
         <div class="row"><div>Сочетание для запуска</div><button class="kbd hk" id="hk" type="button">⌥ + Пробел</button></div>
@@ -397,6 +407,12 @@
       <input class="field" id="ncDesc" maxlength="80" placeholder="Что она делает" style="margin:0 0 10px;font-size:14px">
       <input class="field" id="ncCmd" maxlength="60" placeholder="Фраза, например: включи музыку" style="margin:0 0 14px;font-size:14px">
       <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
+    </div></div>
+
+    <div class="modal" id="qp" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
+      <h2>Быстрая команда</h2>
+      <p class="sub" id="qpSub" style="margin-bottom:12px">Выбери команду для кнопки.</p>
+      <div class="qplist" id="qpList"></div>
     </div></div>
 </div>
 
@@ -491,18 +507,37 @@ $('#glass').oninput=e=>setGlass(+e.target.value);
 try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
 setGlass(+$('#glass').value);
 
-// быстрые кнопки
-const ACTS={timer:['Таймер','timer','Поставь таймер на 5 минут'],stopwatch:['Секундомер','stopwatch','Запусти секундомер'],
-  note:['Заметка','note','Запиши заметку'],safari:['Safari','globe','Открой Safari'],calendar:['Календарь','calendar','23 ноября с 17:00 до 19:00 событие Зал'],
-  time:['Время','clock','Сколько времени?'],volume:['Громкость','vol','Сделай потише'],battery:['Заряд','bat','Сколько заряда?']};
+// быстрые команды
+const BASE_CMDS=[
+  {id:'timer',n:'Таймер',i:'i-timer',ph:'Поставь таймер на 5 минут'},
+  {id:'stopwatch',n:'Секундомер',i:'i-stopwatch',ph:'Запусти секундомер'},
+  {id:'note',n:'Заметка',i:'i-note',ph:'Запиши заметку'},
+  {id:'safari',n:'Safari',i:'i-globe',ph:'Открой Safari'},
+  {id:'calendar',n:'Календарь',i:'i-calendar',ph:'23 ноября с 17:00 до 19:00 событие Зал'},
+  {id:'time',n:'Время',i:'i-clock',ph:'Сколько времени?'},
+  {id:'volume',n:'Громкость',i:'i-vol',ph:'Сделай потише'},
+  {id:'battery',n:'Заряд',i:'i-bat',ph:'Сколько заряда?'}];
+// свои команды (созданные через «Новая команда») тоже можно выбрать
+function allCmds(){let extra=[];try{extra=skills.slice(5).map((k,x)=>({id:'c'+(x+5),n:k.n,i:k.i,ph:k.c}))}catch(e){}return BASE_CMDS.concat(extra)}
+const cmdById=id=>allCmds().find(c=>c.id===id);
+const qic=id=>`<svg class="i"><use href="#${id}"/></svg>`;
 let qsel=['timer','note','safari','calendar'];
-const ico=n=>`<svg class="i"><use href="#i-${n}"/></svg>`;
 function drawQs(){
-  $('#qs').innerHTML=qsel.map((k,i)=>`<button class="qb" data-k="${k}" title="${ACTS[k][0]}">${ico(ACTS[k][1])}</button>`).join('');
-  $$('#qs .qb').forEach(b=>b.onclick=()=>run(ACTS[b.dataset.k][2]));
+  $('#qs').innerHTML=qsel.map(id=>{const c=cmdById(id);return `<button class="qb" data-id="${id}" title="${c.n}">${qic(c.i)}</button>`}).join('');
+  $$('#qs .qb').forEach(b=>b.onclick=()=>run(cmdById(b.dataset.id).ph));
+  $('#qsSel').innerHTML=qsel.map((id,idx)=>{const c=cmdById(id);return `<button class="qslot" type="button" data-slot="${idx}" title="Сменить команду">${qic(c.i)}<span class="qname">${c.n.replace(/[&<>]/g,'')}</span></button>`}).join('');
+  $$('#qsSel .qslot').forEach(b=>b.onclick=()=>openQP(+b.dataset.slot));
 }
-$('#qsSel').innerHTML=qsel.map((k,i)=>`<select data-i="${i}">${Object.entries(ACTS).map(([id,a])=>`<option value="${id}"${id===k?' selected':''}>${a[0]}</option>`).join('')}</select>`).join('');
-$$('#qsSel select').forEach(sel=>sel.onchange=()=>{qsel[+sel.dataset.i]=sel.value;drawQs()});
+let qpSlot=0;
+function openQP(slot){
+  qpSlot=slot;
+  $('#qpSub').textContent='Выбери команду для кнопки '+(slot+1)+'. Уже выбранные недоступны.';
+  $('#qpList').innerHTML=allCmds().map(c=>{
+    const mine=qsel[slot]===c.id, taken=qsel.includes(c.id)&&!mine;
+    return `<button class="qpitem${mine?' sel':''}" type="button" data-id="${c.id}"${taken?' disabled title="Уже выбрана"':''}>${qic(c.i)}<span class="qname">${c.n.replace(/[&<>]/g,'')}</span></button>`}).join('');
+  $$('#qpList .qpitem:not([disabled])').forEach(b=>b.onclick=()=>{qsel[qpSlot]=b.dataset.id;drawQs();closeModal($('#qp'))});
+  $('#qp').classList.add('on');
+}
 drawQs();
 $('#chat2').append($('#chat .msg').cloneNode(true));
 
