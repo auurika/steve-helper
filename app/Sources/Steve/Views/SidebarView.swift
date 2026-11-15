@@ -25,6 +25,8 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
+            // место под системные кнопки окна: они лежат поверх этой панели
+            Color.clear.frame(height: 18)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -32,12 +34,12 @@ struct SidebarView: View {
             networkStatus
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 8)
-        .frame(width: isExpanded ? 180 : 56)
+        .padding(.horizontal, 12)
+        .frame(width: isExpanded ? 184 : 64)
         .frame(maxHeight: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous)) // размытие: текст под панелью не просвечивает
-        .glassControl(cornerRadius: 18) // тот же цвет и рамка, что у поля ввода
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous)) // размытие: текст под панелью не просвечивает
+        .glassControl(cornerRadius: 22) // тот же цвет и рамка, что у поля ввода
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
         .onHover { hovering in

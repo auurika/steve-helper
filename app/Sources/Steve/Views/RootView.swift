@@ -28,8 +28,8 @@ struct RootContent: View {
             .ignoresSafeArea(edges: .top) // шапки у окна нет: Стив поднят к верхнему краю
 
             SidebarView()
-                .padding(.leading, 10)
-                .padding(.top, 36) // под системными кнопками окна
+                .padding(.leading, 4)
+                .padding(.top, 4)
                 .padding(.bottom, 10)
                 .ignoresSafeArea(edges: .top)
         }
@@ -42,6 +42,8 @@ struct RootContent: View {
 /// Настраивает обычное окно macOS: кнопки закрыть, свернуть и на весь экран, заголовок «Стив»,
 /// за который окно можно перетаскивать, и растягивание за любой край.
 private struct WindowConfigurator: NSViewRepresentable {
+    @MainActor private static var shifted: [ObjectIdentifier: NSPoint] = [:]
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async { configure(view.window) }
@@ -61,6 +63,13 @@ private struct WindowConfigurator: NSViewRepresentable {
         window.isOpaque = false
         window.backgroundColor = .clear
         installGlass(in: window)
+        placeWindowButtons(in: window)
+        // система возвращает кнопки на место при смене размера окна: ставим их заново
+        for name in [NSWindow.didResizeNotification, NSWindow.didBecomeKeyNotification, NSWindow.didEndLiveResizeNotification, NSWindow.didExitFullScreenNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { _ in
+                MainActor.assumeIsolated { placeWindowButtons(in: window) }
+            }
+        }
         window.collectionBehavior.insert(.fullScreenPrimary)
     }
 
@@ -77,5 +86,19 @@ private struct WindowConfigurator: NSViewRepresentable {
         effect.state = .active
         effect.autoresizingMask = [.width, .height]
         frameView.addSubview(effect, positioned: .below, relativeTo: content)
+    }
+
+    /// Опускает системные кнопки окна на 3 пункта: так вокруг них в боковой панели одинаковые отступы.
+    @MainActor
+    private func placeWindowButtons(in window: NSWindow) {
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            guard let button = window.standardWindowButton(kind) else { continue }
+            let key = ObjectIdentifier(button)
+            if let done = Self.shifted[key], done == button.frame.origin { continue } // уже на своём месте
+            var origin = button.frame.origin
+            origin.y -= button.superview?.isFlipped == true ? -3 : 3
+            button.setFrameOrigin(origin)
+            Self.shifted[key] = origin
+        }
     }
 }
