@@ -27,7 +27,7 @@ struct PresetsView: View {
                     }
                 }
             }
-            .padding(22)
+            .padding(.vertical, 22) // по бокам отступ 10 даёт окно, как у панели и поля ввода
             .foregroundStyle(Color.steveText)
         }
         .glassModal(item: $editing) { draft in

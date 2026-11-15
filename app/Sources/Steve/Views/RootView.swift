@@ -23,13 +23,14 @@ struct RootContent: View {
                 case .settings: SettingsView()
                 }
             }
-            .padding(.leading, 76) // панель кончается на 72: дальше 4 + 22 собственного отступа каждого экрана
+            .padding(.leading, 88) // единый отступ 10: от края окна до панели, от панели до содержимого, между кнопками и до края
+            .padding(.trailing, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(edges: .top) // шапки у окна нет: Стив поднят к верхнему краю
 
             SidebarView()
-                .padding(.leading, 4)
-                .padding(.top, 4)
+                .padding(.leading, 10)
+                .padding(.top, 10)
                 .padding(.bottom, 10)
                 .ignoresSafeArea(edges: .top)
         }
@@ -91,11 +92,11 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func placeWindowButtons(in window: NSWindow) {
         for (index, kind) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
             guard let button = window.standardWindowButton(kind) else { continue }
-            let targetX = 16 + CGFloat(index) * 16
+            let targetX = 23 + CGFloat(index) * 16
             if abs(button.frame.origin.x - targetX) < 0.5 { continue } // уже на месте
             var origin = button.frame.origin
             origin.x = targetX
-            origin.y -= button.superview?.isFlipped == true ? -8 : 8
+            origin.y -= button.superview?.isFlipped == true ? -14 : 14
             button.setFrameOrigin(origin)
         }
     }

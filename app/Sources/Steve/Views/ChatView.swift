@@ -50,7 +50,8 @@ struct MessageList: View {
                         bubble(message).id(message.id)
                     }
                 }
-                .padding(compact ? 10 : 22)
+                .padding(compact ? 10 : 0)
+                .padding(.vertical, compact ? 0 : 12)
             }
             .onChange(of: messages.count) {
                 if let last = messages.last {
@@ -102,7 +103,7 @@ struct ComposerView: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: compact ? 8 : 10) {
             TextField("", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...5)
@@ -151,9 +152,8 @@ struct ComposerView: View {
                     .help("Сказать голосом")
             }
         }
-        .padding(.horizontal, compact ? 0 : 22) // тот же отступ от панели и от края окна, что у остальных экранов
         .padding(.top, compact ? 0 : 10)
-        .padding(.bottom, compact ? 0 : 18)
+        .padding(.bottom, compact ? 0 : 10) // единый отступ 10 до края окна, как у боковой панели
     }
 
     private func send() {

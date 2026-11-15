@@ -40,7 +40,7 @@ struct SettingsView: View {
                 toggle("Слушать постоянно", hint: "Ждать слово активации в фоне", isOn: $model.settings.listenAlways)
                 permissionsRow
             }
-            .padding(22)
+            .padding(.vertical, 22)
             .foregroundStyle(Color.steveText)
         }
         .glassModal(item: $pickingSlot) { pick in QuickCommandPicker(slot: pick.slot) }
