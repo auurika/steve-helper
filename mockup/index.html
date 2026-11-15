@@ -47,11 +47,10 @@
   /* chat view */
   .orbwrap{padding:22px 0 8px;display:flex;flex-direction:column;align-items:center;gap:10px}
   .orb{width:112px;height:112px;cursor:pointer;position:relative;animation:bob 1.8s ease-in-out infinite;
-       filter:drop-shadow(0 0 22px rgba(176,124,217,.45));transition:filter .3s}
+       }
   .orb svg{width:100%;height:100%;display:block;overflow:visible}
   .orb .mouth{opacity:0}
   .orb::after{content:"";position:absolute;inset:-8px;border:2px solid var(--accent2);opacity:0}
-  .orb.listening{filter:drop-shadow(0 0 30px rgba(124,156,255,.8))}
   .orb.listening::after{animation:ring 1.2s steps(6) infinite}
   .orb.thinking{animation:wob .5s steps(2) infinite}
   .orb.thinking .eye{animation:blink 1s steps(1) infinite}
