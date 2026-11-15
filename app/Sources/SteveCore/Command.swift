@@ -4,6 +4,8 @@ import Foundation
 public enum Command: Equatable {
     case openApp(String)
     case timer(seconds: Int)
+    case timerStatus
+    case cancelTimers
     case startStopwatch
     case stopStopwatch
     case createNote(String)

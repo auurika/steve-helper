@@ -100,6 +100,17 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(parser.parse("сколько заряда"), .battery)
     }
 
+    func testTimerStatusAndCancel() {
+        XCTAssertEqual(CommandParser().parse("Сколько до конца таймера"), .timerStatus)
+        XCTAssertEqual(CommandParser().parse("отмени таймер"), .cancelTimers)
+        XCTAssertEqual(CommandParser().parse("таймер на 10 минут"), .timer(seconds: 600))
+    }
+
+    func testNoteWithFillerWords() {
+        XCTAssertEqual(CommandParser().parse("Напиши-ка мне новую заметку про создание сайта"), .createNote("про создание сайта"))
+        XCTAssertEqual(CommandParser().parse("я хочу чтобы ты создал заметку"), .createNote("Заметка"))
+    }
+
     func testGreetingAndThanks() {
         XCTAssertEqual(parser.parse("привет, как дела"), .greeting)
         XCTAssertEqual(parser.parse("Привет Стив"), .greeting)

@@ -17,6 +17,15 @@ public struct CommandParser {
             let stops = ["останов", "стоп", "выключ", "сброс", "stop"].contains { text.contains($0) }
             return stops ? .stopStopwatch : .startStopwatch
         }
+        if text.contains("таймер") || text.contains("timer") {
+            // вопрос про уже идущий таймер и отмена не должны ставить новый
+            if text.range(of: "сколько|осталось|до конца|how much", options: .regularExpression) != nil, Self.duration(in: text) == nil {
+                return .timerStatus
+            }
+            if text.range(of: "(отмени|останови|выключи|сбрось|cancel|stop)", options: .regularExpression) != nil {
+                return .cancelTimers
+            }
+        }
         if text.contains("таймер") || text.contains("timer") || text.hasPrefix("засеки") {
             return .timer(seconds: Self.duration(in: text) ?? 300)
         }
@@ -81,7 +90,7 @@ public struct CommandParser {
     // MARK: - Заметки
 
     private func noteCommand(in text: String, original: String) -> Command? {
-        guard text.range(of: "(запиши|записать|создай|добавь|новая|сделай)\\s+(заметк|note)|^запиши\\b|^note\\b", options: .regularExpression) != nil else {
+        guard text.range(of: "(запиши|записать|создай|создать|создал|создала|добавь|новая|новую|сделай|напиши|оставь)(\\s+\\S+){0,4}?\\s+(заметк|note)|^запиши\\b|^note\\b", options: .regularExpression) != nil else {
             return nil
         }
         // Текст заметки: всё после двоеточия или после слова «заметка», в исходном регистре

@@ -17,12 +17,15 @@ final class Tools {
 
     private let eventStore = EKEventStore()
     private var timers: [Timer] = []
+    private var timerEnds: [Date] = []
     private var stopwatchStartedAt: Date?
 
     func execute(_ command: Command) async -> ToolResult {
         switch command {
         case .openApp(let name): return await openApp(name)
         case .timer(let seconds): return startTimer(seconds: seconds)
+        case .timerStatus: return timerStatus()
+        case .cancelTimers: return cancelTimers()
         case .startStopwatch: return startStopwatch()
         case .stopStopwatch: return stopStopwatch()
         case .createNote(let text): return await createNote(text)
@@ -55,7 +58,23 @@ final class Tools {
             Task { @MainActor in self?.timerFired(seconds: seconds) }
         }
         timers.append(timer)
+        timerEnds.append(Date().addingTimeInterval(TimeInterval(seconds)))
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
+    }
+
+    private func timerStatus() -> ToolResult {
+        timerEnds.removeAll { $0 < Date() }
+        guard let next = timerEnds.min() else { return ToolResult(reply: "Таймеров нет", tool: "timer_status()") }
+        let left = max(1, Int(next.timeIntervalSinceNow.rounded()))
+        return ToolResult(reply: "До конца таймера \(Self.describe(seconds: left))", tool: "timer_status()")
+    }
+
+    private func cancelTimers() -> ToolResult {
+        let count = timers.filter { $0.isValid }.count
+        timers.forEach { $0.invalidate() }
+        timers.removeAll()
+        timerEnds.removeAll()
+        return ToolResult(reply: count == 0 ? "Таймеров нет" : "Таймер отменён", tool: "cancel_timers()")
     }
 
     private func timerFired(seconds: Int) {
