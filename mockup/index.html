@@ -241,6 +241,10 @@
   .card .cmd{margin-top:auto;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
   .card.editable{cursor:pointer}
   .card.editable:hover{background:rgba(255,255,255,.3)}
+  .fw{position:relative}
+  .cnt{position:absolute;right:8px;top:100%;margin-top:3px;font-size:11px;line-height:1;color:var(--muted);opacity:0;transition:opacity .12s;pointer-events:none;white-space:nowrap}
+  .fw:focus-within .cnt{opacity:1}
+  .cnt.low{color:#ffb4a8}
 </style>
 </head>
 <body>
@@ -414,12 +418,12 @@
     <div class="modal" id="nc" style="z-index:6"><div class="dlg"><button class="xbtn" type="button" aria-label="Закрыть"></button>
       <h2>Новая команда</h2>
       <p class="sub" style="margin-bottom:8px">Придумай свою команду для Стива.</p>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:24px">
         <button class="ic btn ghost" id="ncIcon" type="button" title="Выбрать иконку" style="width:44px;height:44px;min-width:44px;flex:none;aspect-ratio:1/1;padding:0;border-radius:14px"></button>
-        <input class="field" id="ncName" maxlength="30" placeholder="Название (до 30 символов)" style="margin:0;font-size:14px;height:44px">
+        <div class="fw" style="flex:1;min-width:0"><input class="field" id="ncName" maxlength="30" placeholder="Название" style="margin:0;font-size:14px;height:44px"><span class="cnt" data-for="ncName"></span></div>
       </div>
-      <input class="field" id="ncDesc" maxlength="60" placeholder="Описание" style="margin:0 0 10px;font-size:14px">
-      <input class="field" id="ncCmd" maxlength="40" placeholder="Фраза быстрой активации" style="margin:0 0 14px;font-size:14px">
+      <div class="fw" style="margin-bottom:24px"><input class="field" id="ncDesc" maxlength="60" placeholder="Описание" style="margin:0;font-size:14px"><span class="cnt" data-for="ncDesc"></span></div>
+      <div class="fw" style="margin-bottom:28px"><input class="field" id="ncCmd" maxlength="40" placeholder="Фраза быстрой активации" style="margin:0;font-size:14px"><span class="cnt" data-for="ncCmd"></span></div>
       <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
     </div></div>
 
@@ -638,7 +642,7 @@ function openNC(idx){
   $('#nc h2').textContent=k?'Редактирование команды':'Новая команда';
   $('#nc .sub').textContent=k?'Измени название, иконку, описание или фразу.':'Придумай свою команду для Стива.';
   $('#ncSave').textContent=k?'Сохранить':'Создать';
-  ncCheck();$('#nc').classList.add('on');
+  ncCheck();['ncName','ncDesc','ncCmd'].forEach(updCnt);$('#nc').classList.add('on');
 }
 $('#ncIcon').onclick=()=>pickIcon(ncI,id=>{ncI=id;$('#ncIcon').innerHTML=sv(id)});
 ['#ncName','#ncCmd'].forEach(x=>$(x).oninput=ncCheck);
@@ -717,6 +721,15 @@ $('#hkMode').onclick=()=>{
   b.title=hold?'Стив слушает, пока держишь сочетание. Нажми, чтобы переключить на нажатие'
               :'Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание';
 };
+
+// счётчики символов в окне команды
+function updCnt(id){
+  const el=$('#'+id),c=document.querySelector('.cnt[data-for="'+id+'"]');
+  const left=el.maxLength-el.value.length;
+  c.textContent='осталось '+left+' из '+el.maxLength;
+  c.classList.toggle('low',left<=5);
+}
+['ncName','ncDesc','ncCmd'].forEach(id=>{$('#'+id).addEventListener('input',()=>updCnt(id));updCnt(id)});
 </script>
 </body>
 </html>
