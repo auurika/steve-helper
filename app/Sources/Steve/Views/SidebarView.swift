@@ -46,7 +46,7 @@ struct SidebarView: View {
         .glassControl(cornerRadius: 22) // тот же цвет и рамка, что у поля ввода
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
-        .animation(.easeInOut(duration: 0.22), value: isExpanded)
+        .animation(Motion.smooth, value: isExpanded)
         .onHover { hovering in
             isHovering = hovering
         }
@@ -67,7 +67,7 @@ struct SidebarView: View {
                     Text(item.title)
                         .lineLimit(1)
                         .padding(.trailing, 14)
-                        .transition(.opacity)
+                        .transition(.opacity.combined(with: .offset(x: -8)))
                 }
             }
             .frame(maxWidth: isExpanded ? .infinity : 40, alignment: .leading)
@@ -85,7 +85,9 @@ struct SidebarView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale(scale: 0.96))
+        .animation(Motion.quick, value: isHovered)
+        .animation(Motion.quick, value: isSelected)
         .onHover { hovering in hoveredItem = hovering ? item.section : (hoveredItem == item.section ? nil : hoveredItem) }
         .help(item.title)
     }
@@ -155,7 +157,7 @@ private struct WindowButtons: View {
                         .padding(3) // зона нажатия больше самого кружка
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressScale())
                 .accessibilityLabel(item.label)
             }
         }

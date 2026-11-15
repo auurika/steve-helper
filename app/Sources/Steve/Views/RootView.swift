@@ -23,6 +23,9 @@ struct RootContent: View {
                 case .settings: SettingsView()
                 }
             }
+            // экраны сменяют друг друга материализацией: старый растворяется, новый проявляется из размытия
+            .id(model.section)
+            .transition(.materialize(scale: 0.97, blur: 8))
             .padding(.leading, 88) // единый отступ 10: от края окна до панели, от панели до содержимого, между кнопками и до края
             .padding(.trailing, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -34,6 +37,7 @@ struct RootContent: View {
                 .padding(.bottom, 10)
                 .ignoresSafeArea(edges: .top)
         }
+        .animation(Motion.smooth, value: model.section)
         .foregroundStyle(Color.steveText)
         .background { Color.steveNavy.opacity(model.settings.glassAlpha).ignoresSafeArea() }
         .preferredColorScheme(.dark)

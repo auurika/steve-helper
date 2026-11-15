@@ -5,6 +5,9 @@ import SwiftUI
 /// Всплывающее окно из значка в меню-баре: Стив, статус, четыре быстрые команды, компактный диалог.
 struct PopoverView: View {
     @Environment(AppModel.self) private var model
+    /// Окно меню-бара выезжает пружиной сверху, как `popover-in` в макете, и закрывается быстрее.
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 12) {
@@ -56,7 +59,26 @@ struct PopoverView: View {
         .foregroundStyle(Color.steveText)
         .background(Color.steveNavy.opacity(model.settings.glassAlpha)) // скругление и размытие даёт само окно меню-бара
         .environment(\.colorScheme, .dark)
-        .onAppear { DispatchQueue.main.async { Self.roundWindow() } }
+        .modifier(Materialize(isActive: !shown, anchor: .top, scale: 0.84, blur: 10))
+        .offset(y: shown || reduceMotion ? 0 : -14)
+        .onAppear {
+            DispatchQueue.main.async { Self.roundWindow() }
+            present()
+        }
+        // окно остаётся живым между открытиями: показываем анимацию каждый раз, когда оно снова становится главным
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+            guard let window = note.object as? NSWindow, String(describing: type(of: window)).contains("MenuBarExtra") else { return }
+            shown = false
+            DispatchQueue.main.async { present() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
+            guard let window = note.object as? NSWindow, String(describing: type(of: window)).contains("MenuBarExtra") else { return }
+            withAnimation(Motion.close) { shown = false }
+        }
+    }
+
+    private func present() {
+        withAnimation(Motion.open) { shown = true }
     }
 
     /// Скругляет окно из меню-бара до 22 пунктов, как боковую панель: системная форма окна у такого меню почти прямая.

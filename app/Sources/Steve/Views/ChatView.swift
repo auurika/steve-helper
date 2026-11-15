@@ -275,7 +275,9 @@ struct MicButton: View {
             }
             .frame(width: size, height: size)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
+        .animation(Motion.quick, value: hovering)
+        .animation(Motion.quick, value: recording)
         .onHover { hovering = $0 }
         .help(recording ? "Остановить запись" : "Сказать голосом")
     }
@@ -291,14 +293,16 @@ struct PanelsView: View {
         CenteredFlow(spacing: 8) {
             ForEach(model.activeTimers) { timer in
                 TimerRow(timer: timer, compact: compact)
+                    .transition(.materialize(anchor: .top, scale: 0.85, blur: 8))
             }
             if model.stopwatch != nil {
                 StopwatchRow(compact: compact)
+                    .transition(.materialize(anchor: .top, scale: 0.85, blur: 8))
             }
         }
         .frame(maxWidth: .infinity)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.activeTimers.count)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.stopwatch != nil)
+        .animation(Motion.open, value: model.activeTimers.count)
+        .animation(Motion.open, value: model.stopwatch != nil)
     }
 }
 
@@ -525,8 +529,10 @@ struct AttachmentsBar: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .glassControl(cornerRadius: 12)
+                        .transition(.materialize(anchor: .bottom, scale: 0.85, blur: 6))
                     }
                 }
+                .animation(Motion.open, value: model.attachments)
             }
             .padding(.top, 8)
             .transition(.move(edge: .bottom).combined(with: .opacity))

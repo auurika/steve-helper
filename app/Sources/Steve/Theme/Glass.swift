@@ -84,7 +84,8 @@ struct GlassIconButton: View {
                 .frame(width: size, height: size)
                 .glassControl(cornerRadius: size * 0.33, highlighted: hovering)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
+        .animation(Motion.quick, value: hovering)
         .onHover { hovering = $0 }
     }
 }
@@ -109,10 +110,12 @@ extension EnvironmentValues {
 private struct GlassModalLayer<Content: View>: View {
     let close: () -> Void
     let content: Content
+    /// Окно появляется пружиной из размытия; затемнение проявляется вместе с ним.
+    @State private var appeared = false
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
+            Color.black.opacity(appeared ? 0.4 : 0)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: close)
             content
@@ -136,8 +139,12 @@ private struct GlassModalLayer<Content: View>: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
                 .padding(24)
+                .modifier(Materialize(isActive: !appeared, scale: 0.9, blur: 12))
+                .offset(y: appeared ? 0 : 14)
         }
-        .transition(.opacity)
+        .onAppear { withAnimation(Motion.open) { appeared = true } }
+        // закрытие короче открытия: окно растворяется с лёгким размытием
+        .transition(.asymmetric(insertion: .identity, removal: .materialize(scale: 0.96, blur: 6)))
     }
 }
 
@@ -148,7 +155,7 @@ extension View {
                 GlassModalLayer(close: { isPresented.wrappedValue = false }, content: content())
             }
         }
-        .animation(.easeOut(duration: 0.15), value: isPresented.wrappedValue)
+        .animation(isPresented.wrappedValue ? Motion.open : Motion.close, value: isPresented.wrappedValue)
     }
 
     func glassModal<Item: Identifiable, Content: View>(item: Binding<Item?>, @ViewBuilder content: @escaping (Item) -> Content) -> some View {
@@ -157,6 +164,6 @@ extension View {
                 GlassModalLayer(close: { item.wrappedValue = nil }, content: content(value))
             }
         }
-        .animation(.easeOut(duration: 0.15), value: item.wrappedValue != nil)
+        .animation(item.wrappedValue != nil ? Motion.open : Motion.close, value: item.wrappedValue != nil)
     }
 }

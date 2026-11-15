@@ -93,7 +93,8 @@ private struct PresetCard: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale(scale: 0.97))
+        .animation(Motion.quick, value: hovering)
         .onHover { hovering = $0 }
     }
 }
