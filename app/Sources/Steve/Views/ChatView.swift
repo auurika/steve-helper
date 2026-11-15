@@ -151,9 +151,9 @@ struct ComposerView: View {
                     .help("Сказать голосом")
             }
         }
-        .padding(.horizontal, compact ? 0 : 14)
+        .padding(.horizontal, compact ? 0 : 22) // тот же отступ от панели и от края окна, что у остальных экранов
         .padding(.top, compact ? 0 : 10)
-        .padding(.bottom, compact ? 0 : 14)
+        .padding(.bottom, compact ? 0 : 18)
     }
 
     private func send() {

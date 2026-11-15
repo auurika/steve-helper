@@ -23,7 +23,7 @@ struct RootContent: View {
                 case .settings: SettingsView()
                 }
             }
-            .padding(.leading, 84)
+            .padding(.leading, 76) // панель кончается на 72: дальше 4 + 22 собственного отступа каждого экрана
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(edges: .top) // шапки у окна нет: Стив поднят к верхнему краю
 
