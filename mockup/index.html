@@ -396,6 +396,7 @@
   .trayico .st{width:18px;height:21px;display:block;overflow:hidden}
   .st.tiny .st-zz{transform:scale(3.4)}
   .msg .tool{white-space:normal}
+  .hide-tools .msg .tool{display:none}
 </style>
 </head>
 <body>
@@ -511,7 +512,7 @@
       <section class="view on" id="v-chat">
         <div class="orbwrap">
           <div class="orb" id="orb" title="Нажми, чтобы говорить"></div>
-          <div class="state" id="state">Скажи «Привет, Стив» или нажми на Стива</div>
+          <div class="state" id="state">Готов</div>
         </div>
         <div class="chat" id="chat">
           <div class="msg">Привет, меня зовут Стив, я твой друг. Я всегда рядом, если что-то нужно.</div>
@@ -541,6 +542,7 @@
         <div class="row"><div>Голос Стива<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура</div><div class="sw on" id="censor"></div></div>
+        <div class="row"><div>Отображение команд<small>Выполненные команды отображаются в сообщениях.</small></div><div class="sw on" id="showCmds"></div></div>
         <div class="row"><div>Озвучивать ответы</div><div class="sw on"></div></div>
         <div class="row"><div>Запускать при входе в систему</div><div class="sw"></div></div>
         <div class="row"><div>Слушать постоянно<small>Ждать слово активации в фоне</small></div><div class="sw on"></div></div>
@@ -626,7 +628,7 @@ function add(text,me,tool){
 const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',working:'Выполняет',speaking:'Выполняет'};
 function setState(s,label){
   ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
-  $('#state').textContent=label;$('#state2').textContent=PSTAT[s];
+  $('#state').textContent=PSTAT[s];$('#state2').textContent=PSTAT[s];
   if(typeof steveState==='function')steveState(s);
 }
 let busy=false;
@@ -959,6 +961,9 @@ const IDLE_BAG=['blink','blink','blink','blink','lookl','lookl','lookr','lookr',
     director();
   },2200+Math.random()*3200);
 })();
+
+// отображение выполненных команд в сообщениях
+$('#showCmds').addEventListener('click',()=>document.body.classList.toggle('hide-tools',!$('#showCmds').classList.contains('on')));
 </script>
 </body>
 </html>
