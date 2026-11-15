@@ -151,19 +151,20 @@ final class AppModel {
         tools.onAttachmentsChanged = { [weak self] in self?.attachments = self?.tools.attachments ?? [] }
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
-        hotkeys.register(settings.hotkey)
+        if !Self.isDemo { hotkeys.register(settings.hotkey) }
 
-        applyLaunchAtLogin()
+        if !Self.isDemo { applyLaunchAtLogin() }
         // вернулся из системных настроек: права могли измениться, показываем сразу
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in await self?.permissions.refresh() }
         }
+        Task { await keepMenuBarIconFresh() }
+        guard !Self.isDemo else { return } // для снимков экрана микрофон, права и модель не нужны
         Task {
             await permissions.refresh()
             if permissions.speech == .notAsked || permissions.microphone == .notAsked { await permissions.requestVoice() }
             restartWakeWord()
         }
-        Task { await keepMenuBarIconFresh() }
         Task { _ = await engine?.reply(to: "привет", history: []) } // прогрев: модель загружается в память заранее
     }
 

@@ -23,6 +23,7 @@ enum SnapshotTool {
                 NSApp.terminate(nil)
                 return
             }
+            if AppModel.isDemo { model.prepareDemo() }
             for (width, height) in [(960.0, 640.0), (560.0, 700.0), (420.0, 460.0)] {
                 for section in [AppSection.chat, .presets, .settings] {
                     model.section = section
@@ -58,7 +59,7 @@ enum SnapshotTool {
             await capture(RootContent().environment(model), size: CGSize(width: 960, height: 640), to: folder.appendingPathComponent("sidebar-expanded.png"))
             model.previewSidebarExpanded = false
             model.character.play(.happy)
-            await capture(PopoverView().environment(model), size: CGSize(width: 340, height: 330), to: folder.appendingPathComponent("popover.png"))
+            await capture(PopoverView().environment(model), size: CGSize(width: 340, height: 330), to: folder.appendingPathComponent("popover.png"), plainBackground: true)
             await capture(iconSheet, size: CGSize(width: 720, height: 150), to: folder.appendingPathComponent("menubar-icon.png"))
             NSApp.terminate(nil)
         }
@@ -84,10 +85,14 @@ enum SnapshotTool {
     }
 
     /// Рисует настоящий NSHostingView, поэтому в снимок попадают и поля ввода, и прокрутка.
-    private static func capture(_ view: some View, size: CGSize, to url: URL) async {
+    private static func capture(_ view: some View, size: CGSize, to url: URL, plainBackground: Bool = false) async {
         let content = ZStack(alignment: .topLeading) {
-            LinearGradient(colors: [Color(red: 0.55, green: 0.3, blue: 0.7), Color(red: 0.2, green: 0.3, blue: 0.7), Color(red: 0.15, green: 0.6, blue: 0.55)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            if plainBackground {
+                Color(red: 0.26, green: 0.27, blue: 0.30) // как в настоящем окне без обоев под ним
+            } else {
+                LinearGradient(colors: [Color(red: 0.55, green: 0.3, blue: 0.7), Color(red: 0.2, green: 0.3, blue: 0.7), Color(red: 0.15, green: 0.6, blue: 0.55)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
             view
         }
         .frame(width: size.width, height: size.height)
