@@ -204,6 +204,7 @@ final class AppModel {
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
     func pauseStopwatch() { tools.toggleStopwatchPause() }
+    func lapStopwatch() { tools.addLap() }
     func stopStopwatch() { tools.dismissStopwatch() }
     func pauseTimer(_ id: UUID) { tools.togglePause(id) }
     func stopTimer(_ id: UUID) { tools.stop(id) }

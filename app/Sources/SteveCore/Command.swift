@@ -8,6 +8,7 @@ public enum Command: Equatable {
     case cancelTimers
     case startStopwatch
     case stopStopwatch
+    case lapStopwatch
     case createNote(String)
     case createEvent(title: String, start: Date, end: Date)
     case setVolume(percent: Int)
@@ -20,6 +21,8 @@ public enum Command: Equatable {
     case moveItem(name: String, toFolder: String)
     case renameItem(name: String, newName: String)
     case listDesktop
+    /// «Отмени», «откати», «верни как было»: обратить последнее действие.
+    case undo
     case greeting
     case thanks
     case unknown(String)

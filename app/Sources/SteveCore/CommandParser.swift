@@ -15,6 +15,10 @@ public struct CommandParser {
 
         if let desktop = DesktopParser.parse(original: rawText, text: text) { return desktop }
 
+        // «засеки круг», «новый круг», «круг»: отметка на идущем секундомере
+        if text.range(of: "^(засеки |отметь |новый |следующий |запиши )?круг\\b|\\bкруг\\b.*секундомер|секундомер.*\\bкруг\\b", options: .regularExpression) != nil {
+            return .lapStopwatch
+        }
         if text.contains("секундомер") || text.contains("stopwatch") {
             let stops = ["останов", "стоп", "выключ", "сброс", "stop"].contains { text.contains($0) }
             return stops ? .stopStopwatch : .startStopwatch
@@ -45,6 +49,9 @@ public struct CommandParser {
         }
         if text.range(of: "сколько (сейчас )?времени|который час|what time", options: .regularExpression) != nil {
             return .currentTime
+        }
+        if text.range(of: "^(отмени|отмена|откати|откатить|верни|вернуть|отмените|undo)( (это|последнее|последнюю|действие|команду|все|всё|назад|обратно|как было|как раньше))*$|верни (все )?(как было|как раньше|назад)|сделай (обратно|как было)|отмени (это|последнее|последнюю)", options: .regularExpression) != nil {
+            return .undo
         }
         if let app = openAppCommand(in: text) {
             return app

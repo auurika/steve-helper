@@ -52,14 +52,14 @@ enum DesktopParser {
     // MARK: - Перемещение и переименование
 
     private static func move(original: String) -> Command? {
-        let pattern = "(?:перемести|перенеси|переложи|положи)\\s+(?:файл\\s+|папку\\s+)?(.+?)\\s+в\\s+(?:папку\\s+)?(.+)"
+        let pattern = "(?:перемести(?:ть)?|перенес(?:и|ти)|переложи(?:ть)?|положи(?:ть)?)\\s+(?:файл\\s+|папку\\s+)?(.+?)\\s+в\\s+(?:папку\\s+)?(.+)"
         guard let match = groups(pattern, in: original), match.count == 2 else { return nil }
         let item = clean(match[0]), folder = clean(match[1])
         return item.isEmpty || folder.isEmpty ? nil : .moveItem(name: item, toFolder: folder)
     }
 
     private static func rename(original: String) -> Command? {
-        let pattern = "переименуй\\s+(?:файл\\s+|папку\\s+)?(.+?)\\s+в\\s+(.+)"
+        let pattern = "(?:переименуй(?:те)?|переименовать)\\s+(?:файл\\s+|папку\\s+)?(.+?)\\s+в\\s+(.+)"
         guard let match = groups(pattern, in: original), match.count == 2 else { return nil }
         let old = clean(match[0]), new = clean(match[1])
         return old.isEmpty || new.isEmpty ? nil : .renameItem(name: old, newName: new)

@@ -22,6 +22,23 @@ final class Tools {
     var onTimersChanged: (() -> Void)?
     /// Секундомер для панели в окне: время считается от запуска с учётом пауз.
     private(set) var stopwatch: ActiveStopwatch?
+    /// Что можно отменить: последнее действие снимается командой «отмени» или «откати».
+    private var undoStack: [UndoAction] = []
+    struct UndoAction {
+        let title: String
+        let run: () async -> String
+    }
+
+    func pushUndo(_ title: String, _ run: @escaping () async -> String) {
+        undoStack.append(UndoAction(title: title, run: run))
+        if undoStack.count > 20 { undoStack.removeFirst() }
+    }
+
+    private func undoLast() async -> ToolResult {
+        guard let action = undoStack.popLast() else { return ToolResult(reply: "Отменять нечего", tool: "undo()") }
+        let reply = await action.run()
+        return ToolResult(reply: reply, tool: "undo(\(action.title))")
+    }
     var onStopwatchChanged: (() -> Void)?
 
     func execute(_ command: Command) async -> ToolResult {
@@ -32,6 +49,8 @@ final class Tools {
         case .cancelTimers: return cancelTimers()
         case .startStopwatch: return startStopwatch()
         case .stopStopwatch: return stopStopwatch()
+        case .lapStopwatch: return lapStopwatch()
+        case .undo: return await undoLast()
         case .createNote(let text): return await createNote(text)
         case .createEvent(let title, let start, let end): return await createEvent(title: title, start: start, end: end)
         case .setVolume(let percent): return await setVolume(percent)
@@ -52,9 +71,17 @@ final class Tools {
     // MARK: - Приложения
 
     private func openApp(_ name: String) async -> ToolResult {
+        let wasRunning = NSWorkspace.shared.runningApplications.contains { $0.localizedName?.lowercased() == name.lowercased() }
         let result = await run("/usr/bin/open", ["-a", name])
         let tool = "open_app(name=\"\(name)\")"
         guard result.status == 0 else { return ToolResult(reply: "Не нашёл приложение «\(name)»", tool: tool) }
+        if !wasRunning {
+            // приложение запустил Стив: «отмени» закроет его
+            pushUndo("open_app") { [name] in
+                NSWorkspace.shared.runningApplications.first { $0.localizedName?.lowercased() == name.lowercased() }?.terminate()
+                return "Закрыл \(name)"
+            }
+        }
         return ToolResult(reply: "Открываю \(name)", tool: tool)
     }
 
@@ -67,6 +94,7 @@ final class Tools {
         schedule(id: id, seconds: seconds, total: seconds)
         activeTimers.append(ActiveTimer(id: id, end: Date().addingTimeInterval(TimeInterval(seconds)), total: seconds))
         onTimersChanged?()
+        pushUndo("timer") { [weak self] in self?.cancel(id); return "Отменил таймер на \(Self.describe(seconds: seconds))" }
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
     }
 
@@ -138,6 +166,7 @@ final class Tools {
     private func startStopwatch() -> ToolResult {
         stopwatch = ActiveStopwatch(started: Date())
         onStopwatchChanged?()
+        pushUndo("stopwatch") { [weak self] in self?.dismissStopwatch(); return "Убрал секундомер" }
         return ToolResult(reply: "Секундомер запущен", tool: "start_stopwatch()")
     }
 
@@ -147,6 +176,31 @@ final class Tools {
         stopwatch = nil
         onStopwatchChanged?()
         return ToolResult(reply: "Секундомер остановлен: \(seconds / 60) мин \(seconds % 60) сек", tool: "stop_stopwatch()")
+    }
+
+    private func lapStopwatch() -> ToolResult {
+        guard stopwatch != nil else { return ToolResult(reply: "Секундомер не запущен", tool: "lap_stopwatch()") }
+        guard let lap = addLap() else { return ToolResult(reply: "Секундомер на паузе", tool: "lap_stopwatch()") }
+        return ToolResult(reply: "Круг \(lap.number): \(lap.splitText)", tool: "lap_stopwatch()")
+    }
+
+    /// Засекает круг на идущем секундомере. Возвращает номер круга и его время.
+    @discardableResult
+    func addLap() -> (number: Int, splitText: String)? {
+        guard var current = stopwatch, current.pausedElapsed == nil else { return nil }
+        let now = current.elapsed(at: Date())
+        let split = now - (current.laps.last ?? 0)
+        current.laps.append(now)
+        stopwatch = current
+        onStopwatchChanged?()
+        pushUndo("lap") { [weak self] in
+            guard var sw = self?.stopwatch, !sw.laps.isEmpty else { return "Круга уже нет" }
+            sw.laps.removeLast()
+            self?.stopwatch = sw
+            self?.onStopwatchChanged?()
+            return "Убрал последний круг"
+        }
+        return (current.laps.count, ActiveStopwatch.format(split))
     }
 
     /// Пауза и продолжение секундомера из панели.
@@ -180,8 +234,8 @@ final class Tools {
             activate
             set theNote to make new note with properties {name:(item 1 of argv), body:(item 2 of argv)}
             show theNote
+            return id of theNote
         end tell
-        return "ok"
     end run
     """
 
@@ -191,6 +245,14 @@ final class Tools {
         let tool = "Notes.create_note(text=\"\(title)\")"
         if result.status == 0 {
             Permissions.notesRemembered = true // раз заметка создалась, доступ есть
+            let noteID = result.out.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !noteID.isEmpty {
+                pushUndo("note") { [weak self] in
+                    let script = "on run argv\ntell application \"Notes\" to delete (first note whose id is (item 1 of argv))\nend run"
+                    let removed = await self?.run("/usr/bin/osascript", ["-e", script, noteID], timeout: 30)
+                    return removed?.status == 0 ? "Удалил заметку" : "Не получилось удалить заметку"
+                }
+            }
             return ToolResult(reply: "Создал заметку в «Заметках»", tool: tool)
         }
         return ToolResult(reply: Self.automationHint(result.err, app: "Заметкам"), tool: tool)
@@ -215,6 +277,12 @@ final class Tools {
             event.endDate = end
             event.calendar = calendar
             try eventStore.save(event, span: .thisEvent)
+            if let eventID = event.eventIdentifier {
+                pushUndo("event") { [weak self] in
+                    guard let store = self?.eventStore, let saved = store.event(withIdentifier: eventID) else { return "Событие уже удалено" }
+                    return (try? store.remove(saved, span: .thisEvent)) != nil ? "Удалил событие «\(title)»" : "Не получилось удалить событие"
+                }
+            }
             await showInCalendar(start)
             return ToolResult(reply: "Добавил в «Календарь» событие «\(title)»: \(Self.eventFormatter.string(from: start))–\(Self.hourFormatter.string(from: end))", tool: tool)
         } catch {
@@ -245,7 +313,15 @@ final class Tools {
 
     private func setVolume(_ percent: Int) async -> ToolResult {
         let level = max(0, min(100, percent))
+        let before = await run("/usr/bin/osascript", ["-e", "output volume of (get volume settings)"])
+        let previous = Int(before.out.trimmingCharacters(in: .whitespacesAndNewlines))
         _ = await run("/usr/bin/osascript", ["-e", "set volume output volume \(level)"])
+        if let previous {
+            pushUndo("volume") { [weak self] in
+                _ = await self?.run("/usr/bin/osascript", ["-e", "set volume output volume \(previous)"])
+                return "Вернул громкость \(previous)%"
+            }
+        }
         return ToolResult(reply: "Громкость \(level)%", tool: "set_volume(percent=\(level))")
     }
 
@@ -309,6 +385,21 @@ struct ActiveTimer: Identifiable, Equatable {
 struct ActiveStopwatch: Equatable {
     var started: Date
     var pausedElapsed: TimeInterval?
+    /// Общее время на момент каждого круга.
+    var laps: [TimeInterval] = []
+
+    /// Время как в «Часах» на Mac: «01:23,45», сотые доли через запятую.
+    static func format(_ seconds: TimeInterval) -> String {
+        let hundredths = Int(seconds * 100)
+        let h = hundredths / 360_000, m = (hundredths / 6000) % 60, s = (hundredths / 100) % 60
+        let base = h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+        return base + String(format: ",%02d", hundredths % 100)
+    }
+
+    /// Время каждого круга отдельно: разница между соседними отметками.
+    var splits: [TimeInterval] {
+        laps.enumerated().map { index, total in total - (index > 0 ? laps[index - 1] : 0) }
+    }
 
     func elapsed(at date: Date) -> TimeInterval { pausedElapsed ?? date.timeIntervalSince(started) }
 }

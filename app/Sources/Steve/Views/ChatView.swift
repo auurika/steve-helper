@@ -361,22 +361,29 @@ struct TimerRow: View {
     }
 }
 
-/// Секундомер: время вперёд с десятыми долями и те же две кнопки.
+/// Секундомер как в «Часах» на Mac: время с сотыми долями, кнопка круга, пауза и стоп, список кругов.
+/// Самый быстрый круг подсвечен зелёным, самый медленный красным (когда кругов не меньше двух).
 struct StopwatchRow: View {
     let compact: Bool
     @Environment(AppModel.self) private var model
 
     var body: some View {
         if let stopwatch = model.stopwatch {
-            TimelineView(.periodic(from: .now, by: 0.1)) { context in
+            TimelineView(.periodic(from: .now, by: 0.05)) { context in
                 let paused = stopwatch.pausedElapsed != nil
-                HStack(spacing: 10) {
-                    Image(systemName: "stopwatch").font(.system(size: 13))
-                    Text(Self.format(stopwatch.elapsed(at: context.date)))
-                        .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
-                        .opacity(paused ? 0.6 : 1)
-                    PanelButton(symbol: paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseStopwatch() }
-                    PanelButton(symbol: "stop.fill", help: "Остановить") { model.stopStopwatch() }
+                VStack(spacing: 8) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "stopwatch").font(.system(size: 13))
+                        Text(ActiveStopwatch.format(stopwatch.elapsed(at: context.date)))
+                            .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                            .opacity(paused ? 0.6 : 1)
+                        PanelButton(symbol: "flag.fill", help: "Засечь круг") { model.lapStopwatch() }
+                            .opacity(paused ? 0.4 : 1)
+                            .disabled(paused)
+                        PanelButton(symbol: paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseStopwatch() }
+                        PanelButton(symbol: "stop.fill", help: "Остановить") { model.stopStopwatch() }
+                    }
+                    laps(stopwatch, now: context.date)
                 }
                 .panelBackground()
             }
@@ -384,11 +391,37 @@ struct StopwatchRow: View {
         }
     }
 
-    static func format(_ seconds: TimeInterval) -> String {
-        let tenths = Int(seconds * 10)
-        let h = tenths / 36000, m = (tenths / 600) % 60, s = (tenths / 10) % 60
-        let base = h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
-        return base + String(format: ".%d", tenths % 10)
+    /// Список кругов: новые сверху, между строками тонкие линии, текущий круг идёт первой строкой.
+    @ViewBuilder
+    private func laps(_ stopwatch: ActiveStopwatch, now: Date) -> some View {
+        if !stopwatch.laps.isEmpty {
+            let splits = stopwatch.splits
+            let best = splits.count > 1 ? splits.min() : nil
+            let worst = splits.count > 1 ? splits.max() : nil
+            let current = stopwatch.elapsed(at: now) - (stopwatch.laps.last ?? 0)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    row(number: splits.count + 1, time: current, color: Color.steveText)
+                    ForEach(Array(splits.enumerated().reversed()), id: \.offset) { index, split in
+                        Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
+                        row(number: index + 1, time: split,
+                            color: split == best ? Color.steveOK : (split == worst ? Color.steveDanger : Color.steveText))
+                    }
+                }
+            }
+            .frame(width: 230, height: min(CGFloat(splits.count + 1) * 27, 5 * 27))
+        }
+    }
+
+    private func row(number: Int, time: TimeInterval, color: Color) -> some View {
+        HStack {
+            Text("Круг \(number)")
+            Spacer(minLength: 8)
+            Text(ActiveStopwatch.format(time)).monospacedDigit()
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(color)
+        .frame(height: 26)
     }
 }
 

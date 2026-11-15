@@ -106,6 +106,21 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(CommandParser().parse("таймер на 10 минут"), .timer(seconds: 600))
     }
 
+    func testUndo() {
+        let parser = CommandParser()
+        for phrase in ["отмени", "Откати", "верни как было", "отмени последнюю команду", "верни назад", "сделай обратно"] {
+            XCTAssertEqual(parser.parse(phrase), .undo, phrase)
+        }
+        XCTAssertEqual(parser.parse("отмени таймер"), .cancelTimers)
+    }
+
+    func testStopwatchLap() {
+        let parser = CommandParser()
+        XCTAssertEqual(parser.parse("засеки круг"), .lapStopwatch)
+        XCTAssertEqual(parser.parse("новый круг на секундомере"), .lapStopwatch)
+        XCTAssertEqual(parser.parse("запусти секундомер"), .startStopwatch)
+    }
+
     func testDesktopCommands() {
         let parser = CommandParser()
         XCTAssertEqual(parser.parse("Создай папку Привет Стив с файлом привет.txt: Привет, я Стив, твой помощник"),
@@ -115,6 +130,8 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(parser.parse("перемести файл список в папку Работа"), .moveItem(name: "список", toFolder: "Работа"))
         XCTAssertEqual(parser.parse("переименуй Работа в Учёба"), .renameItem(name: "Работа", newName: "Учёба"))
         XCTAssertEqual(parser.parse("что на рабочем столе"), .listDesktop)
+        XCTAssertEqual(parser.parse("Перенести файл ДЗ ЭУ-163622 (для проверки).pdf в папку УрФУ"),
+                       .moveItem(name: "ДЗ ЭУ-163622 (для проверки).pdf", toFolder: "УрФУ"))
     }
 
     func testNoteWithFillerWords() {
