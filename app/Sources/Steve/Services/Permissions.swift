@@ -25,8 +25,16 @@ final class Permissions {
     private(set) var speech = PermissionState.notAsked
     private(set) var calendar = PermissionState.notAsked
     private(set) var notifications = PermissionState.notAsked
-    /// Результат последней проверки доступа к «Заметкам»: у него нет статуса, только проба.
+    /// У доступа к «Заметкам» нет простого статуса: спрашиваем систему без вопроса пользователю, а если «Заметки» не запущены,
+    /// берём то, что запомнили после прошлой проверки или удачной заметки.
+    private(set) var notes = PermissionState.notAsked
     private(set) var notesResult: String?
+    private static let notesKey = "permissions.notes.granted"
+
+    static var notesRemembered: Bool? {
+        get { UserDefaults.standard.object(forKey: notesKey) as? Bool }
+        set { UserDefaults.standard.set(newValue, forKey: notesKey) }
+    }
 
     var isReadyForVoice: Bool { microphone == .granted && speech == .granted }
 
@@ -34,9 +42,34 @@ final class Permissions {
         microphone = Self.state(avStatus: AVCaptureDevice.authorizationStatus(for: .audio))
         speech = Self.state(speechStatus: SFSpeechRecognizer.authorizationStatus())
         calendar = Self.state(calendarStatus: EKEventStore.authorizationStatus(for: .event))
+        notes = Self.notesState()
         if Packaging.isPackaged {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             notifications = Self.state(notificationStatus: settings.authorizationStatus)
+        }
+    }
+
+    /// Спрашивает систему про автоматизацию «Заметок», не показывая вопрос. Работает, только пока «Заметки» запущены.
+    private static func notesState() -> PermissionState {
+        let running = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Notes").isEmpty
+        if running {
+            let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.Notes")
+            let status = AEDeterminePermissionToAutomateTarget(target.aeDesc, typeWildCard, typeWildCard, false)
+            switch status {
+            case noErr:
+                notesRemembered = true
+                return .granted
+            case OSStatus(errAEEventNotPermitted):
+                notesRemembered = false
+                return .denied
+            default:
+                break // ещё не спрашивали или неизвестно: смотрим на сохранённое
+            }
+        }
+        switch notesRemembered {
+        case true?: return .granted
+        case false?: return .denied
+        case nil: return .notAsked
         }
     }
 
@@ -68,8 +101,12 @@ final class Permissions {
         notesResult = "Проверяю…"
         let result = await ProcessRunner.run("/usr/bin/osascript", ["-e", "tell application \"Notes\" to count notes"], timeout: 30)
         if result.status == 0 {
+            Self.notesRemembered = true
+            notes = .granted
             notesResult = "Разрешено"
         } else if result.error.contains("-1743") {
+            Self.notesRemembered = false
+            notes = .denied
             notesResult = "Запрещено"
         } else if result.timedOut {
             notesResult = "Нет ответа: ответьте на вопрос macOS и нажмите ещё раз"

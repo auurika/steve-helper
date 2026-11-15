@@ -60,7 +60,7 @@ struct SettingsView: View {
                 HStack {
                     Text("«Заметки»").font(.system(size: 13))
                     Spacer(minLength: 8)
-                    if permissions.notesResult == "Разрешено" {
+                    if permissions.notes == .granted {
                         Text("Разрешено").font(.system(size: 12)).foregroundStyle(Color.steveOK)
                     } else {
                         Button {

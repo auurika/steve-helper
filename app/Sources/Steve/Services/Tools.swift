@@ -144,7 +144,10 @@ final class Tools {
         let title = String(text.split(separator: "\n").first?.prefix(40) ?? "Заметка")
         let result = await run("/usr/bin/osascript", ["-e", Self.noteScript, title, text], timeout: 40)
         let tool = "Notes.create_note(text=\"\(title)\")"
-        if result.status == 0 { return ToolResult(reply: "Создал заметку в «Заметках»", tool: tool) }
+        if result.status == 0 {
+            Permissions.notesRemembered = true // раз заметка создалась, доступ есть
+            return ToolResult(reply: "Создал заметку в «Заметках»", tool: tool)
+        }
         return ToolResult(reply: Self.automationHint(result.err, app: "Заметкам"), tool: tool)
     }
 
