@@ -7,7 +7,7 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             hero
-            MessageList(messages: model.messages, showCommands: model.settings.showCommands, compact: false)
+            MessageList(messages: model.messages, showCommands: model.settings.showCommands, compact: false, isThinking: model.status == .thinking || model.status == .working)
             ComposerView(compact: false)
         }
     }
@@ -41,24 +41,48 @@ struct MessageList: View {
     let messages: [ChatMessage]
     let showCommands: Bool
     let compact: Bool
+    /// Стив думает или выполняет: в конце списка показываются бегущие точки.
+    var isThinking = false
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: compact ? 6 : 10) {
                     ForEach(messages) { message in
+                        // плавное появление: пузырь вырастает из угла, откуда он «отправлен»
                         bubble(message).id(message.id)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.88, anchor: message.role == .user ? .bottomTrailing : .bottomLeading)
+                                    .combined(with: .opacity).combined(with: .offset(y: 14)),
+                                removal: .opacity))
+                    }
+                    if isThinking {
+                        ThinkingBubble(compact: compact).id("thinking")
+                            .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
                     }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.82), value: messages.count)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isThinking)
                 .padding(compact ? 10 : 0)
                 .padding(.vertical, compact ? 0 : 12)
             }
-            .onChange(of: messages.count) {
-                if let last = messages.last {
-                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
+            // сообщения, уходящие вверх за Стива, плавно растворяются, а не обрезаются жёсткой линией
+            .mask(
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: compact ? 18 : 36)
+                    Rectangle().fill(.black)
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: compact ? 8 : 12)
                 }
-            }
+            )
+            .onChange(of: messages.count) { scrollToEnd(proxy) }
+            .onChange(of: isThinking) { scrollToEnd(proxy) }
         }
+    }
+
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        let target: AnyHashable? = isThinking ? AnyHashable("thinking") : messages.last.map { AnyHashable($0.id) }
+        guard let target else { return }
+        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(target, anchor: .bottom) }
     }
 
     private func bubble(_ message: ChatMessage) -> some View {
@@ -267,5 +291,36 @@ struct TimerPanel: View {
         let total = Int(seconds.rounded(.up))
         let h = total / 3600, m = (total % 3600) / 60, s = total % 60
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+    }
+}
+
+
+/// Пузырь «Стив думает»: три точки по очереди набирают высоту.
+struct ThinkingBubble: View {
+    let compact: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            TimelineView(.animation) { context in
+                let time = context.date.timeIntervalSinceReferenceDate
+                HStack(spacing: 5) {
+                    ForEach(0..<3, id: \.self) { index in
+                        let wave = (sin(time * 5 - Double(index) * 0.9) + 1) / 2 // 0...1, точки сдвинуты по фазе
+                        Circle()
+                            .fill(Color.steveMuted)
+                            .frame(width: 7, height: 7)
+                            .scaleEffect(0.7 + 0.5 * wave)
+                            .opacity(0.45 + 0.55 * wave)
+                            .offset(y: -3 * wave)
+                    }
+                }
+            }
+            .padding(.horizontal, compact ? 12 : 16)
+            .padding(.vertical, compact ? 9 : 13)
+            .background(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).fill(Color.white.opacity(0.14)))
+            .overlay(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+            Spacer(minLength: 40)
+        }
+        .accessibilityLabel("Стив думает")
     }
 }

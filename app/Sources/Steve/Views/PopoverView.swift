@@ -32,7 +32,7 @@ struct PopoverView: View {
 
             TimerPanel(compact: true)
 
-            MessageList(messages: Array(model.messages.suffix(30)), showCommands: model.settings.showCommands, compact: true)
+            MessageList(messages: Array(model.messages.suffix(30)), showCommands: model.settings.showCommands, compact: true, isThinking: model.status == .thinking || model.status == .working)
                 .frame(height: 168)
                 .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white.opacity(0.08)))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
