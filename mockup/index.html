@@ -225,6 +225,11 @@
   .qplist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:320px;overflow-y:auto}
   .qpitem.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.45)}
   .qpitem[disabled]{opacity:.4;cursor:not-allowed}
+  .seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--panel);border:1px solid var(--line);gap:2px}
+  .seg button{all:unset;box-sizing:border-box;cursor:pointer;padding:6px 11px;border-radius:9px;color:var(--muted);font-size:13px;white-space:nowrap;transition:.15s}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:rgba(255,255,255,.24);color:var(--text);box-shadow:var(--rim)}
+  .hk.warn{border-color:#ff5f57;box-shadow:0 0 0 2px rgba(255,95,87,.4);color:var(--text)}
 </style>
 </head>
 <body>
@@ -365,8 +370,8 @@
           <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
-        <div class="row" style="flex-wrap:nowrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
-        <div class="row"><div>Сочетание для запуска</div><button class="kbd hk" id="hk" type="button">⌥ + Пробел</button></div>
+        <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
+        <div class="row" style="flex-wrap:wrap"><div>Сочетание для запуска</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:100%"><div class="seg" id="hkMode"><button type="button" data-m="press" class="on" title="Нажал — Стив слушает, нажал ещё раз — закончил">Нажатие</button><button type="button" data-m="hold" title="Стив слушает, пока держишь сочетание">Удерживание</button></div><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура<small>Включена: Стив не матерится. Выключена: говорит так же, как ты, с матом</small></div><div class="sw on" id="censor"></div></div>
@@ -647,8 +652,9 @@ document.addEventListener('keydown',e=>{
   if(open.length){e.preventDefault();closeModal(open[0])}
 });
 
-// запись сочетания клавиш
-const hk=$('#hk');let hkRec=false,hkCur=hk.textContent;
+// запись сочетания клавиш: от 1 до 3 клавиш
+const hk=$('#hk');let hkRec=false,hkCur=hk.textContent,hkPeak=[],hkWarnT=null;
+const HK_MAX=3;
 const HK_MODS=[['ctrlKey','⌃'],['altKey','⌥'],['shiftKey','⇧'],['metaKey','⌘']];
 const HK_KEYS={' ':'Пробел',Enter:'Return',Tab:'Tab',Backspace:'⌫',Delete:'⌦',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
 const isMod=k=>['Control','Alt','Shift','Meta'].includes(k);
@@ -658,20 +664,38 @@ function hkKey(e){
   if(/^Digit\d$/.test(e.code))return e.code.slice(5);
   return HK_KEYS[e.key]||(e.key.length===1?e.key.toUpperCase():e.key);
 }
-function hkStop(save){hkRec=false;hk.classList.remove('rec');hk.textContent=hkCur;hk.blur()}
-hk.onclick=()=>{if(hkRec)return;hkRec=true;hk.classList.add('rec');hk.textContent='Нажми сочетание…'};
+const HK_PROMPT='Нажми сочетание…';
+function hkStop(){clearTimeout(hkWarnT);hkRec=false;hkPeak=[];hk.classList.remove('rec','warn');hk.textContent=hkCur;hk.blur()}
+function hkWarn(){
+  hk.classList.add('warn');hk.textContent='Максимум '+HK_MAX+' клавиши';
+  clearTimeout(hkWarnT);hkWarnT=setTimeout(()=>{hk.classList.remove('warn');if(hkRec)hk.textContent=HK_PROMPT},1300);
+}
+function hkLive(m){hk.classList.remove('warn');hk.textContent=m.length?m.join(' + ')+' + …':HK_PROMPT}
+hk.onclick=()=>{if(hkRec)return;hkRec=true;hkPeak=[];hk.classList.add('rec');hk.textContent=HK_PROMPT};
 document.addEventListener('keydown',e=>{
   if(!hkRec)return;
   e.preventDefault();e.stopPropagation();
   if(e.key==='Escape'&&!e.repeat){hkStop();return}
-  if(isMod(e.key)){const m=hkMods(e);hk.textContent=m.length?m.join(' + ')+' + …':'Нажми сочетание…';return}
-  hkCur=[...hkMods(e),hkKey(e)].join(' + ');hkStop();
+  if(isMod(e.key)){
+    const m=hkMods(e);
+    if(m.length>HK_MAX){hkWarn();return}
+    if(m.length>=hkPeak.length)hkPeak=m;
+    hkLive(m);return;
+  }
+  const parts=[...hkMods(e),hkKey(e)];
+  if(parts.length>HK_MAX){hkWarn();return}
+  hkCur=parts.join(' + ');hkStop();
 },true);
+// одна клавиша-модификатор тоже подходит: нажал, отпустил — сохранилось
 document.addEventListener('keyup',e=>{
   if(!hkRec||!isMod(e.key))return;
-  const m=hkMods(e);hk.textContent=m.length?m.join(' + ')+' + …':'Нажми сочетание…';
+  const m=hkMods(e);
+  if(m.length===0&&hkPeak.length){hkCur=hkPeak.join(' + ');hkStop();return}
+  hkLive(m);
 },true);
 document.addEventListener('mousedown',e=>{if(hkRec&&e.target!==hk)hkStop()});
+// режим запуска: нажатие или удерживание
+$$('#hkMode button').forEach(b=>b.onclick=()=>$$('#hkMode button').forEach(x=>x.classList.toggle('on',x===b)));
 </script>
 </body>
 </html>
