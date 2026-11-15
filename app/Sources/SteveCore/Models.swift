@@ -10,7 +10,7 @@ public struct Preset: Codable, Identifiable, Equatable {
     public var symbol: String
 
     public static let nameLimit = 60
-    public static let descriptionLimit = 60
+    public static let descriptionLimit = 120
     public static let phraseLimit = 100
 
     public init(id: UUID = UUID(), name: String, description: String, phrase: String, symbol: String) {

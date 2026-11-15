@@ -51,9 +51,12 @@ extension View {
     /// Кнопка, поле или плашка поверх поверхности.
     func glassControl(cornerRadius: CGFloat = 14, highlighted: Bool = false) -> some View {
         background {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(controlFill)
-                .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(Color.white.opacity(highlighted ? 0.18 : 0)))
+            // размытие и стеклянная заливка: у боковой панели, кнопок, полей и плашек один и тот же тёмный состав
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(controlFill)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(Color.white.opacity(highlighted ? 0.18 : 0))
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -63,7 +66,12 @@ extension View {
 
     /// Плашка настройки: отдельный кусочек стекла вместо строки с разделителем.
     func glassPlate(cornerRadius: CGFloat = 16) -> some View {
-        background(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(plateFill))
+        background {
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).fill(plateFill)
+            }
+        }
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
@@ -84,8 +92,6 @@ struct GlassIconButton: View {
                 .font(.system(size: size * 0.4, weight: .medium))
                 .foregroundStyle(Color.steveText)
                 .frame(width: size, height: size)
-                // тот же состав, что у боковой панели: размытие и стеклянная заливка
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: size * 0.33, style: .continuous))
                 .glassControl(cornerRadius: size * 0.33, highlighted: hovering)
         }
         .buttonStyle(PressScale())
@@ -124,8 +130,7 @@ private struct GlassModalLayer<Content: View>: View {
                 .onTapGesture(perform: close)
             content
                 .environment(\.closeModal, close)
-                // тот же цвет и рамка, что у поля ввода, на размытии: текст под окном не просвечивает
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                // тот же цвет и рамка, что у поля ввода: размытие уже внутри glassControl
                 .glassControl(cornerRadius: 24)
                 .overlay(alignment: .topTrailing) {
                     Button(action: close) {

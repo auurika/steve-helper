@@ -42,7 +42,6 @@ struct SidebarView: View {
         .padding(.horizontal, 14)
         .frame(width: isExpanded ? 190 : 68)
         .frame(maxHeight: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous)) // размытие: текст под панелью не просвечивает
         .glassControl(cornerRadius: 22) // тот же цвет и рамка, что у поля ввода
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)

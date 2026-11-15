@@ -174,7 +174,6 @@ struct ComposerView: View {
                 .padding(.horizontal, compact ? 10 : 12)
                 .padding(.vertical, compact ? 8 : 11)
                 .frame(minHeight: compact ? 38 : 42, alignment: .leading) // текст по центру поля по вертикали
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)) // как у боковой панели и кнопок
                 .glassControl(cornerRadius: compact ? 12 : 14)
                 .overlay(alignment: .leading) {
                     // своя подсказка: системная подсказка поля на тёмном стекле почти не видна
@@ -278,7 +277,6 @@ struct MicButton: View {
                     .background {
                         if recording { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.steveDanger.opacity(0.75)) }
                     }
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .glassControl(cornerRadius: 14, highlighted: hovering || recording)
             }
             .frame(width: size, height: size)
@@ -472,7 +470,6 @@ private extension View {
     func panelBackground() -> some View {
         padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .glassControl(cornerRadius: 14)
     }
 }
