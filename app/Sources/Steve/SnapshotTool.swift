@@ -48,6 +48,7 @@ enum SnapshotTool {
 
         Task {
             try? await Task.sleep(for: .milliseconds(600))
+            model.prepareDemo()
             for (section, name) in [(AppSection.chat, "chat"), (.presets, "presets"), (.settings, "settings")] {
                 model.section = section
                 await capture(RootContent().environment(model), size: CGSize(width: 960, height: 640), to: folder.appendingPathComponent("\(name).png"))
@@ -84,7 +85,7 @@ enum SnapshotTool {
 
     /// Рисует настоящий NSHostingView, поэтому в снимок попадают и поля ввода, и прокрутка.
     private static func capture(_ view: some View, size: CGSize, to url: URL) async {
-        let content = ZStack {
+        let content = ZStack(alignment: .topLeading) {
             LinearGradient(colors: [Color(red: 0.55, green: 0.3, blue: 0.7), Color(red: 0.2, green: 0.3, blue: 0.7), Color(red: 0.15, green: 0.6, blue: 0.55)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             view

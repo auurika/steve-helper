@@ -23,11 +23,13 @@ enum ChatHistory {
     }
 
     static func load() -> [ChatMessage] {
+        guard !CommandLine.arguments.contains("--snapshot") else { return [] } // снимки для README рисуются без личной переписки
         guard let data = try? Data(contentsOf: url), let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) else { return [] }
         return saved
     }
 
     static func save(_ messages: [ChatMessage]) {
+        guard !CommandLine.arguments.contains("--snapshot") else { return }
         guard let data = try? JSONEncoder().encode(Array(messages.suffix(300))) else { return }
         try? data.write(to: url, options: .atomic)
     }
@@ -240,6 +242,18 @@ final class AppModel {
     }
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
+    /// Пример диалога для снимков экрана: без личной переписки.
+    func prepareDemo() {
+        messages = [
+            Self.greeting,
+            ChatMessage(role: .user, text: "Таймер на 10 минут"),
+            ChatMessage(role: .steve, text: "Поставил таймер на 10 мин", tool: "timer(seconds=600)"),
+            ChatMessage(role: .user, text: "Создай папку Привет Стив с файлом привет.txt: Привет, я Стив, твой помощник"),
+            ChatMessage(role: .steve, text: "Создал папку «Привет Стив» на рабочем столе и файл «привет.txt» в ней", tool: "Desktop.create_folder(name=\"Привет Стив\", file=\"привет.txt\")"),
+        ]
+        activeTimers = [ActiveTimer(id: UUID(), end: Date().addingTimeInterval(594), total: 600)]
+    }
+
     func attach(_ urls: [URL]) {
         for url in urls where !attachments.contains(url) { attachments.append(url) }
     }

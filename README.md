@@ -35,11 +35,11 @@
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/settings.png" alt="Настройки"><br><sub>Настройки: прозрачность Liquid Glass, быстрые команды, слово активации, сочетание клавиш, голос</sub></td>
-<td width="50%"><img src="docs/images/presets.png" alt="Пресеты"><br><sub>Пресеты: готовые и свои команды быстрого доступа</sub></td>
+<td width="50%"><img src="docs/images/settings.png" alt="Настройки"><br><sub>Настройки: прозрачность, быстрые команды, слово активации, сочетание клавиш, голос, цензура, разрешения</sub></td>
+<td width="50%"><img src="docs/images/presets.png" alt="Пресеты"><br><sub>Пресеты: суть задачи, сценарий и фраза для запуска</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/images/popover.png" alt="Всплывающее окно"><br><sub>Окно из меню-бара: четыре быстрые команды и компактный диалог</sub></td>
+<td width="50%"><img src="docs/images/popover.png" alt="Всплывающее окно"><br><sub>Окно из меню-бара: четыре места под быстрые команды, таймер и компактный диалог</sub></td>
 <td width="50%"><img src="docs/images/menubar-icon.png" alt="Значок Стива в меню-баре"><br><sub>Значок в меню-баре: покой, сон, удивление, прыжок, раздумье, танец</sub></td>
 </tr>
 </table>
