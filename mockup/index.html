@@ -208,6 +208,13 @@
   .xbtn:hover{filter:brightness(1.1)}
   .xbtn::before,.xbtn::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:1.8px;margin:-.9px 0 0 -5px;border-radius:1px;background:rgba(77,0,0,.85)}
   .xbtn::before{transform:rotate(45deg)}.xbtn::after{transform:rotate(-45deg)}
+  .hk{font:inherit;color:var(--text);cursor:pointer;white-space:nowrap;transition:.15s}
+  .hk:hover{background:rgba(255,255,255,.3)}
+  .hk.rec{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,169,255,.45);color:var(--muted)}
+  /* крестик как в macOS: красный кружок 12 px, × только при наведении */
+  .xbtn{top:16px;right:16px;width:12px;height:12px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.3)}
+  .xbtn::before,.xbtn::after{width:7px;height:1.4px;margin:-.7px 0 0 -3.5px;opacity:0;transition:opacity .1s}
+  .xbtn:hover::before,.xbtn:hover::after{opacity:1}
 </style>
 </head>
 <body>
@@ -349,7 +356,7 @@
         <div class="row" style="flex-wrap:wrap"><div>Быстрые кнопки<small>Четыре значка рядом со Стивом во всплывающем окне. Выбери действие для каждого</small></div>
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:nowrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
-        <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
+        <div class="row"><div>Сочетание для запуска<small>Говорить без слова активации. Нажми на сочетание, чтобы записать новое</small></div><button class="kbd hk" id="hk" type="button">⌥ + Пробел</button></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура<small>Включена: Стив не матерится. Выключена: говорит так же, как ты, с матом</small></div><div class="sw on" id="censor"></div></div>
@@ -604,6 +611,32 @@ document.addEventListener('keydown',e=>{
   const open=$$('.modal.on').sort((a,b)=>(+getComputedStyle(b).zIndex||0)-(+getComputedStyle(a).zIndex||0));
   if(open.length){e.preventDefault();closeModal(open[0])}
 });
+
+// запись сочетания клавиш
+const hk=$('#hk');let hkRec=false,hkCur=hk.textContent;
+const HK_MODS=[['ctrlKey','⌃'],['altKey','⌥'],['shiftKey','⇧'],['metaKey','⌘']];
+const HK_KEYS={' ':'Пробел',Enter:'Return',Tab:'Tab',Backspace:'⌫',Delete:'⌦',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
+const isMod=k=>['Control','Alt','Shift','Meta'].includes(k);
+const hkMods=e=>HK_MODS.filter(m=>e[m[0]]).map(m=>m[1]);
+function hkKey(e){
+  if(/^Key[A-Z]$/.test(e.code))return e.code.slice(3);
+  if(/^Digit\d$/.test(e.code))return e.code.slice(5);
+  return HK_KEYS[e.key]||(e.key.length===1?e.key.toUpperCase():e.key);
+}
+function hkStop(save){hkRec=false;hk.classList.remove('rec');hk.textContent=hkCur;hk.blur()}
+hk.onclick=()=>{if(hkRec)return;hkRec=true;hk.classList.add('rec');hk.textContent='Нажми сочетание…'};
+document.addEventListener('keydown',e=>{
+  if(!hkRec)return;
+  e.preventDefault();e.stopPropagation();
+  if(e.key==='Escape'&&!e.repeat){hkStop();return}
+  if(isMod(e.key)){const m=hkMods(e);hk.textContent=m.length?m.join(' + ')+' + …':'Нажми сочетание…';return}
+  hkCur=[...hkMods(e),hkKey(e)].join(' + ');hkStop();
+},true);
+document.addEventListener('keyup',e=>{
+  if(!hkRec||!isMod(e.key))return;
+  const m=hkMods(e);hk.textContent=m.length?m.join(' + ')+' + …':'Нажми сочетание…';
+},true);
+document.addEventListener('mousedown',e=>{if(hkRec&&e.target!==hk)hkStop()});
 </script>
 </body>
 </html>
