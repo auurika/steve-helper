@@ -13,17 +13,17 @@ echo "Скачиваю Стива…"
 curl -fL --progress-bar "$URL" -o "$TMP/Steve.zip"
 ditto -x -k "$TMP/Steve.zip" "$TMP"
 
-DEST="/Applications"
+DEST="${STEVE_INSTALL_DIR:-/Applications}"
 if [ ! -w "$DEST" ]; then
   DEST="$HOME/Applications"
   mkdir -p "$DEST"
 fi
 
-pkill -x Steve 2>/dev/null || true
+[ -n "${STEVE_SKIP_LAUNCH:-}" ] || pkill -x Steve 2>/dev/null || true
 rm -rf "$DEST/Стив.app"
 cp -R "$TMP/Стив.app" "$DEST/"
 xattr -dr com.apple.quarantine "$DEST/Стив.app" 2>/dev/null || true
 
 echo "Готово: $DEST/Стив.app"
-open "$DEST/Стив.app"
+[ -n "${STEVE_SKIP_LAUNCH:-}" ] || open "$DEST/Стив.app"
 echo "Чтобы Стив болтал на любые темы, откройте Настройки → «Свободный разговор» → «Установить». Один раз, около 2,7 ГБ."
