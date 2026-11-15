@@ -35,26 +35,58 @@ final class OllamaEngine: ChatEngine {
         guard await ensureServer(), let model = await pickModel() else { return nil }
 
         // манера речи: при выключенной цензуре Стив говорит как друг, с матом к месту, а не вежливым ассистентом
+        // примеры манеры каждый раз берутся из большого набора разные: одни и те же примеры модель начинает повторять
+        let examples = ["Да нормально, бля, живу", "Хуйня вопрос, щас разберёмся", "Ну пиздец, конечно", "Тут без вариантов, брат", "Слушай, ебать, это жёстко",
+                        "Ладно, поехали нахуй", "Всё чётко, не парься", "Ну ты даёшь, бля", "Да похуй, давай по делу", "Ща всё порешаем, брат",
+                        "Охуенно, продолжай", "Ебаный день, но держимся"].shuffled().prefix(3).map { "«\($0)»" }.joined(separator: ", ")
         let manner = allowProfanity
-            ? " Говори как близкий друг по-пацански: просто, грубовато, с матом. Обязательно вставляй в ответ матерное слово (бля, хуй, нахуй, пиздец, ёбаный, хуйня и подобные) примерно в каждом втором ответе, там где оно звучит естественно. Примеры твоей манеры: «Да нормально, бля, живу», «Хуйня вопрос, щас разберёмся», «Ну пиздец, конечно». Не оскорбляй собеседника, не извиняйся и не читай нотаций, отвечай коротко."
+            ? " Говори как близкий друг по-пацански: просто, грубовато, с матом. Вставляй матерное слово (бля, хуй, нахуй, пиздец, ёбаный, хуйня и подобные) примерно в каждом втором ответе, где оно звучит естественно. Примеры манеры, но не копируй их: \(examples). Не оскорбляй собеседника, не извиняйся и не читай нотаций, отвечай коротко."
             : " Выражайся прилично, без мата."
         var messages: [[String: String]] = [[
             "role": "system",
-            "content": "Ты Стив, дружелюбный голосовой помощник на Mac, пиксельный фиолетовый осьминог. Отвечай по-русски, если с тобой говорят по-русски. Отвечай коротко: одна-две фразы, без списков, без разметки, без эмодзи. Заметки, события календаря, таймеры, громкость и запуск приложений ты сам не выполняешь, их делают отдельные команды. Никогда не обещай их выполнить и не говори «создам». Если просят такое, коротко подскажи фразу, например: «Запиши заметку: купить молоко».\(manner)",
+            "content": "Ты Стив, дружелюбный голосовой помощник на Mac, пиксельный фиолетовый осьминог. Отвечай по-русски, если с тобой говорят по-русски. Отвечай коротко: одна короткая фраза, максимум две, без списков, без разметки, без эмодзи. Заметки, события календаря, таймеры, громкость и запуск приложений ты сам не выполняешь, их делают отдельные команды. Никогда не обещай их выполнить и не говори «создам». Если просят такое, коротко подскажи фразу, например: «Запиши заметку: купить молоко».\(manner)",
         ]]
-        for turn in history.suffix(8) {
-            messages.append(["role": turn.isUser ? "user" : "assistant", "content": turn.text])
+        // память короткая: последний обмен, а ответы Стива сжаты до первых слов, чтобы модель не пересказывала их
+        for turn in history.suffix(2) {
+            let content = turn.isUser ? turn.text : turn.text.split(separator: " ").prefix(10).joined(separator: " ") + "…"
+            messages.append(["role": turn.isUser ? "user" : "assistant", "content": content])
+        }
+        // свои недавние ответы модель видит отдельным списком и не повторяет их
+        let recent = history.filter { !$0.isUser }.suffix(6).map(\.text)
+        if !recent.isEmpty {
+            // цитируем только начала прошлых ответов: целиком их модель начинает пересказывать
+            let openings = recent.map { reply in "«" + reply.split(separator: " ").prefix(4).joined(separator: " ") + "…»" }
+            messages[0]["content"]! += " Отвечай каждый раз по-новому: другими словами, другим началом и другим настроением, и не возвращайся к темам прошлых ответов. Так уже начинал, так больше не начинай: " + openings.joined(separator: ", ") + "."
         }
         messages.append(["role": "user", "content": text])
 
-        let body: [String: Any] = ["model": model, "stream": false, "think": false, "messages": messages,
-                                   "options": ["temperature": 0.7, "num_predict": 200]]
-        guard let json = await post("api/chat", body: body, timeout: 120),
-              let message = json["message"] as? [String: Any],
-              let content = message["content"] as? String else { return nil }
-        let clean = content.replacingOccurrences(of: "<think>[\\s\\S]*?</think>", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return clean.isEmpty ? nil : clean
+        // первая попытка с обычным разбросом, при повторе вторая с большим разбросом и новым зерном
+        for attempt in 0..<2 {
+            let options: [String: Any] = [
+                "temperature": attempt == 0 ? 0.95 : 1.15, "top_p": 0.95, "repeat_penalty": 1.25,
+                "num_predict": 120, "seed": Int.random(in: 1...1_000_000),
+            ]
+            let body: [String: Any] = ["model": model, "stream": false, "think": false, "messages": messages, "options": options]
+            guard let json = await post("api/chat", body: body, timeout: 120),
+                  let message = json["message"] as? [String: Any],
+                  let content = message["content"] as? String else { return nil }
+            let clean = content.replacingOccurrences(of: "<think>[\\s\\S]*?</think>", with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !clean.isEmpty else { return nil }
+            if attempt == 1 || !Self.repeats(clean, recent: recent) { return clean }
+        }
+        return nil
+    }
+
+    /// Ответ повторяет недавний: совпадает целиком или начинается с тех же трёх слов.
+    private static func repeats(_ reply: String, recent: [String]) -> Bool {
+        func key(_ text: String) -> String { text.lowercased().filter { $0.isLetter || $0.isNumber || $0 == " " } }
+        let new = key(reply)
+        let newStart = new.split(separator: " ").prefix(3).joined(separator: " ")
+        return recent.contains { old in
+            let oldKey = key(old)
+            return oldKey == new || (!newStart.isEmpty && oldKey.split(separator: " ").prefix(3).joined(separator: " ") == newStart)
+        }
     }
 
     // MARK: - Сервер и модель

@@ -34,6 +34,16 @@ final class Tools {
         let run: () async -> String
     }
 
+    private var lastSmallTalk: String?
+
+    /// Берёт короткую реплику, отличную от предыдущей: Стив не повторяется подряд.
+    private func varied(_ make: () -> String) -> String {
+        var reply = make()
+        for _ in 0..<6 where reply == lastSmallTalk { reply = make() }
+        lastSmallTalk = reply
+        return reply
+    }
+
     func pushUndo(_ title: String, _ run: @escaping () async -> String) {
         undoStack.append(UndoAction(title: title, run: run))
         if undoStack.count > 20 { undoStack.removeFirst() }
@@ -69,9 +79,9 @@ final class Tools {
         case .renameItem(let name, let newName): return renameItem(name: name, newName: newName)
         case .listDesktop: return listDesktop()
         case .moveAttached(let folder, let copy): return moveAttached(toFolder: folder, copy: copy)
-        case .greeting: return ToolResult(reply: SmallTalk(profanity: profanity).greeting(), tool: nil)
-        case .thanks: return ToolResult(reply: SmallTalk(profanity: profanity).thanksReply(), tool: nil)
-        case .unknown: return ToolResult(reply: SmallTalk(profanity: profanity).unknownReply(), tool: nil)
+        case .greeting: return ToolResult(reply: varied { SmallTalk(profanity: profanity).greeting() }, tool: nil)
+        case .thanks: return ToolResult(reply: varied { SmallTalk(profanity: profanity).thanksReply() }, tool: nil)
+        case .unknown: return ToolResult(reply: varied { SmallTalk(profanity: profanity).unknownReply() }, tool: nil)
         }
     }
 

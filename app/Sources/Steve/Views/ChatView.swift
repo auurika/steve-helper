@@ -479,17 +479,16 @@ private struct HeroHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
-/// «Стив думает»: три простых фиолетовых пузырька вылетают из одной точки внизу и плывут вверх внутри перевёрнутого треугольника.
-/// Растут по пути, не выходят за его границы и лопаются у верхнего края. Без текстур и бликов.
+/// «Стив думает»: три простых фиолетовых пузырька вылетают из одной точки внизу и плывут вверх по трём прямым лучам
+/// перевёрнутого треугольника. Растут по пути и у верхнего края лопаются. Без случайности, текстур и бликов.
 struct ThinkingBubble: View {
     let compact: Bool
 
-    private static let cycle = 2.1
-    private static let risePart = 0.82
-    /// Сдвиг по времени и положение внутри треугольника: от -1 (левый край) до 1 (правый).
-    private static let bubbles: [(delay: Double, lane: CGFloat, seed: Double)] = [
-        (0, -0.55, 0.4), (0.7, 0.05, 2.1), (1.4, 0.6, 4.0),
-    ]
+    private static let cycle = 2.0
+    private static let risePart = 0.8
+    /// Сдвиг по времени и угол луча от вертикали (в градусах): влево, прямо, вправо. Угол меньше половины раствора треугольника.
+    private static let bubbles: [(delay: Double, angle: Double)] = [(0, -16), (0.67, 0), (1.34, 16)]
+    private static let halfOpening = 22.0
 
     var body: some View {
         HStack(spacing: 0) {
@@ -498,47 +497,39 @@ struct ThinkingBubble: View {
                 Canvas { canvas, size in
                     for bubble in Self.bubbles {
                         let progress = ((time - bubble.delay).truncatingRemainder(dividingBy: Self.cycle) + Self.cycle).truncatingRemainder(dividingBy: Self.cycle) / Self.cycle
-                        draw(in: &canvas, size: size, lane: bubble.lane, progress: progress, seed: bubble.seed)
+                        draw(in: &canvas, size: size, angle: bubble.angle, progress: progress)
                     }
                 }
-                .frame(width: 56, height: compact ? 40 : 48)
+                .frame(width: 34, height: compact ? 28 : 32)
             }
-            .padding(.leading, compact ? 6 : 10)
+            .padding(.leading, compact ? 8 : 12)
             Spacer(minLength: 40)
         }
         .accessibilityLabel("Стив думает")
     }
 
-    /// Точка внутри треугольника: вершина внизу по центру, ширина растёт к верху. `lane` в пределах от -1 до 1.
-    private func position(in size: CGSize, lane: CGFloat, lift: CGFloat, radius: CGFloat) -> CGPoint {
-        let bottom = size.height - 4
-        let top: CGFloat = 8
-        let y = bottom - (bottom - top) * lift
-        let halfWidth = (size.width / 2) * lift          // полуширина треугольника на этой высоте
-        let room = max(0, halfWidth - radius)            // пузырёк целиком внутри, не касаясь стенок
-        return CGPoint(x: size.width / 2 + max(-1, min(1, lane)) * room, y: y)
+    /// Точка на луче из вершины треугольника (внизу по центру): `distance` от 0 до 1 вдоль луча.
+    private func point(in size: CGSize, angle: Double, distance: CGFloat) -> CGPoint {
+        let apex = CGPoint(x: size.width / 2, y: size.height - 3)
+        let length = (size.height - 8) * distance
+        let radians = angle * .pi / 180
+        return CGPoint(x: apex.x + CGFloat(sin(radians)) * length, y: apex.y - CGFloat(cos(radians)) * length)
     }
 
-    private func draw(in canvas: inout GraphicsContext, size: CGSize, lane: CGFloat, progress: Double, seed: Double) {
+    private func draw(in canvas: inout GraphicsContext, size: CGSize, angle: Double, progress: Double) {
         let tint = Color.steveBody
         if progress < Self.risePart {
-            let t = progress / Self.risePart
-            let lift = CGFloat(t * t * (3 - 2 * t) * 0.92 + t * 0.08)    // плавный старт, к верху замедляется
-            let radius = 1.5 + 5.5 * CGFloat(t)
-            let sway = CGFloat(sin(t * 5 + seed)) * 0.18                  // лёгкое покачивание в пределах дорожки
-            let center = position(in: size, lane: lane + sway, lift: lift, radius: radius)
+            let t = CGFloat(progress / Self.risePart)
+            let radius = 1.1 + 3.6 * t
+            let center = point(in: size, angle: angle, distance: t)
             canvas.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)), with: .color(tint))
         } else {
-            // лопание: несколько точек разлетаются из места, где был пузырёк, и гаснут
+            // лопание на месте: пузырёк чуть раздувается и пропадает, ничего не разлетается
             let t = CGFloat((progress - Self.risePart) / (1 - Self.risePart))
-            let center = position(in: size, lane: lane, lift: 0.94, radius: 7)
-            for k in 0..<5 {
-                let angle = Double(k) / 5 * 2 * .pi + seed
-                let distance = 4 + 7 * t
-                let dot = 2.4 * (1 - t) + 0.3
-                let point = CGPoint(x: center.x + CGFloat(cos(angle)) * distance, y: center.y + CGFloat(sin(angle)) * distance)
-                canvas.fill(Path(ellipseIn: CGRect(x: point.x - dot / 2, y: point.y - dot / 2, width: dot, height: dot)), with: .color(tint.opacity(1 - Double(t))))
-            }
+            let radius = 4.7 + 2.2 * t
+            let center = point(in: size, angle: angle, distance: 1)
+            canvas.stroke(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
+                          with: .color(tint.opacity(1 - Double(t))), lineWidth: 1.4 * (1 - t) + 0.2)
         }
     }
 }
