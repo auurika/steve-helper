@@ -84,6 +84,8 @@ struct GlassIconButton: View {
                 .font(.system(size: size * 0.4, weight: .medium))
                 .foregroundStyle(Color.steveText)
                 .frame(width: size, height: size)
+                // тот же состав, что у боковой панели: размытие и стеклянная заливка
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: size * 0.33, style: .continuous))
                 .glassControl(cornerRadius: size * 0.33, highlighted: hovering)
         }
         .buttonStyle(PressScale())

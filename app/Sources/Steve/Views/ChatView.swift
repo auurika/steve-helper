@@ -277,6 +277,7 @@ struct MicButton: View {
                     .background {
                         if recording { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.steveDanger.opacity(0.75)) }
                     }
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .glassControl(cornerRadius: 14, highlighted: hovering || recording)
             }
             .frame(width: size, height: size)
