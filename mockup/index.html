@@ -169,6 +169,8 @@
   .pform .btn{height:34px}
   .qsel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   input::placeholder{color:rgba(230,234,255,.65)}
+  .orb.working{animation:wob .22s steps(2) infinite}
+  .orb.working .eye{animation:blink .5s steps(1) infinite}
 </style>
 </head>
 <body>
@@ -290,7 +292,7 @@
     <div class="cap">Так выглядит всплывающее окно из меню-бара ↓</div>
     <div class="pop">
       <div class="top"><div class="orb" id="orb2"><svg><use href="#oct"/></svg></div>
-        <div class="who"><b>Стив</b><div class="hint" id="state2">Готов слушать</div></div>
+        <div class="who"><b>Стив</b><div class="hint" id="state2">Готов</div></div>
         <div class="qs" id="qs"></div></div>
       <div class="pchat" id="chat2"></div>
       <form class="pform" id="form2"><input id="inp2" placeholder="Сообщение…" autocomplete="off"><button class="btn" style="padding:0 12px"><svg class="i"><use href="#i-mic"/></svg></button></form>
@@ -323,9 +325,10 @@ function add(text,me,tool){
   if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
   $('#chat').append(d);$('#chat').scrollTop=1e9;const d2=d.cloneNode(true);$('#chat2').append(d2);$('#chat2').scrollTop=1e9;
 }
+const PSTAT={'':'Готов',listening:'Слушает',thinking:'Думает',working:'Выполняет',speaking:'Отвечает'};
 function setState(s,label){
   ['orb','orb2'].forEach(id=>{$('#'+id).className='orb '+s});
-  $('#state').textContent=label;$('#state2').textContent=label;
+  $('#state').textContent=label;$('#state2').textContent=PSTAT[s];
 }
 let busy=false;
 function run(q){
@@ -335,8 +338,9 @@ function run(q){
     add(q,true);setState('thinking','Думаю…');
     setTimeout(()=>{
       const m=demo.find(d=>d[0].test(q))||[0,'Я пока тестовый макет, но в настоящей версии отвечу на это сам, офлайн.',''];
-      add(m[1],false,m[2]);setState('speaking','Отвечаю…');
-      setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на Стива');busy=false},1800);
+      const answer=()=>{add(m[1],false,m[2]);setState('speaking','Отвечаю…');
+        setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на Стива');busy=false},1800)};
+      if(m[2]){setState('working','Выполняю…');setTimeout(answer,900)}else answer();
     },1100);
   },900);
 }
