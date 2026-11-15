@@ -760,6 +760,7 @@ const demo=[
   [/батаре|заряд|battery/i,'Заряд 87%, ноутбук не на зарядке.','battery()'],
 ];
 function add(text,me,tool){
+  if(!me&&text)text=text[0].toUpperCase()+text.slice(1);
   const d=document.createElement('div');d.className='msg'+(me?' me':'');d.textContent=text;
   if(tool){const t=document.createElement('span');t.className='tool';t.textContent='tool · '+tool;d.append(t)}
   $('#chat').append(d);$('#chat').scrollTop=1e9;const d2=d.cloneNode(true);$('#chat2').append(d2);$('#chat2').scrollTop=1e9;
