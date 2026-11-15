@@ -230,6 +230,8 @@
   .seg button:hover{color:var(--text)}
   .seg button.on{background:rgba(255,255,255,.24);color:var(--text);box-shadow:var(--rim)}
   .hk.warn{border-color:#ff5f57;box-shadow:0 0 0 2px rgba(255,95,87,.4);color:var(--text)}
+  .modebtn{font:inherit;color:var(--text);cursor:pointer;white-space:nowrap;min-width:114px;text-align:center;transition:.15s}
+  .modebtn:hover{background:rgba(255,255,255,.3)}
 </style>
 </head>
 <body>
@@ -371,7 +373,7 @@
         <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
-        <div class="row" style="flex-wrap:wrap"><div>Сочетание для запуска</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:100%"><div class="seg" id="hkMode"><button type="button" data-m="press" class="on" title="Нажал — Стив слушает, нажал ещё раз — закончил">Нажатие</button><button type="button" data-m="hold" title="Стив слушает, пока держишь сочетание">Удерживание</button></div><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
+        <div class="row" style="flex-wrap:nowrap"><div>Сочетание для запуска</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="kbd modebtn" id="hkMode" type="button" data-m="press" title="Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание">Нажатие</button><button class="kbd hk" id="hk" type="button" title="Нажми, чтобы записать новое сочетание (от 1 до 3 клавиш)">⌥ + Пробел</button></div></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
         <div class="row"><div>Цензура<small>Включена: Стив не матерится. Выключена: говорит так же, как ты, с матом</small></div><div class="sw on" id="censor"></div></div>
@@ -695,7 +697,13 @@ document.addEventListener('keyup',e=>{
 },true);
 document.addEventListener('mousedown',e=>{if(hkRec&&e.target!==hk)hkStop()});
 // режим запуска: нажатие или удерживание
-$$('#hkMode button').forEach(b=>b.onclick=()=>$$('#hkMode button').forEach(x=>x.classList.toggle('on',x===b)));
+$('#hkMode').onclick=()=>{
+  const b=$('#hkMode'),hold=b.dataset.m==='press';
+  b.dataset.m=hold?'hold':'press';
+  b.textContent=hold?'Удерживание':'Нажатие';
+  b.title=hold?'Стив слушает, пока держишь сочетание. Нажми, чтобы переключить на нажатие'
+              :'Нажал — Стив слушает, нажал ещё раз — закончил. Нажми, чтобы переключить на удерживание';
+};
 </script>
 </body>
 </html>
