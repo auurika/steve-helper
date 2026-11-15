@@ -232,6 +232,9 @@
   .hk.warn{border-color:#ff5f57;box-shadow:0 0 0 2px rgba(255,95,87,.4);color:var(--text)}
   .modebtn{font:inherit;color:var(--text);cursor:pointer;white-space:nowrap;min-width:114px;text-align:center;transition:.15s}
   .modebtn:hover{background:rgba(255,255,255,.3)}
+  svg.i{display:block}
+  .btn{align-items:center}
+  #ncIcon{display:grid;place-items:center}
 </style>
 </head>
 <body>
@@ -411,8 +414,8 @@
         <button class="ic btn ghost" id="ncIcon" type="button" title="Выбрать иконку" style="width:44px;height:44px;min-width:44px;flex:none;aspect-ratio:1/1;padding:0;border-radius:14px"></button>
         <input class="field" id="ncName" maxlength="30" placeholder="Название (до 30 символов)" style="margin:0;font-size:14px;height:44px">
       </div>
-      <input class="field" id="ncDesc" maxlength="80" placeholder="Что она делает" style="margin:0 0 10px;font-size:14px">
-      <input class="field" id="ncCmd" maxlength="60" placeholder="Фраза, например: включи музыку" style="margin:0 0 14px;font-size:14px">
+      <input class="field" id="ncDesc" maxlength="80" placeholder="Описание" style="margin:0 0 10px;font-size:14px">
+      <input class="field" id="ncCmd" maxlength="60" placeholder="Фраза быстрой активации" style="margin:0 0 14px;font-size:14px">
       <div class="acts"><button class="btn" id="ncSave" type="button" disabled>Создать</button></div>
     </div></div>
 
