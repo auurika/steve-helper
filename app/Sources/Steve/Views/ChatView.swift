@@ -41,8 +41,9 @@ struct ChatView: View {
             .help("Нажми, чтобы говорить")
 
             Text(model.status.label)
-                .font(.system(size: 13))
-                .foregroundStyle(Color.steveMuted)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.steveBody)
+                .animation(Motion.quick, value: model.status)
                 .frame(height: 18)
 
             PanelsView(compact: false)
@@ -473,39 +474,56 @@ private struct HeroHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
-/// Пузырь «Стив думает»: три точки по очереди набирают высоту.
+/// Пузырь «Стив думает»: три точки по очереди подпрыгивают, как в мессенджере. Каждая взлетает по дуге,
+/// чуть вытягивается в полёте и приземляется со сплющиванием, потом короткая пауза и снова.
 struct ThinkingBubble: View {
     let compact: Bool
 
+    /// Весь цикл 1,3 с: прыжок точки 0,5 с, точки стартуют со сдвигом 0,16 с, остальное время пауза.
+    private static let cycle = 1.3
+    private static let hop = 0.5
+    private static let stagger = 0.16
+
     var body: some View {
         HStack(spacing: 0) {
-            TimelineView(.animation) { context in
+            TimelineView(.animation(minimumInterval: 1 / 60)) { context in
                 let time = context.date.timeIntervalSinceReferenceDate
-                HStack(spacing: 5) {
+                HStack(spacing: 6) {
                     ForEach(0..<3, id: \.self) { index in
-                        let wave = (sin(time * 5 - Double(index) * 0.9) + 1) / 2 // 0...1, точки сдвинуты по фазе
-                        Circle()
-                            .fill(Color.steveMuted)
-                            .frame(width: 7, height: 7)
-                            .scaleEffect(0.7 + 0.5 * wave)
-                            .opacity(0.45 + 0.55 * wave)
-                            .offset(y: -3 * wave)
+                        dot(phase: (time - Double(index) * Self.stagger).truncatingRemainder(dividingBy: Self.cycle))
                     }
                 }
+                // запас по высоте под прыжок: пузырь не меняет размер и точки не обрезаются
+                .frame(height: 22, alignment: .bottom)
             }
             .padding(.horizontal, compact ? 12 : 16)
-            .padding(.vertical, compact ? 9 : 13)
+            .padding(.vertical, compact ? 6 : 8)
             .background(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).fill(Color.white.opacity(0.14)))
             .overlay(RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
             Spacer(minLength: 40)
         }
         .accessibilityLabel("Стив думает")
     }
+
+    private func dot(phase rawPhase: Double) -> some View {
+        let phase = rawPhase < 0 ? rawPhase + Self.cycle : rawPhase
+        var lift: CGFloat = 0
+        var stretch: CGFloat = 1
+        if phase < Self.hop {
+            let t = phase / Self.hop                       // 0...1 за прыжок
+            lift = CGFloat(sin(t * .pi)) * 8               // дуга вверх и вниз
+            stretch = 1 + 0.18 * CGFloat(sin(t * .pi))     // в полёте вытягивается
+        } else if phase < Self.hop + 0.12 {
+            let t = (phase - Self.hop) / 0.12              // приземление: сплющивание и возврат
+            stretch = 1 - 0.22 * CGFloat(sin(t * .pi))
+        }
+        return Circle()
+            .fill(Color.steveBody)
+            .frame(width: 7, height: 7)
+            .scaleEffect(x: 1 / stretch, y: stretch, anchor: .bottom) // объём сохраняется: вытянулась по высоте, сузилась по ширине
+            .offset(y: -lift)
+    }
 }
-
-
-
-
 
 /// Прикреплённые файлы над строкой ввода: значок, имя и крестик, чтобы убрать.
 struct AttachmentsBar: View {

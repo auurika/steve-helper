@@ -21,8 +21,8 @@ struct PopoverView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Стив").fontWeight(.semibold)
                     Text(model.status.label)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.steveMuted)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.steveBody)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)

@@ -4,6 +4,8 @@ import SwiftUI
 /// Цвета и стеклянные поверхности в стиле Liquid Glass, как в макете.
 extension Color {
     static let steveText = Color(red: 244 / 255, green: 246 / 255, blue: 1)
+    /// Фиолетовый цвет самого Стива: им же подписан статус.
+    static let steveBody = Color(red: 176 / 255, green: 124 / 255, blue: 217 / 255)
     static let steveMuted = Color(red: 180 / 255, green: 187 / 255, blue: 214 / 255)
     static let steveAccent = Color(red: 143 / 255, green: 169 / 255, blue: 1)
     static let steveAccent2 = Color(red: 196 / 255, green: 160 / 255, blue: 1)
