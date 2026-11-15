@@ -148,10 +148,10 @@
   input[type=range]{-webkit-appearance:none;appearance:none;width:200px;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.55));outline:none;box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#dfe6ff);border:1px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
   .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:38px;text-align:right;font-weight:600}
-  .row>div:first-child{flex:1 1 170px;min-width:0}
-  .row{flex-wrap:wrap}
+  .row>div:first-child{flex:1 1 120px;min-width:0}
+  .row{flex-wrap:nowrap}
   .row>:not(:first-child){flex:none}
-  .rng input{width:130px}
+  .rng input{width:90px}
   .state{text-align:center;padding:0 12px}
   .side{width:150px}
   .kbd{white-space:nowrap}
@@ -190,6 +190,7 @@
   <symbol id="i-stopwatch" viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 10v4l2.5 1.5M9.5 2.5h5M18.5 6.5l1.5-1.5"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect x="7.5" y="13" width="4" height="3.5" rx="1"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19zM14 7l3 3"/></symbol>
 </defs></svg>
 <svg width="0" height="0" style="position:absolute"><symbol id="oct" viewBox="0 0 128 128" shape-rendering="crispEdges">
   <g fill="#B07CD9"><rect x="32" y="20" width="64" height="8"/><rect x="24" y="28" width="80" height="44"/>
@@ -256,10 +257,9 @@
         <h2>Настройки</h2><p class="sub">Всё хранится внутри приложения</p>
         <div class="row"><div>Прозрачность стекла<small>От матового до почти невидимого. Применяется ко всему приложению</small></div>
           <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
-        <div class="row"><div>Быстрые кнопки<small>Четыре значка рядом со Стивом во всплывающем окне. Выбери действие для каждого</small></div>
+        <div class="row" style="flex-wrap:wrap"><div>Быстрые кнопки<small>Четыре значка рядом со Стивом во всплывающем окне. Выбери действие для каждого</small></div>
           <div class="qsel" id="qsSel"></div></div>
-        <div class="row"><div>Слово активации<small>Фраза, на которую Стив просыпается. Записанный голос повышает точность</small></div>
-          <div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="padding:6px 12px" id="wwOpen"><svg class="i"><use href="#i-mic"/></svg> Записать</button></div></div>
+        <div class="row" style="flex-wrap:nowrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
         <div class="row"><div>Горячая клавиша<small>Говорить без слова активации</small></div><span class="kbd">⌥ Пробел</span></div>
         <div class="row"><div>Голос ответа<small>Русский и английский переключаются сами</small></div>
           <select><option>Милена (рус)</option><option>Юрий (рус)</option><option>Samantha (en)</option></select></div>
@@ -365,7 +365,7 @@ $('#wwRec').onclick=()=>{
       $('#s'+got).className='done';$('#s'+got).textContent=(got+1)+' · готово';got++;
       if(got<3){$('#s'+got).classList.add('cur');$('#wwRec').disabled=false;$('#wwHint').textContent='Образец '+(got+1)+' из 3 — произнеси ещё раз:'}
       else{$('#wwSave').disabled=false;$('#wwHint').textContent='Все образцы записаны. Сохрани, чтобы применить.'}}},90)};
-$('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'» · голос записан';$('#ww').classList.remove('on')};
+$('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'»';$('#ww').classList.remove('on')};
 
 // прозрачность стекла
 function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';try{localStorage.setItem('glass',p)}catch(e){}}
