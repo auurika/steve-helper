@@ -106,6 +106,17 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(CommandParser().parse("таймер на 10 минут"), .timer(seconds: 600))
     }
 
+    func testDesktopCommands() {
+        let parser = CommandParser()
+        XCTAssertEqual(parser.parse("Создай папку Привет Стив с файлом привет.txt: Привет, я Стив, твой помощник"),
+                       .createFolder(name: "Привет Стив", fileName: "привет.txt", fileText: "Привет, я Стив, твой помощник"))
+        XCTAssertEqual(parser.parse("создай папку Работа"), .createFolder(name: "Работа", fileName: nil, fileText: nil))
+        XCTAssertEqual(parser.parse("создай файл список.txt с текстом молоко и хлеб"), .createFile(name: "список.txt", text: "молоко и хлеб", folder: nil))
+        XCTAssertEqual(parser.parse("перемести файл список в папку Работа"), .moveItem(name: "список", toFolder: "Работа"))
+        XCTAssertEqual(parser.parse("переименуй Работа в Учёба"), .renameItem(name: "Работа", newName: "Учёба"))
+        XCTAssertEqual(parser.parse("что на рабочем столе"), .listDesktop)
+    }
+
     func testNoteWithFillerWords() {
         XCTAssertEqual(CommandParser().parse("Напиши-ка мне новую заметку про создание сайта"), .createNote("про создание сайта"))
         XCTAssertEqual(CommandParser().parse("я хочу чтобы ты создал заметку"), .createNote("Заметка"))

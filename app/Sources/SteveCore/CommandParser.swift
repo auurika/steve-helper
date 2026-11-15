@@ -13,6 +13,8 @@ public struct CommandParser {
     public func parse(_ rawText: String) -> Command {
         let text = Self.normalize(rawText)
 
+        if let desktop = DesktopParser.parse(original: rawText, text: text) { return desktop }
+
         if text.contains("секундомер") || text.contains("stopwatch") {
             let stops = ["останов", "стоп", "выключ", "сброс", "stop"].contains { text.contains($0) }
             return stops ? .stopStopwatch : .startStopwatch

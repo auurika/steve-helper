@@ -6,11 +6,18 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            hero
-            MessageList(messages: model.messages, showCommands: model.settings.showCommands, compact: false, isThinking: model.status == .thinking || model.status == .working)
+            // сообщения идут на всю высоту и уходят вверх прямо за Стива: там они размываются и бледнеют
+            ZStack(alignment: .top) {
+                MessageList(messages: model.messages, showCommands: model.settings.showCommands, compact: false,
+                            isThinking: model.status == .thinking || model.status == .working, topInset: Self.heroHeight)
+                hero
+            }
             ComposerView(compact: false)
         }
     }
+
+    /// Высота Стива со статусом: с неё начинаются сообщения, выше них они уходят за Стива.
+    static let heroHeight: CGFloat = 164
 
     private var hero: some View {
         VStack(spacing: 10) {
@@ -29,6 +36,7 @@ struct ChatView: View {
                 .frame(height: 18)
 
             TimerPanel(compact: false)
+            StopwatchPanel(compact: false)
         }
         .padding(.top, 14)
         .padding(.bottom, 8)
@@ -43,6 +51,8 @@ struct MessageList: View {
     let compact: Bool
     /// Стив думает или выполняет: в конце списка показываются бегущие точки.
     var isThinking = false
+    /// Отступ сверху под Стива: сообщения начинаются ниже, а при прокрутке уходят за него и размываются.
+    var topInset: CGFloat = 0
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -51,6 +61,10 @@ struct MessageList: View {
                     ForEach(messages) { message in
                         // плавное появление: пузырь вырастает из угла, откуда он «отправлен»
                         bubble(message).id(message.id)
+                            .visualEffect { content, proxy in
+                                let blurred = topInset > 0 ? min(1, max(0, (topInset - proxy.frame(in: .named("msgScroll")).minY) / topInset)) : 0
+                                return content.blur(radius: blurred * 9).opacity(1 - blurred * 0.6)
+                            }
                             .transition(.asymmetric(
                                 insertion: .scale(scale: 0.88, anchor: message.role == .user ? .bottomTrailing : .bottomLeading)
                                     .combined(with: .opacity).combined(with: .offset(y: 14)),
@@ -64,12 +78,14 @@ struct MessageList: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: messages.count)
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isThinking)
                 .padding(compact ? 10 : 0)
-                .padding(.vertical, compact ? 0 : 12)
+                .padding(.top, compact ? 0 : max(12, topInset))
+                .padding(.bottom, compact ? 0 : 12)
             }
+            .coordinateSpace(name: "msgScroll")
             // сообщения, уходящие вверх за Стива, плавно растворяются, а не обрезаются жёсткой линией
             .mask(
                 VStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: compact ? 18 : 36)
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: compact ? 18 : (topInset > 0 ? 10 : 36))
                     Rectangle().fill(.black)
                     LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: compact ? 8 : 12)
                 }
@@ -264,12 +280,13 @@ struct TimerPanel: View {
                                 }
                             }
                             .frame(width: compact ? 50 : 110, height: 6)
-                            // две кнопки: пауза или продолжение, и остановка с закрытием «Часов»
-                            timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseTimer(timer.id) }
-                            timerButton("stop.fill", help: "Остановить и закрыть") { model.stopTimer(timer.id) }
+                            // две кнопки: пауза или продолжение, и остановка
+                            Self.timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseTimer(timer.id) }
+                            Self.timerButton("stop.fill", help: "Остановить") { model.stopTimer(timer.id) }
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous)) // сообщения за панелью не просвечивают
                         .glassControl(cornerRadius: 14)
                     }
                 }
@@ -277,7 +294,7 @@ struct TimerPanel: View {
         }
     }
 
-    private func timerButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+    fileprivate static func timerButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 10, weight: .bold)).frame(width: 24, height: 24)
                 .background(Circle().fill(Color.white.opacity(0.16)))
@@ -322,5 +339,39 @@ struct ThinkingBubble: View {
             Spacer(minLength: 40)
         }
         .accessibilityLabel("Стив думает")
+    }
+}
+
+
+/// Секундомер с отсчётом вперёд, кнопками паузы и остановки. Стоит там же, где таймеры, прямо под Стивом.
+struct StopwatchPanel: View {
+    let compact: Bool
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if let stopwatch = model.stopwatch {
+            TimelineView(.periodic(from: .now, by: 0.1)) { context in
+                let paused = stopwatch.pausedElapsed != nil
+                HStack(spacing: 10) {
+                    Image(systemName: "stopwatch").font(.system(size: 13))
+                    Text(Self.format(stopwatch.elapsed(at: context.date)))
+                        .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                        .opacity(paused ? 0.6 : 1)
+                    TimerPanel.timerButton(paused ? "play.fill" : "pause.fill", help: paused ? "Продолжить" : "Пауза") { model.pauseStopwatch() }
+                    TimerPanel.timerButton("stop.fill", help: "Остановить") { model.stopStopwatch() }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .glassControl(cornerRadius: 14)
+            }
+        }
+    }
+
+    static func format(_ seconds: TimeInterval) -> String {
+        let tenths = Int(seconds * 10)
+        let h = tenths / 36000, m = (tenths / 600) % 60, s = (tenths / 10) % 60
+        let base = h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+        return base + String(format: ".%d", tenths % 10)
     }
 }

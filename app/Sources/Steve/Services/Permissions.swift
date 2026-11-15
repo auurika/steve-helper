@@ -36,14 +36,19 @@ final class Permissions {
         set { UserDefaults.standard.set(newValue, forKey: notesKey) }
     }
 
-    /// Универсальный доступ: нужен, чтобы Стив сам ставил таймер в «Часах». Различить «не спрашивали» и «запрещено» система не даёт.
-    private(set) var accessibility = PermissionState.notAsked
+    /// Рабочий стол: Стив создаёт там папки и файлы. Проверить доступ без вопроса нельзя, поэтому запоминаем результат.
+    private(set) var desktop = PermissionState.notAsked
+    private static let desktopKey = "permissions.desktop.granted"
+    static var desktopRemembered: Bool? {
+        get { UserDefaults.standard.object(forKey: desktopKey) as? Bool }
+        set { UserDefaults.standard.set(newValue, forKey: desktopKey) }
+    }
     private(set) var isRequesting = false
     /// Подсказка под названием: что сейчас запрашивается или чего не хватает.
     private(set) var currentStep: String?
 
     private var all: [(name: String, state: PermissionState)] {
-        [("Микрофон", microphone), ("Распознавание речи", speech), ("Календарь", calendar), ("Уведомления", notifications), ("«Заметки»", notes), ("Универсальный доступ", accessibility)]
+        [("Микрофон", microphone), ("Распознавание речи", speech), ("Календарь", calendar), ("Уведомления", notifications), ("«Заметки»", notes), ("Рабочий стол", desktop)]
     }
     var totalCount: Int { all.count }
     var grantedCount: Int { all.filter { $0.state == .granted }.count }
@@ -77,11 +82,9 @@ final class Permissions {
             currentStep = "«Заметки»: ответь на вопрос macOS…"
             await checkNotes()
         }
-        if accessibility != .granted {
-            currentStep = "Универсальный доступ: включи Стива в списке…"
-            ClockController.requestTrust()
-            Self.openSettings(.accessibility)
-            for _ in 0..<60 where !ClockController.isTrusted { try? await Task.sleep(for: .seconds(1)) } // ждём, пока включат
+        if desktop != .granted {
+            currentStep = "Рабочий стол: ответь на вопрос macOS…"
+            Self.probeDesktop()
         }
         await refresh()
         // то, что запрещено раньше, система повторно не спросит: открываем нужный раздел настроек
@@ -90,6 +93,7 @@ final class Permissions {
         else if calendar == .denied { Self.openSettings(.calendars) }
         else if notifications == .denied { Self.openSettings(.notifications) }
         else if notes == .denied { Self.openSettings(.automation) }
+        else if desktop == .denied { Self.openSettings(.files) }
     }
 
     var isReadyForVoice: Bool { microphone == .granted && speech == .granted }
@@ -99,7 +103,11 @@ final class Permissions {
         speech = Self.state(speechStatus: SFSpeechRecognizer.authorizationStatus())
         calendar = Self.state(calendarStatus: EKEventStore.authorizationStatus(for: .event))
         notes = Self.notesState()
-        accessibility = ClockController.isTrusted ? .granted : .notAsked
+        switch Self.desktopRemembered {
+        case true?: desktop = .granted
+        case false?: desktop = .denied
+        case nil: desktop = .notAsked
+        }
         if Packaging.isPackaged {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             notifications = Self.state(notificationStatus: settings.authorizationStatus)
@@ -153,6 +161,12 @@ final class Permissions {
         await refresh()
     }
 
+    /// Читает папку «Рабочий стол»: если доступа ещё нет, macOS покажет вопрос. Результат запоминается.
+    static func probeDesktop() {
+        guard let url = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first else { return }
+        desktopRemembered = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) != nil
+    }
+
     /// Пробное обращение к «Заметкам»: так macOS показывает вопрос про автоматизацию.
     func checkNotes() async {
         notesResult = "Проверяю…"
@@ -184,7 +198,7 @@ final class Permissions {
         case speech = "com.apple.preference.security?Privacy_SpeechRecognition"
         case calendars = "com.apple.preference.security?Privacy_Calendars"
         case automation = "com.apple.preference.security?Privacy_Automation"
-        case accessibility = "com.apple.preference.security?Privacy_Accessibility"
+        case files = "com.apple.preference.security?Privacy_FilesAndFolders"
         case notifications = "com.apple.Notifications-Settings.extension"
         case spokenContent = "com.apple.Accessibility-Settings.extension?SpokenContent"
     }

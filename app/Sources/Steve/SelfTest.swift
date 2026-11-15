@@ -9,7 +9,7 @@ import SteveCore
 /// чтобы разрешения брались у самого приложения, а не у терминала.
 @MainActor
 enum SelfTest {
-    static var isRequested: Bool { ["--selftest", "--add-voice", "--clock-test"].contains { CommandLine.arguments.contains($0) } }
+    static var isRequested: Bool { ["--selftest", "--add-voice"].contains { CommandLine.arguments.contains($0) } }
 
     /// `Steve --add-voice <файл> <имя> <отчёт>`: добавляет свой голос из записи без окна выбора файла.
     private static func addVoiceIfRequested(model: AppModel) -> Bool {
@@ -28,27 +28,7 @@ enum SelfTest {
         return true
     }
 
-    /// `Steve --clock-test <секунды> <отчёт>`: ставит таймер в «Часах» и пишет, получилось ли.
-    private static func clockTestIfRequested() -> Bool {
-        let arguments = CommandLine.arguments
-        guard let index = arguments.firstIndex(of: "--clock-test"), arguments.count > index + 2, case let word = arguments[index + 1] else { return false }
-        let report = URL(fileURLWithPath: arguments[index + 2])
-        Task {
-            let trusted = ClockController.isTrusted
-            var ok = false
-            switch word {
-            case "pause": ok = await ClockController.togglePause()
-            case "stop": await ClockController.stopAndClose(); ok = true
-            default: ok = await ClockController.startTimer(seconds: Int(word) ?? 60)
-            }
-            try? "доступ: \(trusted), результат: \(ok)\n".write(to: report, atomically: true, encoding: .utf8)
-            NSApp.terminate(nil)
-        }
-        return true
-    }
-
     static func runIfRequested(model: AppModel) {
-        if clockTestIfRequested() { return }
         if addVoiceIfRequested(model: model) { return }
         let arguments = CommandLine.arguments
         guard let index = arguments.firstIndex(of: "--selftest"), arguments.indices.contains(index + 1) else { return }

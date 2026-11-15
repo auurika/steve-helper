@@ -11,7 +11,7 @@ public struct Preset: Codable, Identifiable, Equatable {
 
     public static let nameLimit = 30
     public static let descriptionLimit = 60
-    public static let phraseLimit = 40
+    public static let phraseLimit = 100
 
     public init(id: UUID = UUID(), name: String, description: String, phrase: String, symbol: String) {
         self.id = id
@@ -27,7 +27,14 @@ public struct Preset: Codable, Identifiable, Equatable {
                description: "Открывает Safari на Mac", phrase: "Открой Safari", symbol: "safari"),
         Preset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000005")!, name: "Громкость 30%",
                description: "Системный звук становится на уровень 30%", phrase: "Громкость 30%", symbol: "speaker.wave.2"),
+        helloFolder,
     ]
+
+    /// Папка «Привет Стив» с текстовым файлом на рабочем столе.
+    public static let helloFolder = Preset(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000006")!, name: "Папка «Привет Стив»",
+        description: "Создаёт на рабочем столе папку «Привет Стив» с текстовым файлом внутри",
+        phrase: "Создай папку Привет Стив с файлом привет.txt: Привет, я Стив, твой помощник", symbol: "folder.badge.plus")
 
     /// Бывшие готовые пресеты (таймер, заметка, календарь): из сохранённых настроек они убираются.
     public static let retiredIDs: Set<UUID> = [

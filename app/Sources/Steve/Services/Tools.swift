@@ -20,7 +20,9 @@ final class Tools {
     /// Идущие таймеры: окно приложения показывает их с обратным отсчётом.
     private(set) var activeTimers: [ActiveTimer] = []
     var onTimersChanged: (() -> Void)?
-    private var stopwatchStartedAt: Date?
+    /// Секундомер для панели в окне: время считается от запуска с учётом пауз.
+    private(set) var stopwatch: ActiveStopwatch?
+    var onStopwatchChanged: (() -> Void)?
 
     func execute(_ command: Command) async -> ToolResult {
         switch command {
@@ -36,6 +38,11 @@ final class Tools {
         case .changeVolume(let delta): return await changeVolume(by: delta)
         case .currentTime: return currentTime()
         case .battery: return await battery()
+        case .createFolder(let name, let fileName, let fileText): return createFolder(name: name, fileName: fileName, fileText: fileText)
+        case .createFile(let name, let text, let folder): return createFile(name: name, text: text, folder: folder)
+        case .moveItem(let name, let folder): return moveItem(name: name, toFolder: folder)
+        case .renameItem(let name, let newName): return renameItem(name: name, newName: newName)
+        case .listDesktop: return listDesktop()
         case .greeting: return ToolResult(reply: SmallTalk().greeting(), tool: nil)
         case .thanks: return ToolResult(reply: SmallTalk().thanksReply(), tool: nil)
         case .unknown: return ToolResult(reply: SmallTalk().unknownReply(), tool: nil)
@@ -60,15 +67,6 @@ final class Tools {
         schedule(id: id, seconds: seconds, total: seconds)
         activeTimers.append(ActiveTimer(id: id, end: Date().addingTimeInterval(TimeInterval(seconds)), total: seconds))
         onTimersChanged?()
-        // «Часы» не имеют программного интерфейса: если есть доступ к универсальному доступу, Стив ставит таймер там руками,
-        // иначе просто открывает приложение, а отсчёт и сигнал ведёт сам
-        Task {
-            if await ClockController.startTimer(seconds: seconds) {
-                markViaClock(id)
-            } else {
-                _ = await run("/usr/bin/open", ["-a", "Clock"])
-            }
-        }
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
     }
 
@@ -79,13 +77,7 @@ final class Tools {
         }
     }
 
-    private func markViaClock(_ id: UUID) {
-        guard let index = activeTimers.firstIndex(where: { $0.id == id }) else { return }
-        activeTimers[index].viaClock = true
-        onTimersChanged?()
-    }
-
-    /// Пауза и продолжение: в панели Стива и, если таймер стоит в «Часах», там же.
+    /// Пауза и продолжение таймера из панели.
     func togglePause(_ id: UUID) {
         guard let index = activeTimers.firstIndex(where: { $0.id == id }) else { return }
         if let left = activeTimers[index].pausedLeft {
@@ -98,15 +90,10 @@ final class Tools {
             timers[id] = nil
         }
         onTimersChanged?()
-        if activeTimers[index].viaClock { Task { _ = await ClockController.togglePause() } }
     }
 
-    /// Останавливает таймер, убирает его из панели и закрывает окно «Часов».
-    func stop(_ id: UUID) {
-        let viaClock = activeTimers.first { $0.id == id }?.viaClock ?? false
-        cancel(id)
-        if viaClock { Task { await ClockController.stopAndClose() } }
-    }
+    /// Останавливает таймер и убирает его из панели.
+    func stop(_ id: UUID) { cancel(id) }
 
     private func timerStatus() -> ToolResult {
         guard let next = activeTimers.map(\.end).min() else { return ToolResult(reply: "Таймеров нет", tool: "timer_status()") }
@@ -116,9 +103,7 @@ final class Tools {
 
     private func cancelTimers() -> ToolResult {
         let count = activeTimers.count
-        let anyClock = activeTimers.contains { $0.viaClock }
         cancel(nil)
-        if anyClock { Task { await ClockController.stopAndClose() } }
         return ToolResult(reply: count == 0 ? "Таймеров нет" : (count == 1 ? "Таймер отменён" : "Таймеры отменены"), tool: "cancel_timers()")
     }
 
@@ -134,11 +119,9 @@ final class Tools {
 
     private func timerFired(id: UUID, seconds: Int) {
         timers[id] = nil
-        let firedViaClock = activeTimers.first { $0.id == id }?.viaClock ?? false
         activeTimers.removeAll { $0.id == id }
         onTimersChanged?()
         guard Packaging.isPackaged else { onTimerFired?(seconds); return }
-        guard !firedViaClock else { return } // сигналит сам таймер «Часов»
         let content = UNMutableNotificationContent()
         content.title = "Стив"
         content.body = "Таймер на \(Self.describe(seconds: seconds)) сработал"
@@ -153,15 +136,32 @@ final class Tools {
     }
 
     private func startStopwatch() -> ToolResult {
-        stopwatchStartedAt = Date()
+        stopwatch = ActiveStopwatch(started: Date())
+        onStopwatchChanged?()
         return ToolResult(reply: "Секундомер запущен", tool: "start_stopwatch()")
     }
 
     private func stopStopwatch() -> ToolResult {
-        guard let start = stopwatchStartedAt else { return ToolResult(reply: "Секундомер не был запущен", tool: "stop_stopwatch()") }
-        stopwatchStartedAt = nil
-        let seconds = Int(Date().timeIntervalSince(start))
+        guard let current = stopwatch else { return ToolResult(reply: "Секундомер не был запущен", tool: "stop_stopwatch()") }
+        let seconds = Int(current.elapsed(at: Date()))
+        stopwatch = nil
+        onStopwatchChanged?()
         return ToolResult(reply: "Секундомер остановлен: \(seconds / 60) мин \(seconds % 60) сек", tool: "stop_stopwatch()")
+    }
+
+    /// Пауза и продолжение секундомера из панели.
+    func toggleStopwatchPause() {
+        guard var current = stopwatch else { return }
+        if current.pausedElapsed != nil { current.started = Date().addingTimeInterval(-(current.pausedElapsed ?? 0)); current.pausedElapsed = nil }
+        else { current.pausedElapsed = current.elapsed(at: Date()) }
+        stopwatch = current
+        onStopwatchChanged?()
+    }
+
+    /// Останавливает секундомер и убирает его из панели.
+    func dismissStopwatch() {
+        stopwatch = nil
+        onStopwatchChanged?()
     }
 
     static func describe(seconds: Int) -> String {
@@ -303,6 +303,12 @@ struct ActiveTimer: Identifiable, Equatable {
     let total: Int
     /// Сколько осталось, пока таймер на паузе.
     var pausedLeft: TimeInterval?
-    /// Таймер поставлен и в «Часах»: паузу и остановку Стив передаёт туда, а сигналит сами «Часы».
-    var viaClock = false
+}
+
+/// Секундомер: идёт от `started`; на паузе хранит прошедшее время.
+struct ActiveStopwatch: Equatable {
+    var started: Date
+    var pausedElapsed: TimeInterval?
+
+    func elapsed(at date: Date) -> TimeInterval { pausedElapsed ?? date.timeIntervalSince(started) }
 }

@@ -32,6 +32,7 @@ final class AppModel {
     var voiceDraft = ""
     /// Идущие таймеры для панели в окне.
     var activeTimers: [ActiveTimer] = []
+    var stopwatch: ActiveStopwatch?
     /// Идёт запись голоса и громкость звука 0...1: микрофон в окне пульсирует в такт.
     var isRecordingVoice = false
     var voiceLevel: Float = 0
@@ -89,6 +90,14 @@ final class AppModel {
     func start() {
         guard !started, !SnapshotTool.isRequested, !SelfTest.isRequested else { return } // в режиме снимков микрофон не трогаем
         started = true
+        // новый готовый пресет добавляется один раз: тем, кто уже пользовался приложением, он появляется сам
+        if !UserDefaults.standard.bool(forKey: "seeded.helloFolder") {
+            UserDefaults.standard.set(true, forKey: "seeded.helloFolder")
+            if !settings.presets.contains(where: { $0.id == Preset.helloFolder.id }) {
+                settings.presets.append(Preset.helloFolder)
+                if settings.quick.count < Preset.quickCount { settings.quick.append(Preset.helloFolder.id) }
+            }
+        }
 
         character.startIdleLife { [weak self] in self?.isBusy ?? false }
         tools.onTimerFired = { [weak self] seconds in
@@ -96,6 +105,7 @@ final class AppModel {
             Task { await self.speakAnswer("Таймер на \(Tools.describe(seconds: seconds)) сработал") }
         }
         tools.onTimersChanged = { [weak self] in self?.activeTimers = self?.tools.activeTimers ?? [] }
+        tools.onStopwatchChanged = { [weak self] in self?.stopwatch = self?.tools.stopwatch }
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
         hotkeys.register(settings.hotkey)
@@ -193,6 +203,8 @@ final class AppModel {
     }
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
+    func pauseStopwatch() { tools.toggleStopwatchPause() }
+    func stopStopwatch() { tools.dismissStopwatch() }
     func pauseTimer(_ id: UUID) { tools.togglePause(id) }
     func stopTimer(_ id: UUID) { tools.stop(id) }
 

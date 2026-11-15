@@ -14,6 +14,12 @@ public enum Command: Equatable {
     case changeVolume(delta: Int)
     case currentTime
     case battery
+    /// Папка на рабочем столе; при желании сразу с текстовым файлом внутри.
+    case createFolder(name: String, fileName: String?, fileText: String?)
+    case createFile(name: String, text: String, folder: String?)
+    case moveItem(name: String, toFolder: String)
+    case renameItem(name: String, newName: String)
+    case listDesktop
     case greeting
     case thanks
     case unknown(String)
