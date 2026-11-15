@@ -113,7 +113,9 @@ struct MessageList: View {
             .id(message.id)
             .visualEffect { content, geometry in
                 let amount = MessageList.blurAmount(inset: inset, minY: geometry.frame(in: .named("msgScroll")).minY)
-                return content.blur(radius: amount * 9).opacity(1 - amount * 0.6)
+                let radius: CGFloat = amount * 9
+                let opacity: Double = 1.0 - Double(amount) * 0.6
+                return content.blur(radius: radius).opacity(opacity)
             }
             .transition(insertionTransition(for: message))
     }
@@ -127,7 +129,9 @@ struct MessageList: View {
     /// Насколько размыть пузырь: 0 ниже линии Стива, до 1 у верхнего края.
     private static func blurAmount(inset: CGFloat, minY: CGFloat) -> CGFloat {
         guard inset > 0 else { return 0 }
-        return min(1, max(0, (inset - minY) / inset))
+        let distance: CGFloat = inset - minY
+        let ratio: CGFloat = distance / inset
+        return Swift.min(CGFloat(1), Swift.max(CGFloat(0), ratio))
     }
 
     private var fadeMask: some View {
