@@ -345,8 +345,15 @@ setInterval(()=>{
   render();
 },250);
 
+// моргает чаще остальных анимаций: примерно раз в 3-6 секунд
+let BLINK_EVERY=3000,BLINK_RANGE=3000;
+(function blinker(){
+  setTimeout(()=>{ if(!sleeping&&!current)play('blink'); blinker(); },BLINK_EVERY+Math.random()*BLINK_RANGE);
+})();
+// анимации в простое: раз в 40 секунд (для проверки: ?idle=5, секунд)
+let IDLE_EVERY=(+new URLSearchParams(location.search).get('idle')||40)*1000;
 // ---- сам в простое: случайные занятия каждые несколько секунд ----
-const AUTO=ANIMS.filter(a=>a.auto).map(a=>a.id);
+const AUTO=ANIMS.filter(a=>a.auto&&a.id!=='blink').map(a=>a.id);   // моргание идёт отдельным, более частым таймером
 const WEIGHT={blink:4,lookl:2,lookr:2,around:2,hop:2,wiggle:2,wave:1,yawn:1};
 function pick(){
   const bag=AUTO.flatMap(id=>Array(WEIGHT[id]||1).fill(id));
@@ -360,7 +367,7 @@ function pick(){
       play(id);
     }
     director();
-  },2200+Math.random()*3200);
+  },IDLE_EVERY);
 })();
 
 // ---- управление ----

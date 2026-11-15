@@ -1090,8 +1090,18 @@ function wake(stretch){
 function activity(){wake(true);lastAct=Date.now()}
 ['#orb','#orb2','#tray'].forEach(id=>$(id).addEventListener('click',activity));
 setInterval(()=>{if(!stSleep&&!stLoop&&!busy&&Date.now()-lastAct>SLEEP_AFTER)fallAsleep()},500);
+// моргает чаще остальных анимаций: примерно раз в 3-6 секунд, как живой
+let BLINK_EVERY=3000,BLINK_RANGE=3000;
+(function blinker(){
+  setTimeout(()=>{
+    if(!stSleep&&!stAnim&&!busy&&document.visibilityState==='visible')stPlay('blink');
+    blinker();
+  },BLINK_EVERY+Math.random()*BLINK_RANGE);
+})();
+// анимации в простое: раз в 40 секунд (для проверки: ?idle=5, секунд)
+let IDLE_EVERY=(+new URLSearchParams(location.search).get('idle')||40)*1000;
 // сам в простое: моргает, смотрит по сторонам, подпрыгивает, машет, зевает
-const IDLE_BAG=['blink','blink','blink','blink','lookl','lookl','lookr','lookr','around','around','hop','hop','wiggle','wiggle','wave','yawn'];
+const IDLE_BAG=['lookl','lookl','lookr','lookr','around','around','hop','hop','wiggle','wiggle','wave','yawn'];
 (function director(){
   setTimeout(()=>{
     if(!stSleep&&!stAnim&&!busy){
@@ -1099,7 +1109,7 @@ const IDLE_BAG=['blink','blink','blink','blink','lookl','lookl','lookr','lookr',
       stPlay(left<60000&&Math.random()<.5?'yawn':IDLE_BAG[Math.floor(Math.random()*IDLE_BAG.length)]);
     }
     director();
-  },2200+Math.random()*3200);
+  },IDLE_EVERY);
 })();
 
 // отображение выполненных команд в сообщениях
