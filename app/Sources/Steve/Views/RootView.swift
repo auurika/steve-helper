@@ -23,7 +23,7 @@ struct RootContent: View {
                 case .settings: SettingsView()
                 }
             }
-            .padding(.leading, 76)
+            .padding(.leading, 84)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(edges: .top) // шапки у окна нет: Стив поднят к верхнему краю
 
@@ -42,8 +42,6 @@ struct RootContent: View {
 /// Настраивает обычное окно macOS: кнопки закрыть, свернуть и на весь экран, заголовок «Стив»,
 /// за который окно можно перетаскивать, и растягивание за любой край.
 private struct WindowConfigurator: NSViewRepresentable {
-    @MainActor private static var shifted: [ObjectIdentifier: NSPoint] = [:]
-
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async { configure(view.window) }
@@ -88,17 +86,17 @@ private struct WindowConfigurator: NSViewRepresentable {
         frameView.addSubview(effect, positioned: .below, relativeTo: content)
     }
 
-    /// Опускает системные кнопки окна на 3 пункта: так вокруг них в боковой панели одинаковые отступы.
+    /// Ставит системные кнопки окна внутрь боковой панели: отступ от её краёв 12 пунктов, шаг между кнопками 16.
     @MainActor
     private func placeWindowButtons(in window: NSWindow) {
-        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+        for (index, kind) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
             guard let button = window.standardWindowButton(kind) else { continue }
-            let key = ObjectIdentifier(button)
-            if let done = Self.shifted[key], done == button.frame.origin { continue } // уже на своём месте
+            let targetX = 16 + CGFloat(index) * 16
+            if abs(button.frame.origin.x - targetX) < 0.5 { continue } // уже на месте
             var origin = button.frame.origin
-            origin.y -= button.superview?.isFlipped == true ? -3 : 3
+            origin.x = targetX
+            origin.y -= button.superview?.isFlipped == true ? -8 : 8
             button.setFrameOrigin(origin)
-            Self.shifted[key] = origin
         }
     }
 }

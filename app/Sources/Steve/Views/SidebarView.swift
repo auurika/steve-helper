@@ -26,7 +26,7 @@ struct SidebarView: View {
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
             // место под системные кнопки окна: они лежат поверх этой панели
-            Color.clear.frame(height: 18)
+            Color.clear.frame(height: 24)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -34,8 +34,8 @@ struct SidebarView: View {
             networkStatus
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .frame(width: isExpanded ? 184 : 64)
+        .padding(.horizontal, 14)
+        .frame(width: isExpanded ? 190 : 68)
         .frame(maxHeight: .infinity)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous)) // размытие: текст под панелью не просвечивает
         .glassControl(cornerRadius: 22) // тот же цвет и рамка, что у поля ввода
