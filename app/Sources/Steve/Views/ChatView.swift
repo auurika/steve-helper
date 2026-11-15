@@ -111,16 +111,15 @@ struct ComposerView: View {
                 .foregroundStyle(Color.steveText)
                 .padding(.horizontal, compact ? 10 : 12)
                 .padding(.vertical, compact ? 8 : 11)
-                .frame(minHeight: compact ? 38 : 42)
+                .frame(minHeight: compact ? 38 : 42, alignment: .leading) // текст по центру поля по вертикали
                 .glassControl(cornerRadius: compact ? 12 : 14)
-                .overlay(alignment: .topLeading) {
+                .overlay(alignment: .leading) {
                     // своя подсказка: системная подсказка поля на тёмном стекле почти не видна
                     if text.isEmpty {
                         Text("Сообщение…")
                             .font(.system(size: compact ? 13 : 14))
                             .foregroundStyle(Color.steveMuted)
                             .padding(.horizontal, compact ? 10 : 12)
-                            .padding(.vertical, compact ? 8 : 11)
                             .allowsHitTesting(false)
                     }
                 }

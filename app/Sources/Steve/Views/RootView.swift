@@ -62,14 +62,7 @@ private struct WindowConfigurator: NSViewRepresentable {
         window.isOpaque = false
         window.backgroundColor = .clear
         installGlass(in: window)
-        placeWindowButtons(in: window)
-        // система возвращает кнопки на место при смене размера окна: ставим их заново
-        for name in [NSWindow.didResizeNotification, NSWindow.didBecomeKeyNotification, NSWindow.didEndLiveResizeNotification, NSWindow.didExitFullScreenNotification] {
-            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { _ in
-                MainActor.assumeIsolated { placeWindowButtons(in: window) }
-            }
-        }
-        window.collectionBehavior.insert(.fullScreenPrimary)
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] { window.standardWindowButton(kind)?.isHidden = true } // кнопки окна нарисованы в боковой панели
     }
 
     /// Размытие рабочего стола под окном. Вставляем обычное AppKit-представление под содержимое окна,
@@ -85,19 +78,5 @@ private struct WindowConfigurator: NSViewRepresentable {
         effect.state = .active
         effect.autoresizingMask = [.width, .height]
         frameView.addSubview(effect, positioned: .below, relativeTo: content)
-    }
-
-    /// Ставит системные кнопки окна внутрь боковой панели: отступ от её краёв 12 пунктов, шаг между кнопками 16.
-    @MainActor
-    private func placeWindowButtons(in window: NSWindow) {
-        for (index, kind) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
-            guard let button = window.standardWindowButton(kind) else { continue }
-            let targetX = 23 + CGFloat(index) * 16
-            if abs(button.frame.origin.x - targetX) < 0.5 { continue } // уже на месте
-            var origin = button.frame.origin
-            origin.x = targetX
-            origin.y -= button.superview?.isFlipped == true ? -14 : 14
-            button.setFrameOrigin(origin)
-        }
     }
 }

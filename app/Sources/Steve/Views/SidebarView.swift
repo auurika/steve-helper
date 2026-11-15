@@ -24,8 +24,14 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
-            // место под системные кнопки окна: они лежат поверх этой панели
-            Color.clear.frame(height: 24)
+            // кнопки окна привязаны к левому краю панели и не двигаются, когда она раскрывается
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 12)
+                .overlay(alignment: .leading) {
+                    WindowButtons().fixedSize().offset(x: -4)
+                }
+                .padding(.bottom, 12)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -108,5 +114,52 @@ struct SidebarView: View {
                 .padding(.leading, 16)
             }
             .padding(.vertical, 9)
+    }
+}
+
+/// Кнопки окна: закрыть, свернуть, на весь экран. Нарисованы в панели, поэтому всегда лежат под курсором.
+private struct WindowButtons: View {
+    @State private var hovering = false
+
+    private struct Item: Identifiable {
+        let id: String
+        let color: Color
+        let glyph: String
+        let label: String
+        let action: (NSWindow) -> Void
+    }
+
+    private let items = [
+        Item(id: "close", color: Color(red: 1, green: 0.37, blue: 0.34), glyph: "xmark", label: "Закрыть") { $0.performClose(nil) },
+        Item(id: "min", color: Color(red: 1, green: 0.74, blue: 0.18), glyph: "minus", label: "Свернуть") { $0.miniaturize(nil) },
+        Item(id: "zoom", color: Color(red: 0.16, green: 0.78, blue: 0.25), glyph: "arrow.up.left.and.arrow.down.right", label: "На весь экран") { $0.toggleFullScreen(nil) },
+    ]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(items) { item in
+                Button {
+                    // окно приложения: то, где лежит эта панель, а не окно меню-бара
+                    let window = NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) && !String(describing: type(of: $0)).contains("MenuBarExtra") }
+                    if let window = window ?? NSApp.keyWindow { item.action(window) }
+                } label: {
+                    Circle()
+                        .fill(item.color)
+                        .frame(width: 12, height: 12)
+                        .overlay {
+                            Image(systemName: item.glyph)
+                                .font(.system(size: 6, weight: .heavy))
+                                .foregroundStyle(Color.black.opacity(0.55))
+                                .opacity(hovering ? 1 : 0)
+                        }
+                        .padding(3) // зона нажатия больше самого кружка
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.label)
+            }
+        }
+        .padding(-3)
+        .onHover { hovering = $0 }
     }
 }
