@@ -527,6 +527,12 @@
   @media(prefers-reduced-motion:reduce){.pop-wrap.open,.pop-wrap.closing{animation:none}}
   /* поверх окон: плотнее, чтобы то, что под ним, не мешало читать */
   .pop-wrap .pop{background:rgba(26,30,60,.88)}
+  /* пузырь сообщения по ширине текста */
+  .chat>.msg,.pchat>.msg{width:fit-content;align-self:flex-start;max-width:min(92%,520px)}
+  .chat>.msg.me,.pchat>.msg.me{align-self:flex-end}
+  .pchat>.msg{max-width:92%}
+  /* всплывающее окно: та же прозрачность Liquid Glass, что у приложения (ползунок в настройках) */
+  .pop-wrap .pop{background:var(--bg)}
 </style>
 </head>
 <body>
@@ -750,7 +756,7 @@ const demo=[
   [/заметк|запиши|note/i,'Создал заметку в «Заметках».','Notes.create_note(text="…")'],
   [/safari|открой|open/i,'Открываю Safari.','open_app(name="Safari")'],
   [/врем|час|time/i,'Сейчас 16:40, воскресенье.','get_time()'],
-  [/громк|тише|громче/i,'Сделал потише.','set_volume(percent=30)'],
+  [/громк|тише|громче/i,'громкость 30%','set_volume(percent=30)'],
   [/батаре|заряд|battery/i,'Заряд 87%, ноутбук не на зарядке.','battery()'],
 ];
 function add(text,me,tool){
@@ -773,7 +779,7 @@ function run(q,typed){
     add(q,true);setState('thinking','Думаю…');
     setTimeout(()=>{
       const m=demo.find(d=>d[0].test(q))||[0,'Я пока тестовый макет, но в настоящей версии отвечу на это сам, офлайн.',''];
-      const answer=()=>{add(m[1],false,m[2]);setState('speaking','Выполняю…');if(JOY.test(q))stPlay('happy');
+      const answer=()=>{add(m[1],false,m[2].replace('seconds=300','seconds='+((q.match(/(\d+)\s*мин/)||[0,5])[1]*60)));setState('speaking','Выполняю…');if(JOY.test(q))stPlay('happy');
         setTimeout(()=>{setState('','Скажи «Привет, Стив» или нажми на Стива');busy=false},1800)};
       if(m[2]){setState('working','Выполняю…');setTimeout(answer,900)}else answer();
     },1100);
@@ -897,11 +903,11 @@ const SK_ICONS=['i-globe','i-timer','i-note','i-calendar','i-vol','i-rocket','i-
   'l-wallet',
   'l-zap'];
 let skills=[
-  {n:'Приложения',d:'Открывает Safari и любые программы на Mac',c:'Открой Safari',i:'i-globe'},
-  {n:'Таймер и секундомер',d:'Запускает их в стандартном приложении «Часы»',c:'Таймер на 10 минут',i:'i-timer'},
-  {n:'Заметки',d:'Создаёт заметки в приложении «Заметки»',c:'Запиши: купить молоко',i:'i-note'},
-  {n:'Календарь',d:'Добавляет события в приложение «Календарь»',c:'23 ноября с 17 до 19 событие Зал',i:'i-calendar'},
-  {n:'Громкость и система',d:'Звук, батарея, время и дата',c:'Сделай потише, 30%',i:'i-vol'}];
+  {n:'Открыть Safari',d:'Открывает Safari на Mac',c:'Открой Safari',i:'i-globe'},
+  {n:'Таймер на 10 минут',d:'Запускает таймер на 10 минут в приложении «Часы»',c:'Таймер на 10 минут',i:'i-timer'},
+  {n:'Новая заметка',d:'Создаёт новую заметку в приложении «Заметки»',c:'Запиши заметку: купить молоко',i:'i-note'},
+  {n:'Событие в календаре',d:'Добавляет событие в приложение «Календарь»',c:'23 ноября с 17 до 19 событие Зал',i:'i-calendar'},
+  {n:'Громкость 30%',d:'Системный звук становится на уровень 30%',c:'Громкость 30%',i:'i-vol'}];
 const esc=t=>t.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const sv=id=>`<svg class="i"><use href="#${id}"/></svg>`;
 function drawSkills(){
