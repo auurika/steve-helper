@@ -25,6 +25,9 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 6) {
+            WindowButtons()
+                .padding(.top, 6)
+                .padding(.bottom, 8)
             ForEach(items) { item in
                 row(for: item)
             }
@@ -35,20 +38,7 @@ struct SidebarView: View {
         .padding(.horizontal, 8)
         .frame(width: isExpanded ? 180 : 56)
         .frame(maxHeight: .infinity)
-        .background {
-            // плотное стекло: подписи читаются на любом фоне; вид один и тот же в покое и при наведении
-            let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-            ZStack {
-                shape.fill(.ultraThinMaterial)
-                shape.fill(Color.steveNavy.opacity(0.6))
-                shape.fill(LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0.06), .white.opacity(0.14)],
-                                          startPoint: .topLeading, endPoint: .bottomTrailing))
-            }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-        }
+        .glassControl(cornerRadius: 18) // тот же цвет и рамка, что у поля ввода
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.28), radius: 14, y: 8)
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
@@ -118,3 +108,43 @@ struct SidebarView: View {
     }
 }
 
+/// Кнопки окна в боковой панели: закрыть, свернуть, на весь экран. Расстояния такие же, как у остальных значков.
+private struct WindowButtons: View {
+    @State private var hovering = false
+
+    private struct Button: Identifiable {
+        let id: String
+        let color: Color
+        let glyph: String
+        let action: (NSWindow) -> Void
+    }
+
+    private let buttons = [
+        Button(id: "close", color: Color(red: 1, green: 0.37, blue: 0.34), glyph: "xmark") { $0.performClose(nil) },
+        Button(id: "min", color: Color(red: 1, green: 0.74, blue: 0.18), glyph: "minus") { $0.miniaturize(nil) },
+        Button(id: "zoom", color: Color(red: 0.16, green: 0.78, blue: 0.25), glyph: "arrow.up.left.and.arrow.down.right") { $0.toggleFullScreen(nil) },
+    ]
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ForEach(buttons) { button in
+                SwiftUI.Button {
+                    if let window = NSApp.keyWindow ?? NSApp.mainWindow { button.action(window) }
+                } label: {
+                    Circle()
+                        .fill(button.color)
+                        .frame(width: 12, height: 12)
+                        .overlay {
+                            Image(systemName: button.glyph)
+                                .font(.system(size: 6, weight: .heavy))
+                                .foregroundStyle(Color.black.opacity(0.55))
+                                .opacity(hovering ? 1 : 0)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(button.id == "close" ? "Закрыть" : (button.id == "min" ? "Свернуть" : "На весь экран"))
+            }
+        }
+        .onHover { hovering = $0 }
+    }
+}

@@ -30,7 +30,7 @@ struct ChatView: View {
 
             TimerPanel(compact: false)
         }
-        .padding(.top, 22)
+        .padding(.top, 14)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity)
     }

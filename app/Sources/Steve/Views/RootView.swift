@@ -25,20 +25,13 @@ struct RootContent: View {
             }
             .padding(.leading, 76)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // верхняя полоса окна: то же стекло и тонкая линия снизу
-            VStack(spacing: 0) {
-                Rectangle().fill(Color.white.opacity(0.07)).frame(height: 28)
-                Rectangle().fill(Color.white.opacity(0.18)).frame(height: 1)
-                Spacer(minLength: 0)
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+            .ignoresSafeArea(edges: .top) // шапки у окна нет: Стив поднят к верхнему краю
 
             SidebarView()
                 .padding(.leading, 10)
-                .padding(.top, 2)
+                .padding(.top, 10)
                 .padding(.bottom, 10)
+                .ignoresSafeArea(edges: .top)
         }
         .foregroundStyle(Color.steveText)
         .background { Color.steveNavy.opacity(model.settings.glassAlpha).ignoresSafeArea() }
@@ -60,10 +53,11 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func configure(_ window: NSWindow?) {
         guard let window else { return }
         window.title = "Стив"
-        window.titleVisibility = .visible
+        window.titleVisibility = .hidden // надписи нет, кнопки окна нарисованы в боковой панели
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
-        window.isMovableByWindowBackground = false
+        window.isMovableByWindowBackground = true // окно можно двигать за любое пустое место
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] { window.standardWindowButton(kind)?.isHidden = true }
         window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
         window.isOpaque = false
         window.backgroundColor = .clear
