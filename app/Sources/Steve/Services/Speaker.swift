@@ -14,16 +14,14 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
 
-    /// Русские и английские голоса: русские первыми, личные голоса отмечены.
+    /// Голоса для выбора: мужской русский голос Юрий (системный, работает без сети) и личные голоса пользователя.
     static func availableVoices() -> [AVSpeechSynthesisVoice] {
-        AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix("ru") || $0.language.hasPrefix("en") }
-            .sorted { lhs, rhs in
-                let lhsRussian = lhs.language.hasPrefix("ru")
-                let rhsRussian = rhs.language.hasPrefix("ru")
-                if lhsRussian != rhsRussian { return lhsRussian }
-                return lhs.name < rhs.name
-            }
+        AVSpeechSynthesisVoice.speechVoices().filter { isSteveVoice($0) || isPersonal($0) }
+    }
+
+    /// Юрий: единственный мужской русский голос macOS. Скачивается один раз в «Универсальный доступ → Устная речь».
+    static func isSteveVoice(_ voice: AVSpeechSynthesisVoice) -> Bool {
+        voice.language.hasPrefix("ru") && voice.identifier.localizedCaseInsensitiveContains("yuri")
     }
 
     static func isPersonal(_ voice: AVSpeechSynthesisVoice) -> Bool {

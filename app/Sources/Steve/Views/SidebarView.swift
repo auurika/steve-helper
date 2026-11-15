@@ -24,7 +24,7 @@ struct SidebarView: View {
     private var isExpanded: Bool { (isHovering && !isLocked) || model.previewSidebarExpanded }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .center, spacing: 6) {
             ForEach(items) { item in
                 row(for: item)
             }
@@ -65,30 +65,32 @@ struct SidebarView: View {
             model.section = item.section
             isLocked = true // после выбора панель сразу сворачивается
         } label: {
-            HStack(spacing: 10) {
-                // значок в квадрате 40 на 40: подсветка и выделение только у квадрата
+            // выделяется вся строка: в покое это квадрат 40 на 40, у раскрытой панели квадрат с подписью
+            HStack(spacing: 0) {
                 Image(systemName: item.symbol)
                     .font(.system(size: 16, weight: .medium))
                     .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(LinearGradient(
-                                colors: [Color.white.opacity(isHovered ? 0.46 : (isSelected ? 0.32 : 0)), Color.white.opacity(isHovered ? 0.2 : (isSelected ? 0.12 : 0))],
-                                startPoint: .topLeading, endPoint: .bottomTrailing))
-                    }
-                    .overlay {
-                        if isSelected {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.6), lineWidth: 1.5)
-                        }
-                    }
                 if isExpanded {
                     Text(item.title)
                         .lineLimit(1)
+                        .padding(.trailing, 14)
                         .transition(.opacity)
                 }
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: isExpanded ? .infinity : 40, alignment: .leading)
+            .frame(height: 40)
             .foregroundStyle(isSelected || isHovered ? Color.white : Color.steveMuted)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(LinearGradient(
+                        colors: [Color.white.opacity(isHovered ? 0.46 : (isSelected ? 0.32 : 0)), Color.white.opacity(isHovered ? 0.2 : (isSelected ? 0.12 : 0))],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.6), lineWidth: 1.5)
+                }
+            }
         }
         .buttonStyle(.plain)
         .onHover { hovering in hoveredItem = hovering ? item.section : (hoveredItem == item.section ? nil : hoveredItem) }

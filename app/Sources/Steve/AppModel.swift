@@ -349,6 +349,8 @@ final class AppModel {
     func refreshVoices() async {
         _ = await Speaker.requestPersonalVoiceAccess()
         voices = Speaker.availableVoices()
+        // выбранный раньше голос мог пропасть из списка: возвращаем выбор по умолчанию
+        if let id = settings.voiceIdentifier, !voices.contains(where: { $0.identifier == id }) { settings.voiceIdentifier = nil }
     }
 
     func previewVoice() {

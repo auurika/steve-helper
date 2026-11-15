@@ -158,13 +158,10 @@ struct SettingsView: View {
     // MARK: - Голос Стива
 
     private var voice: some View {
-        SettingRow(title: "Голос Стива",
-                   hint: model.voiceNote ?? "Русский текст читает русский голос. Больше голосов: кнопка справа") {
-            HStack(spacing: 8) {
-                VoicePicker()
-                GlassIconButton(symbol: "arrow.down.circle", size: 34) { Permissions.openSettings(.spokenContent) }
-                    .help("Скачать другие голоса в настройках macOS: Универсальный доступ → Устная речь")
-            }
+        let missing = !model.voices.contains { Speaker.isSteveVoice($0) }
+        return SettingRow(title: "Голос Стива",
+                   hint: model.voiceNote ?? (missing ? "Мужской голос Юрий скачивается один раз в настройках macOS" : nil)) {
+            VoicePicker()
         }
     }
 
@@ -322,55 +319,81 @@ struct HotkeyField: View {
     }
 }
 
-/// Выбор голоса. Последний пункт «Добавить свой голос…» открывает выбор файла с записью голоса.
+/// Выбор голоса: Юрий, свои голоса и «Добавить свой голос…». Оформлен как остальные стеклянные элементы.
 struct VoicePicker: View {
     @Environment(AppModel.self) private var model
+    @State private var hovering = false
 
-    private static let addTag = "add"
+    private var steveVoice: AVSpeechSynthesisVoice? { model.voices.first { Speaker.isSteveVoice($0) } }
 
     var body: some View {
-        @Bindable var model = model
-
-        Picker("", selection: selection) {
-            ForEach(model.voices, id: \.identifier) { voice in
-                Text(label(for: voice)).tag(voice.identifier)
+        Menu {
+            if let voice = steveVoice {
+                Button { choose(voice) } label: {
+                    if isSelected(voice) { Label("Юрий", systemImage: "checkmark") } else { Text("Юрий") }
+                }
+            } else {
+                Button("Юрий: скачать в настройках macOS…") { Permissions.openSettings(.spokenContent) }
             }
+            ForEach(model.voices.filter { Speaker.isPersonal($0) }, id: \.identifier) { voice in
+                Button { choose(voice) } label: {
+                    if isSelected(voice) { Label("\(voice.name) (личный голос)", systemImage: "checkmark") } else { Text("\(voice.name) (личный голос)") }
+                }
+            }
+            if !model.settings.customVoices.isEmpty { Divider() }
             ForEach(model.settings.customVoices) { custom in
-                Text("Свой: \(custom.name) (\(Int(custom.hertz)) Гц)").tag("custom:\(custom.id.uuidString)")
+                Button {
+                    model.settings.selectedCustomVoice = custom.id
+                    model.voiceNote = nil
+                    model.previewVoice()
+                } label: {
+                    let text = "Свой: \(custom.name) (\(Int(custom.hertz)) Гц)"
+                    if model.settings.selectedCustomVoice == custom.id { Label(text, systemImage: "checkmark") } else { Text(text) }
+                }
             }
             Divider()
-            Text("Добавить свой голос…").tag(Self.addTag)
+            Button("Добавить свой голос…") { chooseFile() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "waveform").font(.system(size: 13))
+                Text(currentTitle).lineLimit(1)
+                Spacer(minLength: 6)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Color.steveMuted)
+            }
+            .font(.system(size: 13))
+            .foregroundStyle(Color.steveText)
+            .padding(.horizontal, 14)
+            .frame(width: 250, height: 38)
+            .glassControl(cornerRadius: 13, highlighted: hovering)
         }
-        .labelsHidden()
-        .frame(maxWidth: 260)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .onHover { hovering = $0 }
         .task { await model.refreshVoices() }
     }
 
-    private func label(for voice: AVSpeechSynthesisVoice) -> String {
-        Speaker.isPersonal(voice) ? "\(voice.name) (личный голос)" : "\(voice.name) (\(voice.language))"
+    private var currentTitle: String {
+        if let id = model.settings.selectedCustomVoice, let custom = model.settings.customVoices.first(where: { $0.id == id }) {
+            return "Свой: \(custom.name) (\(Int(custom.hertz)) Гц)"
+        }
+        if let id = model.settings.voiceIdentifier, let voice = model.voices.first(where: { $0.identifier == id }) {
+            return Speaker.isPersonal(voice) ? "\(voice.name) (личный голос)" : "Юрий"
+        }
+        return steveVoice == nil ? "Юрий (не скачан)" : "Юрий"
     }
 
-    private var selection: Binding<String> {
-        Binding(
-            get: {
-                if let id = model.settings.selectedCustomVoice { return "custom:\(id.uuidString)" }
-                return model.settings.voiceIdentifier ?? model.voices.first { $0.language.hasPrefix("ru") }?.identifier ?? ""
-            },
-            set: { value in
-                if value == Self.addTag {
-                    chooseFile()
-                } else if value.hasPrefix("custom:"), let id = UUID(uuidString: String(value.dropFirst(7))) {
-                    model.settings.selectedCustomVoice = id
-                    model.voiceNote = nil
-                    model.previewVoice()
-                } else {
-                    model.settings.voiceIdentifier = value
-                    model.settings.selectedCustomVoice = nil
-                    model.voiceNote = nil
-                    model.previewVoice() // сразу даём послушать, чтобы было слышно, что голос применился
-                }
-            }
-        )
+    private func isSelected(_ voice: AVSpeechSynthesisVoice) -> Bool {
+        guard model.settings.selectedCustomVoice == nil else { return false }
+        if let id = model.settings.voiceIdentifier { return id == voice.identifier }
+        return Speaker.isSteveVoice(voice)
+    }
+
+    private func choose(_ voice: AVSpeechSynthesisVoice) {
+        model.settings.voiceIdentifier = voice.identifier
+        model.settings.selectedCustomVoice = nil
+        model.voiceNote = nil
+        model.previewVoice() // сразу даём послушать, чтобы было слышно, что голос применился
     }
 
     private func chooseFile() {
