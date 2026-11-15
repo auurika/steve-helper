@@ -14,9 +14,17 @@ func render(size: Int) -> Data {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let s = CGFloat(size)
 
-    // фон на весь квадрат без скруглений и полей: так macOS сама скругляет значок и не ставит его на серую подложку
-    NSGradient(colors: [NSColor(red: 0.16, green: 0.18, blue: 0.36, alpha: 1), NSColor(red: 0.36, green: 0.22, blue: 0.62, alpha: 1)])!
-        .draw(in: NSRect(x: 0, y: 0, width: s, height: s), angle: -60)
+    // стеклянный фон на весь квадрат, как плитка в макете: бирюзовый, с лёгким бликом сверху и светлым ободком.
+    // Без скруглений и полей: так macOS сама скругляет значок и не ставит его на серую подложку
+    let full = NSRect(x: 0, y: 0, width: s, height: s)
+    NSGradient(colors: [NSColor(red: 0.30, green: 0.58, blue: 0.62, alpha: 1), NSColor(red: 0.17, green: 0.40, blue: 0.46, alpha: 1)])!
+        .draw(in: full, angle: -80)
+    NSGradient(colors: [NSColor.white.withAlphaComponent(0.28), NSColor.white.withAlphaComponent(0.0)])!
+        .draw(in: NSRect(x: 0, y: s * 0.45, width: s, height: s * 0.55), angle: -90)
+    NSColor.white.withAlphaComponent(0.35).setStroke()
+    let rim = NSBezierPath(rect: full.insetBy(dx: s * 0.004, dy: s * 0.004))
+    rim.lineWidth = s * 0.008
+    rim.stroke()
 
     // Стив: те же прямоугольники, что в SVG (область 128 на 128), сверху вниз
     let unit = s * 0.62 / 128

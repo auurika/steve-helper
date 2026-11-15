@@ -88,24 +88,3 @@ struct GlassIconButton: View {
     }
 }
 
-
-/// Цветная подложка как в макете: розовый, синий, бирюзовый и фиолетовый разливы.
-/// Благодаря ей окно выглядит одинаково на любых обоях, а не серым на тёмных.
-struct GlassBackdrop: View {
-    var body: some View {
-        GeometryReader { proxy in
-            let size = proxy.size
-            ZStack {
-                Color(red: 0.16, green: 0.18, blue: 0.42)
-                blob(Color(red: 1, green: 0.48, blue: 0.72), at: CGPoint(x: 0.12, y: 0.18), radius: 460, in: size)
-                blob(Color(red: 0.36, green: 0.55, blue: 1), at: CGPoint(x: 0.88, y: 0.12), radius: 520, in: size)
-                blob(Color(red: 0.13, green: 0.83, blue: 0.71), at: CGPoint(x: 0.70, y: 0.95), radius: 560, in: size)
-                blob(Color(red: 0.61, green: 0.42, blue: 1), at: CGPoint(x: 0.08, y: 0.90), radius: 500, in: size)
-            }
-        }
-    }
-
-    private func blob(_ color: Color, at point: CGPoint, radius: CGFloat, in size: CGSize) -> some View {
-        RadialGradient(colors: [color, color.opacity(0)], center: UnitPoint(x: point.x, y: point.y), startRadius: 0, endRadius: radius * 0.8)
-    }
-}

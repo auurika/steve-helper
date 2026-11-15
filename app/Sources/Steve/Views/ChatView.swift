@@ -113,7 +113,7 @@ struct ComposerView: View {
                 .overlay(alignment: .topLeading) {
                     // своя подсказка: системная подсказка поля на тёмном стекле почти не видна
                     if text.isEmpty {
-                        Text(compact ? "Сообщение…" : "Или напиши сообщение…")
+                        Text("Сообщение…")
                             .font(.system(size: compact ? 13 : 14))
                             .foregroundStyle(Color.steveMuted)
                             .padding(.horizontal, compact ? 10 : 12)
@@ -131,6 +131,7 @@ struct ComposerView: View {
                     return .handled
                 }
                 .onSubmit { send() } // запасной путь: Return отправляет, даже если поле не отдало клавишу
+                .onChange(of: model.voiceDraft) { text = model.voiceDraft }
                 .onChange(of: text) { model.typingChanged(text) }
                 .onChange(of: focused) {
                     if !focused { model.typingChanged(text.isEmpty ? "" : text); if text.isEmpty { model.character.stopFollowing() } }

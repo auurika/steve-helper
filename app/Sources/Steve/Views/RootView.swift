@@ -33,7 +33,7 @@ struct RootContent: View {
                 .padding(.bottom, 10)
         }
         .foregroundStyle(Color.steveText)
-        .background { ZStack { GlassBackdrop(); Color.steveNavy.opacity(model.settings.glassAlpha) } }
+        .background { Color.steveNavy.opacity(model.settings.glassAlpha) }
         .preferredColorScheme(.dark)
     }
 }
@@ -52,10 +52,12 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func configure(_ window: NSWindow?) {
         guard let window else { return }
         window.title = "Стив"
-        window.titleVisibility = .visible
+        window.titleVisibility = .hidden // как в макете: только кнопки окна, без надписи
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
-        window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable])
+        window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.collectionBehavior.insert(.fullScreenPrimary)
     }
 }

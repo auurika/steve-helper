@@ -53,20 +53,21 @@ struct SettingsView: View {
         let permissions = model.permissions
         return SettingRow(title: "Разрешения", hint: "Без них часть умений не работает", fullWidthControls: true) {
             VStack(spacing: 8) {
-                permission("Микрофон и речь", state: permissions.isReadyForVoice ? .granted : (permissions.microphone == .denied || permissions.speech == .denied ? .denied : .notAsked),
-                           ask: { await permissions.requestVoice() }, fix: .speech)
+                permission("Микрофон", state: permissions.microphone, ask: { await permissions.requestVoice() }, fix: .microphone)
+                permission("Распознавание речи", state: permissions.speech, ask: { await permissions.requestVoice() }, fix: .speech)
                 permission("Календарь", state: permissions.calendar, ask: { await permissions.requestCalendar() }, fix: .calendars)
                 permission("Уведомления", state: permissions.notifications, ask: { await permissions.requestNotifications() }, fix: .notifications)
                 HStack {
                     Text("«Заметки»").font(.system(size: 13))
                     Spacer(minLength: 8)
-                    if let result = permissions.notesResult {
-                        Text(result).font(.system(size: 12)).foregroundStyle(result == "Разрешено" ? Color.steveOK : Color.steveMuted).lineLimit(2)
+                    if permissions.notesResult == "Разрешено" {
+                        Text("Разрешено").font(.system(size: 12)).foregroundStyle(Color.steveOK)
+                    } else {
+                        Button {
+                            Permissions.openSettings(.automation)
+                            Task { await permissions.checkNotes() }
+                        } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
                     }
-                    Button { Task { await permissions.checkNotes() } } label: { Chip("Проверить", highlighted: true) }
-                        .buttonStyle(.plain)
-                    Button { Permissions.openSettings(.automation) } label: { Chip("Настройки") }
-                        .buttonStyle(.plain)
                 }
             }
             .task { await permissions.refresh() }
@@ -77,13 +78,13 @@ struct SettingsView: View {
         HStack {
             Text(title).font(.system(size: 13))
             Spacer(minLength: 8)
-            Text(state.label)
-                .font(.system(size: 12))
-                .foregroundStyle(state == .granted ? Color.steveOK : (state == .denied ? Color.steveDanger : Color.steveMuted))
-            if state == .notAsked {
-                Button { Task { await ask() } } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
-            } else if state == .denied {
-                Button { Permissions.openSettings(fix) } label: { Chip("Открыть настройки") }.buttonStyle(.plain)
+            if state == .granted {
+                Text("Разрешено").font(.system(size: 12)).foregroundStyle(Color.steveOK)
+            } else {
+                // ещё не спрашивали: показываем системный вопрос; отказано раньше: ведём в настройки macOS
+                Button {
+                    if state == .notAsked { Task { await ask() } } else { Permissions.openSettings(fix) }
+                } label: { Chip("Разрешить", highlighted: true) }.buttonStyle(.plain)
             }
         }
     }

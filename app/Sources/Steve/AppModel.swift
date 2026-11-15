@@ -28,6 +28,8 @@ final class AppModel {
         didSet { character.apply(status: status) }
     }
     var section = AppSection.chat
+    /// Распознанный голосом текст: появляется в строке ввода, пока человек говорит.
+    var voiceDraft = ""
     /// Только для снимков экрана: показать боковую панель раскрытой.
     var previewSidebarExpanded = false
     private(set) var menuBarImage = NSImage()
@@ -182,7 +184,12 @@ final class AppModel {
     func captureVoice() async {
         guard !isCapturingVoice, status == .idle else { return }
         isCapturingVoice = true
-        defer { isCapturingVoice = false }
+        // фоновое ожидание слова активации занимает тот же микрофон: на время записи его останавливаем
+        pauseWakeWord()
+        defer {
+            isCapturingVoice = false
+            restartWakeWord()
+        }
         character.touch()
 
         // без доступа к микрофону и речи слушать нечем: спрашиваем сейчас, а не молчим
@@ -199,11 +206,17 @@ final class AppModel {
         }
         status = .listening
         do {
-            let text = try await listener.listenOnce(hints: [settings.wakePhrase])
+            voiceDraft = ""
+            let text = try await listener.listenOnce(hints: [settings.wakePhrase]) { [weak self] partial in
+                self?.voiceDraft = partial // текст сначала пишется в строку ввода
+            }
             status = .idle
+            try? await Task.sleep(for: .milliseconds(500)) // даём увидеть текст в строке перед отправкой
+            voiceDraft = ""
             await ask(text)
         } catch {
             status = .idle
+            voiceDraft = ""
             if let error = error as? Listener.ListenerError, case .nothingHeard = error { return }
             messages.append(ChatMessage(role: .steve, text: error.localizedDescription))
         }

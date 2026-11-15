@@ -24,7 +24,7 @@ struct SidebarView: View {
     private var isExpanded: Bool { (isHovering && !isLocked) || model.previewSidebarExpanded }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(items) { item in
                 row(for: item)
             }
