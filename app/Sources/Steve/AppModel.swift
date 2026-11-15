@@ -23,13 +23,13 @@ enum ChatHistory {
     }
 
     static func load() -> [ChatMessage] {
-        guard !CommandLine.arguments.contains("--snapshot") else { return [] } // снимки для README рисуются без личной переписки
+        guard !CommandLine.arguments.contains("--snapshot"), !CommandLine.arguments.contains("--demo") else { return [] } // снимки для README рисуются без личной переписки
         guard let data = try? Data(contentsOf: url), let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) else { return [] }
         return saved
     }
 
     static func save(_ messages: [ChatMessage]) {
-        guard !CommandLine.arguments.contains("--snapshot") else { return }
+        guard !CommandLine.arguments.contains("--snapshot"), !CommandLine.arguments.contains("--demo") else { return }
         guard let data = try? JSONEncoder().encode(Array(messages.suffix(300))) else { return }
         try? data.write(to: url, options: .atomic)
     }
@@ -102,8 +102,11 @@ final class AppModel {
     /// Нужен делегату приложения, чтобы открыть окно по клику на значок в Dock.
     static let shared = AppModel()
 
+    /// Режим для снимков экрана: настройки по умолчанию, пример диалога, ничего не сохраняется и микрофон не слушается.
+    static let isDemo = CommandLine.arguments.contains("--demo")
+
     init() {
-        if let data = UserDefaults.standard.data(forKey: Self.settingsKey),
+        if !Self.isDemo, let data = UserDefaults.standard.data(forKey: Self.settingsKey),
            let saved = try? JSONDecoder().decode(AppSettings.self, from: data) {
             settings = saved
         } else {
@@ -127,6 +130,7 @@ final class AppModel {
     func start() {
         guard !started, !SnapshotTool.isRequested, !SelfTest.isRequested else { return } // в режиме снимков микрофон не трогаем
         started = true
+        if Self.isDemo { prepareDemo() }
         tools.profanity = !settings.censorship
         // новый готовый пресет добавляется один раз: тем, кто уже пользовался приложением, он появляется сам
         if !UserDefaults.standard.bool(forKey: "seeded.helloFolder") {
@@ -480,7 +484,7 @@ final class AppModel {
     // MARK: - Побочные эффекты настроек
 
     private func settingsDidChange(from old: AppSettings) {
-        if let data = try? JSONEncoder().encode(settings) {
+        if !Self.isDemo, let data = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(data, forKey: Self.settingsKey)
         }
         tools.profanity = !settings.censorship

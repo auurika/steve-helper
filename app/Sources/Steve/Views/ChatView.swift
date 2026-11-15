@@ -71,46 +71,72 @@ struct MessageList: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: compact ? 6 : 10) {
-                    ForEach(messages) { message in
-                        // плавное появление: пузырь вырастает из угла, откуда он «отправлен»
-                        bubble(message).id(message.id)
-                            .visualEffect { content, proxy in
-                                let blurred = topInset > 0 ? min(1, max(0, (topInset - proxy.frame(in: .named("msgScroll")).minY) / topInset)) : 0
-                                return content.blur(radius: blurred * 9).opacity(1 - blurred * 0.6)
-                            }
-                            .transition(.asymmetric(
-                                insertion: .scale(scale: 0.88, anchor: message.role == .user ? .bottomTrailing : .bottomLeading)
-                                    .combined(with: .opacity).combined(with: .offset(y: 14)),
-                                removal: .opacity))
-                    }
-                    if isThinking {
-                        ThinkingBubble(compact: compact).id("thinking")
-                            .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
-                    }
-                }
-                .animation(.spring(response: 0.4, dampingFraction: 0.82), value: messages.count)
-                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isThinking)
-                .padding(compact ? 10 : 0)
-                .padding(.top, compact ? 0 : max(12, topInset))
-                .padding(.bottom, compact ? 0 : 12)
-                Color.clear.frame(height: 1).id("end")
+            scroll
+                .onChange(of: messages.count) { scrollToEnd(proxy) }
+                .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
+                .onChange(of: isThinking) { scrollToEnd(proxy) }
+                .onAppear { proxy.scrollTo("end", anchor: .bottom) } // при возвращении на экран сразу внизу, без видимой прокрутки
+        }
+    }
+
+    private var scroll: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            rows
+            Color.clear.frame(height: 1).id("end")
+        }
+        .defaultScrollAnchor(.bottom)
+        .coordinateSpace(name: "msgScroll")
+        .mask(fadeMask) // сообщения, уходящие вверх за Стива, плавно растворяются, а не обрезаются жёсткой линией
+    }
+
+    private var rows: some View {
+        LazyVStack(spacing: compact ? 6 : 10) {
+            ForEach(messages) { message in
+                messageRow(message)
             }
-            .defaultScrollAnchor(.bottom)
-            .coordinateSpace(name: "msgScroll")
-            // сообщения, уходящие вверх за Стива, плавно растворяются, а не обрезаются жёсткой линией
-            .mask(
-                VStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: compact ? 18 : (topInset > 0 ? 10 : 36))
-                    Rectangle().fill(.black)
-                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: compact ? 8 : 12)
-                }
-            )
-            .onChange(of: messages.count) { scrollToEnd(proxy) }
-            .onChange(of: messages.last?.text) { scrollToEnd(proxy) }
-            .onAppear { proxy.scrollTo("end", anchor: .bottom) } // при возвращении на экран сразу внизу, без видимой прокрутки
-            .onChange(of: isThinking) { scrollToEnd(proxy) }
+            if isThinking {
+                ThinkingBubble(compact: compact).id("thinking")
+                    .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.82), value: messages.count)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isThinking)
+        .padding(compact ? 10 : 0)
+        .padding(.top, compact ? 0 : max(12, topInset))
+        .padding(.bottom, compact ? 0 : 12)
+    }
+
+    /// Строка сообщения: пузырь вырастает из угла, откуда он «отправлен», а уходя вверх за Стива размывается.
+    private func messageRow(_ message: ChatMessage) -> some View {
+        let inset = topInset
+        return bubble(message)
+            .id(message.id)
+            .visualEffect { content, geometry in
+                let amount = MessageList.blurAmount(inset: inset, minY: geometry.frame(in: .named("msgScroll")).minY)
+                return content.blur(radius: amount * 9).opacity(1 - amount * 0.6)
+            }
+            .transition(insertionTransition(for: message))
+    }
+
+    private func insertionTransition(for message: ChatMessage) -> AnyTransition {
+        let anchor: UnitPoint = message.role == .user ? .bottomTrailing : .bottomLeading
+        let appear = AnyTransition.scale(scale: 0.88, anchor: anchor).combined(with: .opacity).combined(with: .offset(y: 14))
+        return .asymmetric(insertion: appear, removal: .opacity)
+    }
+
+    /// Насколько размыть пузырь: 0 ниже линии Стива, до 1 у верхнего края.
+    private static func blurAmount(inset: CGFloat, minY: CGFloat) -> CGFloat {
+        guard inset > 0 else { return 0 }
+        return min(1, max(0, (inset - minY) / inset))
+    }
+
+    private var fadeMask: some View {
+        let top: CGFloat = compact ? 18 : (topInset > 0 ? 10 : 36)
+        let bottom: CGFloat = compact ? 8 : 12
+        return VStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: top)
+            Rectangle().fill(Color.black)
+            LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: bottom)
         }
     }
 
