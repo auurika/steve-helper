@@ -123,6 +123,7 @@ final class AppModel {
     func start() {
         guard !started, !SnapshotTool.isRequested, !SelfTest.isRequested else { return } // в режиме снимков микрофон не трогаем
         started = true
+        tools.profanity = !settings.censorship
         // новый готовый пресет добавляется один раз: тем, кто уже пользовался приложением, он появляется сам
         if !UserDefaults.standard.bool(forKey: "seeded.helloFolder") {
             UserDefaults.standard.set(true, forKey: "seeded.helloFolder")
@@ -184,7 +185,7 @@ final class AppModel {
         var chatReply: String?
         if case .unknown = command, let engine {
             let history = messages.dropLast().suffix(8).map { ChatTurn(isUser: $0.role == .user, text: $0.text) }
-            chatReply = await engine.reply(to: trimmed, history: history)
+            chatReply = await engine.reply(to: trimmed, history: history, allowProfanity: !settings.censorship)
         }
         if case .unknown = command, chatReply == nil { command = .unknown(trimmed) }
 
@@ -459,6 +460,7 @@ final class AppModel {
         if let data = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(data, forKey: Self.settingsKey)
         }
+        tools.profanity = !settings.censorship
         if old.hotkey != settings.hotkey { hotkeys.register(settings.hotkey) }
         if old.launchAtLogin != settings.launchAtLogin { applyLaunchAtLogin() }
         if old.listenAlways != settings.listenAlways || old.wakePhrase != settings.wakePhrase { restartWakeWord() }

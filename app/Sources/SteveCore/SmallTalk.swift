@@ -3,15 +3,20 @@ import Foundation
 /// Простые ответы без модели: приветствия, благодарности и «не понял».
 /// Живой разговор на произвольные темы — задача языковой модели (см. ChatEngine в приложении).
 public struct SmallTalk {
-    private let greetings = ["Здарова", "Привет", "Привет, я тут"]
-    private let thanks = ["Да не за что", "Обращайся", "Ага, стараюсь"]
-    private let unknown = [
-        "Пока не умею такое",
-        "Не понял, скажи по-другому",
-        "Это пока не по моей части",
-    ]
+    private let greetings: [String]
+    private let thanks: [String]
+    private let unknown: [String]
 
-    public init() {}
+    /// `profanity` включает редкие матерные реплики. Это то же, что выключенная цензура в настройках.
+    public init(profanity: Bool = false) {
+        greetings = ["Здарова", "Привет", "Привет, я тут"] + (profanity ? ["Здарова, бля", "Ну здарова, чё как"] : [])
+        thanks = ["Да не за что", "Обращайся", "Ага, стараюсь"] + (profanity ? ["Да не за что, бля", "Обращайся, хуле"] : [])
+        unknown = [
+            "Пока не умею такое",
+            "Не понял, скажи по-другому",
+            "Это пока не по моей части",
+        ] + (profanity ? ["Нихуя не понял, повтори", "Хуй пойми, скажи по-другому"] : [])
+    }
 
     public func greeting(hour: Int = Calendar.current.component(.hour, from: Date()),
                          pick: (Int) -> Int = { Int.random(in: 0..<$0) }) -> String {

@@ -22,6 +22,8 @@ final class Tools {
     var onTimersChanged: (() -> Void)?
     /// Секундомер для панели в окне: время считается от запуска с учётом пауз.
     private(set) var stopwatch: ActiveStopwatch?
+    /// Редкий мат в коротких репликах: включается, когда цензура выключена.
+    var profanity = false
     /// Что можно отменить: последнее действие снимается командой «отмени» или «откати».
     private var undoStack: [UndoAction] = []
     struct UndoAction {
@@ -63,9 +65,9 @@ final class Tools {
         case .moveItem(let name, let folder): return moveItem(name: name, toFolder: folder)
         case .renameItem(let name, let newName): return renameItem(name: name, newName: newName)
         case .listDesktop: return listDesktop()
-        case .greeting: return ToolResult(reply: SmallTalk().greeting(), tool: nil)
-        case .thanks: return ToolResult(reply: SmallTalk().thanksReply(), tool: nil)
-        case .unknown: return ToolResult(reply: SmallTalk().unknownReply(), tool: nil)
+        case .greeting: return ToolResult(reply: SmallTalk(profanity: profanity).greeting(), tool: nil)
+        case .thanks: return ToolResult(reply: SmallTalk(profanity: profanity).thanksReply(), tool: nil)
+        case .unknown: return ToolResult(reply: SmallTalk(profanity: profanity).unknownReply(), tool: nil)
         }
     }
 
