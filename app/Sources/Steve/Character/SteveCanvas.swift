@@ -50,7 +50,7 @@ struct SteveCanvas: View {
         body.scaleBy(x: frame.bodyScaleX, y: frame.bodyScaleY)
         body.translateBy(x: -Self.bodyPivot.x, y: -Self.bodyPivot.y)
 
-        for rect in [CGRect(x: 32, y: 20, width: 64, height: 8), CGRect(x: 24, y: 28, width: 80, height: 44)] {
+        for rect in [CGRect(x: 32, y: 20, width: 64, height: 9), CGRect(x: 24, y: 28, width: 80, height: 45)] {
             body.fill(Path(rect), with: .color(Self.body))
         }
         for (index, rect) in Self.legs.enumerated() {
@@ -58,7 +58,7 @@ struct SteveCanvas: View {
             leg.translateBy(x: rect.midX, y: rect.minY) // лапка качается от верха
             leg.rotate(by: .degrees(frame.legAngles[index]))
             leg.translateBy(x: -rect.midX, y: -rect.minY)
-            leg.fill(Path(rect), with: .color(Self.body))
+            leg.fill(Path(CGRect(x: rect.minX, y: rect.minY - 2, width: rect.width, height: rect.height + 2)), with: .color(Self.body))
         }
         for rect in Self.eyeRects {
             var eye = body
