@@ -38,13 +38,9 @@ struct SidebarView: View {
         .background {
             // в покое: светлое стекло поверх окна, как в макете; при раскрытии плотнее, чтобы подписи читались
             let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-            ZStack {
-                if isExpanded { shape.fill(.ultraThinMaterial) }
-                shape.fill(isExpanded
-                           ? AnyShapeStyle(Color(red: 26 / 255, green: 30 / 255, blue: 60 / 255).opacity(0.92))
-                           : AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.1), .white.opacity(0.2)],
-                                                          startPoint: .topLeading, endPoint: .bottomTrailing)))
-            }
+            // один и тот же вид и в покое, и при наведении: меняется только ширина
+            shape.fill(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.1), .white.opacity(0.2)],
+                                      startPoint: .topLeading, endPoint: .bottomTrailing))
         }
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -78,7 +74,8 @@ struct SidebarView: View {
                 Spacer(minLength: 0)
             }
             .foregroundStyle(isSelected || isHovered ? Color.white : Color.steveMuted)
-            .padding(11)
+            .padding(.horizontal, 9)
+            .frame(height: 40)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(LinearGradient(

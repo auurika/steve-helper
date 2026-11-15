@@ -30,6 +30,11 @@ final class AppModel {
     var section = AppSection.chat
     /// Распознанный голосом текст: появляется в строке ввода, пока человек говорит.
     var voiceDraft = ""
+    /// Идущие таймеры для панели в окне.
+    var activeTimers: [ActiveTimer] = []
+    /// Идёт запись голоса и громкость звука 0...1: микрофон в окне пульсирует в такт.
+    var isRecordingVoice = false
+    var voiceLevel: Float = 0
     /// Только для снимков экрана: показать боковую панель раскрытой.
     var previewSidebarExpanded = false
     private(set) var menuBarImage = NSImage()
@@ -90,6 +95,7 @@ final class AppModel {
             guard let self else { return }
             Task { await self.speakAnswer("Таймер на \(Tools.describe(seconds: seconds)) сработал") }
         }
+        tools.onTimersChanged = { [weak self] in self?.activeTimers = self?.tools.activeTimers ?? [] }
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
         hotkeys.register(settings.hotkey)
@@ -187,6 +193,8 @@ final class AppModel {
     }
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
+    func cancelTimer(_ id: UUID) { tools.cancel(id) }
+
     func stopVoiceCapture() {
         stopRequested = true
         listener.endAudio()
@@ -220,6 +228,16 @@ final class AppModel {
         }
 
         status = .listening
+        isRecordingVoice = true
+        listener.onLevel = { [weak self] level in
+            guard let self else { return }
+            voiceLevel = max(level, voiceLevel * 0.8) // плавное затухание
+        }
+        defer {
+            isRecordingVoice = false
+            voiceLevel = 0
+            listener.onLevel = nil
+        }
         var committed = voiceDraft.trimmingCharacters(in: .whitespacesAndNewlines) // то, что уже было в строке, остаётся
         func joined(_ extra: String) -> String { committed.isEmpty ? extra : (extra.isEmpty ? committed : committed + " " + extra) }
 

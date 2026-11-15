@@ -29,6 +29,8 @@ struct PopoverView: View {
                 }
             }
 
+            TimerPanel(compact: true)
+
             MessageList(messages: Array(model.messages.suffix(30)), showCommands: model.settings.showCommands, compact: true)
                 .frame(height: 168)
                 .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white.opacity(0.08)))

@@ -26,6 +26,15 @@ struct RootContent: View {
             .padding(.leading, 76)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            // верхняя полоса окна: то же стекло и тонкая линия снизу
+            VStack(spacing: 0) {
+                Rectangle().fill(Color.white.opacity(0.07)).frame(height: 28)
+                Rectangle().fill(Color.white.opacity(0.18)).frame(height: 1)
+                Spacer(minLength: 0)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
             SidebarView()
                 .padding(.leading, 10)
                 .padding(.top, 2)
@@ -53,6 +62,7 @@ private struct WindowConfigurator: NSViewRepresentable {
         window.title = "Стив"
         window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
         window.isMovableByWindowBackground = false
         window.styleMask.formUnion([.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
         window.isOpaque = false

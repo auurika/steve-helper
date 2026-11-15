@@ -9,9 +9,27 @@ import SteveCore
 /// чтобы разрешения брались у самого приложения, а не у терминала.
 @MainActor
 enum SelfTest {
-    static var isRequested: Bool { CommandLine.arguments.contains("--selftest") }
+    static var isRequested: Bool { CommandLine.arguments.contains("--selftest") || CommandLine.arguments.contains("--add-voice") }
+
+    /// `Steve --add-voice <файл> <имя> <отчёт>`: добавляет свой голос из записи без окна выбора файла.
+    private static func addVoiceIfRequested(model: AppModel) -> Bool {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--add-voice"), arguments.count > index + 3 else { return false }
+        let file = URL(fileURLWithPath: arguments[index + 1])
+        let name = arguments[index + 2]
+        let report = URL(fileURLWithPath: arguments[index + 3])
+        Task {
+            await model.addCustomVoice(from: file)
+            if let last = model.settings.customVoices.indices.last { model.settings.customVoices[last].name = name }
+            try? "\(model.voiceNote ?? "нет заметки")\nголосов: \(model.settings.customVoices.map(\.name))\n".write(to: report, atomically: true, encoding: .utf8)
+            try? await Task.sleep(for: .seconds(1))
+            NSApp.terminate(nil)
+        }
+        return true
+    }
 
     static func runIfRequested(model: AppModel) {
+        if addVoiceIfRequested(model: model) { return }
         let arguments = CommandLine.arguments
         guard let index = arguments.firstIndex(of: "--selftest"), arguments.indices.contains(index + 1) else { return }
         let output = URL(fileURLWithPath: arguments[index + 1])

@@ -27,6 +27,8 @@ struct ChatView: View {
                 .font(.system(size: 13))
                 .foregroundStyle(Color.steveMuted)
                 .frame(height: 18)
+
+            TimerPanel(compact: false)
         }
         .padding(.top, 22)
         .padding(.bottom, 8)
@@ -131,16 +133,21 @@ struct ComposerView: View {
                     return .handled
                 }
                 .onSubmit { send() } // запасной путь: Return отправляет, даже если поле не отдало клавишу
-                .onChange(of: model.voiceDraft) { text = model.voiceDraft }
-                .onChange(of: text) { model.typingChanged(text) }
+                .onChange(of: model.voiceDraft) { if text != model.voiceDraft { text = model.voiceDraft } }
+                .onChange(of: text) {
+                    if model.voiceDraft != text { model.voiceDraft = text } // строка и черновик голоса всегда совпадают
+                    model.typingChanged(text)
+                }
                 .onChange(of: focused) {
                     if !focused { model.typingChanged(text.isEmpty ? "" : text); if text.isEmpty { model.character.stopFollowing() } }
                 }
 
-            if !compact {
+            if compact {
+                MicButton(size: 34)
+            } else {
                 GlassIconButton(symbol: "return") { send() }
                     .help("Отправить (Enter)")
-                GlassIconButton(symbol: "mic") { model.toggleVoiceCapture() }
+                MicButton()
                     .help("Сказать голосом")
             }
         }
@@ -169,5 +176,88 @@ private struct WidthLimited: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
+    }
+}
+
+
+/// Кнопка микрофона: во время записи краснеет, значок меняется, а кольцо вокруг пульсирует в такт голосу.
+struct MicButton: View {
+    var size: CGFloat = 42
+    @Environment(AppModel.self) private var model
+    @State private var hovering = false
+
+    var body: some View {
+        let recording = model.isRecordingVoice
+        Button { model.toggleVoiceCapture() } label: {
+            ZStack {
+                if recording {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.steveDanger.opacity(0.7), lineWidth: 2)
+                        .scaleEffect(1 + CGFloat(model.voiceLevel) * 0.35)
+                        .opacity(0.9 - Double(model.voiceLevel) * 0.4)
+                        .animation(.easeOut(duration: 0.1), value: model.voiceLevel)
+                }
+                Image(systemName: recording ? "stop.fill" : "mic")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(recording ? Color.white : Color.steveText)
+                    .frame(width: size, height: size)
+                    .background {
+                        if recording { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.steveDanger.opacity(0.75)) }
+                    }
+                    .glassControl(cornerRadius: 14, highlighted: hovering || recording)
+            }
+            .frame(width: size, height: size)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(recording ? "Остановить запись" : "Сказать голосом")
+    }
+}
+
+
+/// Идущие таймеры с обратным отсчётом и кнопкой отмены. Так таймер работает у любого пользователя,
+/// даже если приложение «Часы» не удалось настроить.
+struct TimerPanel: View {
+    let compact: Bool
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if !model.activeTimers.isEmpty {
+            VStack(spacing: 6) {
+                ForEach(model.activeTimers) { timer in
+                    TimelineView(.periodic(from: .now, by: 0.5)) { context in
+                        let left = max(0, timer.end.timeIntervalSince(context.date))
+                        HStack(spacing: 10) {
+                            Image(systemName: "timer").font(.system(size: 13))
+                            Text(Self.format(left))
+                                .font(.system(size: compact ? 15 : 18, weight: .semibold).monospacedDigit())
+                            GeometryReader { proxy in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.white.opacity(0.18))
+                                    Capsule().fill(Color.steveAccent)
+                                        .frame(width: proxy.size.width * CGFloat(left / Double(max(1, timer.total))))
+                                }
+                            }
+                            .frame(width: compact ? 70 : 120, height: 6)
+                            Button { model.cancelTimer(timer.id) } label: {
+                                Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 22)
+                                    .background(Circle().fill(Color.white.opacity(0.16)))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Отменить таймер")
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .glassControl(cornerRadius: 14)
+                    }
+                }
+            }
+        }
+    }
+
+    static func format(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds.rounded(.up))
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
     }
 }

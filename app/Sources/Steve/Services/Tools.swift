@@ -16,8 +16,10 @@ final class Tools {
     var onTimerFired: ((_ seconds: Int) -> Void)?
 
     private let eventStore = EKEventStore()
-    private var timers: [Timer] = []
-    private var timerEnds: [Date] = []
+    private var timers: [UUID: Timer] = [:]
+    /// Идущие таймеры: окно приложения показывает их с обратным отсчётом.
+    private(set) var activeTimers: [ActiveTimer] = []
+    var onTimersChanged: (() -> Void)?
     private var stopwatchStartedAt: Date?
 
     func execute(_ command: Command) async -> ToolResult {
@@ -54,32 +56,43 @@ final class Tools {
 
     private func startTimer(seconds: Int) -> ToolResult {
         requestNotificationAccess()
-        let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(seconds), repeats: false) { [weak self] _ in
-            Task { @MainActor in self?.timerFired(seconds: seconds) }
+        let id = UUID()
+        timers[id] = Timer.scheduledTimer(withTimeInterval: TimeInterval(seconds), repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.timerFired(id: id, seconds: seconds) }
         }
-        timers.append(timer)
-        timerEnds.append(Date().addingTimeInterval(TimeInterval(seconds)))
+        activeTimers.append(ActiveTimer(id: id, end: Date().addingTimeInterval(TimeInterval(seconds)), total: seconds))
+        onTimersChanged?()
         // у «Часов» нет программного интерфейса: открываем приложение, а отсчёт и сигнал ведёт Стив
         Task { _ = await run("/usr/bin/open", ["-a", "Clock"]) }
         return ToolResult(reply: "Поставил таймер на \(Self.describe(seconds: seconds))", tool: "timer(seconds=\(seconds))")
     }
 
     private func timerStatus() -> ToolResult {
-        timerEnds.removeAll { $0 < Date() }
-        guard let next = timerEnds.min() else { return ToolResult(reply: "Таймеров нет", tool: "timer_status()") }
+        guard let next = activeTimers.map(\.end).min() else { return ToolResult(reply: "Таймеров нет", tool: "timer_status()") }
         let left = max(1, Int(next.timeIntervalSinceNow.rounded()))
         return ToolResult(reply: "До конца таймера \(Self.describe(seconds: left))", tool: "timer_status()")
     }
 
     private func cancelTimers() -> ToolResult {
-        let count = timers.filter { $0.isValid }.count
-        timers.forEach { $0.invalidate() }
-        timers.removeAll()
-        timerEnds.removeAll()
-        return ToolResult(reply: count == 0 ? "Таймеров нет" : "Таймер отменён", tool: "cancel_timers()")
+        let count = activeTimers.count
+        cancel(nil)
+        return ToolResult(reply: count == 0 ? "Таймеров нет" : (count == 1 ? "Таймер отменён" : "Таймеры отменены"), tool: "cancel_timers()")
     }
 
-    private func timerFired(seconds: Int) {
+    /// Отменяет один таймер или все, если `id` не указан.
+    func cancel(_ id: UUID?) {
+        for key in (id.map { [$0] } ?? Array(timers.keys)) {
+            timers[key]?.invalidate()
+            timers[key] = nil
+        }
+        activeTimers.removeAll { id == nil || $0.id == id }
+        onTimersChanged?()
+    }
+
+    private func timerFired(id: UUID, seconds: Int) {
+        timers[id] = nil
+        activeTimers.removeAll { $0.id == id }
+        onTimersChanged?()
         guard Packaging.isPackaged else { onTimerFired?(seconds); return }
         let content = UNMutableNotificationContent()
         content.title = "Стив"
@@ -233,4 +246,11 @@ final class Tools {
         let result = await ProcessRunner.run(path, arguments, timeout: timeout)
         return (result.status, result.output, result.error)
     }
+}
+
+/// Запущенный таймер для показа в окне.
+struct ActiveTimer: Identifiable, Equatable {
+    let id: UUID
+    let end: Date
+    let total: Int
 }
