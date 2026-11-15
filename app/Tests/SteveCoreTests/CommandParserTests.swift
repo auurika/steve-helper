@@ -122,6 +122,14 @@ final class CommandParserTests: XCTestCase {
         XCTAssertEqual(parser.parse("отмени таймер"), .cancelTimers)
     }
 
+    func testAttachedFiles() {
+        let parser = CommandParser()
+        XCTAssertEqual(parser.parse("Положи их в папку Работа"), .moveAttached(folder: "Работа", copy: false))
+        XCTAssertEqual(parser.parse("закинь в папку УрФУ"), .moveAttached(folder: "УрФУ", copy: false))
+        XCTAssertEqual(parser.parse("скопируй файлы в папку Учёба"), .moveAttached(folder: "Учёба", copy: true))
+        XCTAssertEqual(parser.parse("перемести файл список в папку Работа"), .moveItem(name: "список", toFolder: "Работа"))
+    }
+
     func testStopwatchLap() {
         let parser = CommandParser()
         XCTAssertEqual(parser.parse("засеки круг"), .lapStopwatch)

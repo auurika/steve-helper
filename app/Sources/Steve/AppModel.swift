@@ -66,6 +66,8 @@ final class AppModel {
     /// Идущие таймеры для панели в окне.
     var activeTimers: [ActiveTimer] = []
     var stopwatch: ActiveStopwatch?
+    /// Файлы, прикреплённые к чату скрепкой или перетаскиванием.
+    var attachments: [URL] = [] { didSet { tools.attachments = attachments } }
     /// Идёт запись голоса и громкость звука 0...1: микрофон в окне пульсирует в такт.
     var isRecordingVoice = false
     var voiceLevel: Float = 0
@@ -140,6 +142,7 @@ final class AppModel {
         }
         tools.onTimersChanged = { [weak self] in self?.activeTimers = self?.tools.activeTimers ?? [] }
         tools.onStopwatchChanged = { [weak self] in self?.stopwatch = self?.tools.stopwatch }
+        tools.onAttachmentsChanged = { [weak self] in self?.attachments = self?.tools.attachments ?? [] }
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
         hotkeys.register(settings.hotkey)
@@ -237,6 +240,12 @@ final class AppModel {
     }
 
     /// Останавливает запись голоса: текст остаётся в строке ввода, ничего не отправляется.
+    func attach(_ urls: [URL]) {
+        for url in urls where !attachments.contains(url) { attachments.append(url) }
+    }
+
+    func removeAttachment(_ url: URL) { attachments.removeAll { $0 == url } }
+
     func pauseStopwatch() { tools.toggleStopwatchPause() }
     func lapStopwatch() { tools.addLap() }
     func stopStopwatch() { tools.dismissStopwatch() }

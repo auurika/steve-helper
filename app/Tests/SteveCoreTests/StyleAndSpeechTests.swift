@@ -65,6 +65,11 @@ final class PitchEstimatorTests: XCTestCase {
 }
 
 final class SettingsTests: XCTestCase {
+    func testEmDashBecomesEnDash() {
+        let filter = StyleFilter(censorship: true)
+        XCTAssertEqual(filter.finalize("Понедельник — это сложно, но 5–6 часов хватит"), "Понедельник – это сложно, но 5–6 часов хватит")
+    }
+
     func testDefaults() {
         let settings = AppSettings()
         XCTAssertTrue(settings.censorship)

@@ -14,7 +14,13 @@ struct ChatView: View {
                     .background(GeometryReader { proxy in Color.clear.preference(key: HeroHeightKey.self, value: proxy.size.height) })
             }
             .onPreferenceChange(HeroHeightKey.self) { heroHeight = max(Self.minHeroHeight, $0) }
+            AttachmentsBar()
             ComposerView(compact: false)
+        }
+        // файлы можно просто перетащить в окно
+        .dropDestination(for: URL.self) { urls, _ in
+            model.attach(urls.filter(\.isFileURL))
+            return true
         }
     }
 
@@ -197,12 +203,24 @@ struct ComposerView: View {
             } else {
                 GlassIconButton(symbol: "return") { send() }
                     .help("Отправить (Enter)")
+                GlassIconButton(symbol: "paperclip") { chooseFiles() }
+                    .help("Прикрепить файлы: потом скажи, в какую папку их положить")
                 MicButton()
                     .help("Сказать голосом")
             }
         }
         .padding(.top, compact ? 0 : 10)
         .padding(.bottom, compact ? 0 : 10) // единый отступ 10 до края окна, как у боковой панели
+    }
+
+    /// Выбор файлов и папок: они появляются над строкой ввода, дальше можно сказать «положи их в папку Работа».
+    private func chooseFiles() {
+        let panel = NSOpenPanel()
+        panel.title = "Прикрепить файлы"
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = true
+        guard panel.runModal() == .OK else { return }
+        model.attach(panel.urls)
     }
 
     private func send() {
@@ -483,3 +501,35 @@ struct ThinkingBubble: View {
 
 
 
+
+
+/// Прикреплённые файлы над строкой ввода: значок, имя и крестик, чтобы убрать.
+struct AttachmentsBar: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if !model.attachments.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(model.attachments, id: \.self) { url in
+                        HStack(spacing: 8) {
+                            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 18, height: 18)
+                            Text(url.lastPathComponent).font(.system(size: 12.5)).lineLimit(1).frame(maxWidth: 180)
+                            Button { model.removeAttachment(url) } label: {
+                                Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).frame(width: 18, height: 18)
+                                    .background(Circle().fill(Color.white.opacity(0.16)))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Открепить")
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .glassControl(cornerRadius: 12)
+                    }
+                }
+            }
+            .padding(.top, 8)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+}

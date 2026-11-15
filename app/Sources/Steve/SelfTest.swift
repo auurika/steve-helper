@@ -9,7 +9,7 @@ import SteveCore
 /// чтобы разрешения брались у самого приложения, а не у терминала.
 @MainActor
 enum SelfTest {
-    static var isRequested: Bool { ["--selftest", "--add-voice"].contains { CommandLine.arguments.contains($0) } }
+    static var isRequested: Bool { ["--selftest", "--add-voice", "--move-test"].contains { CommandLine.arguments.contains($0) } }
 
     /// `Steve --add-voice <файл> <имя> <отчёт>`: добавляет свой голос из записи без окна выбора файла.
     private static func addVoiceIfRequested(model: AppModel) -> Bool {
@@ -28,7 +28,28 @@ enum SelfTest {
         return true
     }
 
+    /// `Steve --move-test <папка> <отчёт> <файл>...`: прикрепляет файлы, кладёт их в папку и затем отменяет.
+    private static func moveTestIfRequested(model: AppModel) -> Bool {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--move-test"), arguments.count > index + 3 else { return false }
+        let folder = arguments[index + 1]
+        let report = URL(fileURLWithPath: arguments[index + 2])
+        let files = arguments[(index + 3)...].map { URL(fileURLWithPath: $0) }
+        Task {
+            model.attach(files)
+            var log = ""
+            let moved = await model.tools.execute(.moveAttached(folder: folder, copy: false))
+            log += "перенос: \(moved.reply)\n"
+            let undone = await model.tools.execute(.undo)
+            log += "откат: \(undone.reply)\n"
+            try? log.write(to: report, atomically: true, encoding: .utf8)
+            NSApp.terminate(nil)
+        }
+        return true
+    }
+
     static func runIfRequested(model: AppModel) {
+        if moveTestIfRequested(model: model) { return }
         if addVoiceIfRequested(model: model) { return }
         let arguments = CommandLine.arguments
         guard let index = arguments.firstIndex(of: "--selftest"), arguments.indices.contains(index + 1) else { return }

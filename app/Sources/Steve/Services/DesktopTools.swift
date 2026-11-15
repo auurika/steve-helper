@@ -98,6 +98,39 @@ extension Tools {
         }
     }
 
+    /// Перекладывает или копирует прикреплённые файлы в папку. Папку ищем на рабочем столе, потом в «Документах» и «Загрузках».
+    func moveAttached(toFolder name: String, copy: Bool) -> ToolResult {
+        let tool = "Files.\(copy ? "copy" : "move")_attached(to=\"\(name)\")"
+        guard !attachments.isEmpty else { return ToolResult(reply: "Нет прикреплённых файлов. Нажми на скрепку и выбери файлы", tool: tool) }
+        let roots = [.desktopDirectory, .documentDirectory, .downloadsDirectory].compactMap { FileManager.default.urls(for: $0, in: .userDomainMask).first }
+        guard let folder = roots.lazy.compactMap({ self.find(name, in: $0, foldersOnly: true) }).first else {
+            return ToolResult(reply: "Не нашёл папку «\(name)» на рабочем столе, в «Документах» и «Загрузках»", tool: tool)
+        }
+        var done: [(from: URL, to: URL)] = []
+        var failed = 0
+        for file in attachments {
+            let target = uniqueURL(folder.appendingPathComponent(file.lastPathComponent))
+            do {
+                if copy { try FileManager.default.copyItem(at: file, to: target) } else { try FileManager.default.moveItem(at: file, to: target) }
+                done.append((file, target))
+            } catch { failed += 1 }
+        }
+        attachments = []
+        onAttachmentsChanged?()
+        guard !done.isEmpty else { return ToolResult(reply: "Не получилось \(copy ? "скопировать" : "переложить") файлы", tool: tool) }
+        NSWorkspace.shared.activateFileViewerSelecting(done.map(\.to))
+        pushUndo(copy ? "copy_attached" : "move_attached") {
+            var restored = 0
+            for pair in done where FileManager.default.fileExists(atPath: pair.to.path) {
+                if copy { if (try? FileManager.default.trashItem(at: pair.to, resultingItemURL: nil)) != nil { restored += 1 } }
+                else if !FileManager.default.fileExists(atPath: pair.from.path), (try? FileManager.default.moveItem(at: pair.to, to: pair.from)) != nil { restored += 1 }
+            }
+            return copy ? "Убрал копии в корзину (\(restored))" : "Вернул файлы на место (\(restored))"
+        }
+        let list = done.count == 1 ? "«\(done[0].to.lastPathComponent)»" : "\(done.count) файла(ов)"
+        return ToolResult(reply: (copy ? "Скопировал " : "Переложил ") + list + " в папку «\(folder.lastPathComponent)»" + (failed > 0 ? ", \(failed) не вышло" : ""), tool: tool)
+    }
+
     func listDesktop() -> ToolResult {
         let tool = "Desktop.list()"
         guard let desktop = desktopURL else { return ToolResult(reply: "Не нашёл рабочий стол", tool: tool) }
@@ -135,7 +168,7 @@ extension Tools {
     }
 
     /// Если такое имя занято, добавляет номер: «файл 2.txt».
-    private func uniqueURL(_ url: URL) -> URL {
+    fileprivate func uniqueURL(_ url: URL) -> URL {
         var candidate = url
         var number = 2
         let base = url.deletingPathExtension().lastPathComponent
@@ -148,7 +181,7 @@ extension Tools {
     }
 
     /// Ищет файл или папку по имени без учёта регистра: точное совпадение, затем начало имени, затем часть.
-    private func find(_ name: String, in directory: URL, foldersOnly: Bool) -> URL? {
+    fileprivate func find(_ name: String, in directory: URL, foldersOnly: Bool) -> URL? {
         guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isDirectoryKey]) else { return nil }
         let candidates = urls.filter { url in
             guard !url.lastPathComponent.hasPrefix(".") else { return false }

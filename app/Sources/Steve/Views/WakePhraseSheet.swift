@@ -78,7 +78,7 @@ struct WakePhraseSheet: View {
     private var defaultHint: String {
         recorded >= samplesNeeded
             ? "Все образцы записаны. Сохрани, чтобы применить."
-            : "Образец \(recorded + 1) из \(samplesNeeded) — нажми «Записать» и произнеси:"
+            : "Образец \(recorded + 1) из \(samplesNeeded) – нажми «Записать» и произнеси:"
     }
 
     private var waveform: some View {

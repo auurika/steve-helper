@@ -24,6 +24,9 @@ final class Tools {
     private(set) var stopwatch: ActiveStopwatch?
     /// Редкий мат в коротких репликах: включается, когда цензура выключена.
     var profanity = false
+    /// Файлы, прикреплённые к чату: команда «положи в папку …» работает с ними.
+    var attachments: [URL] = []
+    var onAttachmentsChanged: (() -> Void)?
     /// Что можно отменить: последнее действие снимается командой «отмени» или «откати».
     private var undoStack: [UndoAction] = []
     struct UndoAction {
@@ -65,6 +68,7 @@ final class Tools {
         case .moveItem(let name, let folder): return moveItem(name: name, toFolder: folder)
         case .renameItem(let name, let newName): return renameItem(name: name, newName: newName)
         case .listDesktop: return listDesktop()
+        case .moveAttached(let folder, let copy): return moveAttached(toFolder: folder, copy: copy)
         case .greeting: return ToolResult(reply: SmallTalk(profanity: profanity).greeting(), tool: nil)
         case .thanks: return ToolResult(reply: SmallTalk(profanity: profanity).thanksReply(), tool: nil)
         case .unknown: return ToolResult(reply: SmallTalk(profanity: profanity).unknownReply(), tool: nil)

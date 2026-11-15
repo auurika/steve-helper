@@ -39,6 +39,7 @@ public struct StyleFilter {
         var text = replace(Self.inlineFillers, in: input, with: ",")
         text = replace(Self.leadingFillers, in: text, with: "").trimmingCharacters(in: .whitespaces)
         text = text.replacingOccurrences(of: "!", with: "")
+            .replacingOccurrences(of: "—", with: "–") // длинное тире заменяется на короткое, короткое остаётся как есть
         if text.hasSuffix(".") { text.removeLast() }
         text = text.trimmingCharacters(in: .whitespaces)
         guard let first = text.first else { return text }

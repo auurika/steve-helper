@@ -4,6 +4,7 @@ import Foundation
 /// Имена берутся из исходной фразы, чтобы сохранить заглавные буквы.
 enum DesktopParser {
     static func parse(original: String, text: String) -> Command? {
+        if let command = attached(original: original) { return command }
         if let command = createFolder(original: original, text: text) { return command }
         if let command = createFile(original: original, text: text) { return command }
         if let command = move(original: original) { return command }
@@ -12,6 +13,17 @@ enum DesktopParser {
             return .listDesktop
         }
         return nil
+    }
+
+    // MARK: - Прикреплённые файлы
+
+    /// «Положи их в папку Работа», «закинь в папку Работа», «скопируй файлы в Документы».
+    private static func attached(original: String) -> Command? {
+        let pattern = "^(перемести(?:ть)?|перенес(?:и|ти)|положи(?:ть)?|закинь|закинуть|кинь|сложи|скопируй|скопировать)\\s+(?:(?:их|его|это|эти|все|вложения|прикрепленные|прикреплённые)\\s+)*(?:файл\\w*\\s+)?(?:в|на)\\s+(?:папку\\s+)?(.+)$"
+        guard let match = groups(pattern, in: original), match.count == 2 else { return nil }
+        let folder = clean(match[1])
+        guard !folder.isEmpty else { return nil }
+        return .moveAttached(folder: folder, copy: match[0].lowercased().hasPrefix("скопир"))
     }
 
     // MARK: - Папка (и файл внутри)

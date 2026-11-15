@@ -22,6 +22,8 @@ public enum Command: Equatable {
     case createFile(name: String, text: String, folder: String?)
     case moveItem(name: String, toFolder: String)
     case renameItem(name: String, newName: String)
+    /// Прикреплённые к чату файлы: переложить (или скопировать) в папку.
+    case moveAttached(folder: String, copy: Bool)
     case listDesktop
     /// «Отмени», «откати», «верни как было»: обратить последнее действие.
     case undo
