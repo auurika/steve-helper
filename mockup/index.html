@@ -481,6 +481,24 @@
     background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
     backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%)}
   .side.lock .lbl,.side.lock:hover .lbl{opacity:0}
+  /* свой ползунок: заливка и бегунок строго по центру линии, все края закруглены */
+  #glass{position:absolute;opacity:0;pointer-events:none;width:0;height:0;margin:0}
+  .rng{position:relative}
+  .gs{--f:.6;position:relative;width:112px;height:30px;flex:none;cursor:pointer;touch-action:none;outline:none}
+  .gs::before{content:"";position:absolute;left:0;right:0;top:50%;height:12px;transform:translateY(-50%);border-radius:999px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.34);box-sizing:border-box;
+    box-shadow:inset 0 2px 3px rgba(10,10,50,.35),inset 0 -1px 0 rgba(255,255,255,.18)}
+  .gs-fill{position:absolute;left:0;top:50%;height:12px;transform:translateY(-50%);border-radius:999px;box-sizing:border-box;
+    width:calc(19px + (100% - 38px) * var(--f));
+    background:linear-gradient(90deg,rgba(190,208,255,.78),rgba(255,255,255,.85));border:1px solid rgba(255,255,255,.4);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+  .gs-thumb{position:absolute;top:50%;left:calc((100% - 38px) * var(--f));width:38px;height:26px;transform:translateY(-50%);border-radius:999px;box-sizing:border-box;
+    background:linear-gradient(180deg,rgba(255,255,255,.6) 0,rgba(255,255,255,.2) 48%,rgba(255,255,255,.1) 52%,rgba(255,255,255,.34) 100%);
+    backdrop-filter:blur(8px) saturate(180%);-webkit-backdrop-filter:blur(8px) saturate(180%);border:1px solid rgba(255,255,255,.85);
+    box-shadow:0 4px 12px rgba(10,10,50,.4),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -2px 5px rgba(255,255,255,.28),inset 0 0 10px rgba(255,255,255,.18);
+    transition:transform .12s}
+  .gs:active .gs-thumb{transform:translateY(-50%) scale(1.06)}
+  .gs:focus-visible .gs-thumb{box-shadow:0 0 0 3px rgba(143,169,255,.65),0 4px 12px rgba(10,10,50,.4)}
 </style>
 </head>
 <body>
@@ -618,7 +636,7 @@
       <section class="view" id="v-settings"><div class="pad">
         <h2>Настройки</h2>
         <div class="row glassrow" style="flex-wrap:nowrap"><div>Прозрачность Liquid Glass</div>
-          <div class="rng"><input type="range" id="glass" min="0" max="100" value="60"><b id="glassV">60%</b></div></div>
+          <div class="rng"><input type="range" id="glass" min="0" max="100" value="60" tabindex="-1" aria-hidden="true"><div class="gs" id="gs" role="slider" tabindex="0" aria-label="Прозрачность Liquid Glass" aria-valuemin="0" aria-valuemax="100"><div class="gs-fill"></div><div class="gs-thumb"></div></div><b id="glassV">60%</b></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Быстрые команды<small>4 значка рядом со Стивом во всплывающем окне</small></div>
           <div class="qsel" id="qsSel"></div></div>
         <div class="row" style="flex-wrap:wrap"><div>Слово активации</div><div style="display:flex;gap:8px;align-items:center"><span class="kbd" id="wwShow">«Привет, Стив»</span><button class="btn ghost" style="width:34px;height:34px;padding:0;border-radius:11px" id="wwOpen" title="Изменить фразу и записать голос"><svg class="i"><use href="#i-pencil"/></svg></button></div></div>
@@ -758,7 +776,7 @@ $('#wwRec').onclick=()=>{
 $('#wwSave').onclick=()=>{$('#wwShow').textContent='«'+$('#wwPhrase').value+'»';$('#ww').classList.remove('on')};
 
 // прозрачность стекла
-function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
+function setGlass(p){document.documentElement.style.setProperty('--a',(0.9-p/100*0.85).toFixed(3));$('#glassV').textContent=p+'%';$('#gs').style.setProperty('--f',p/100);$('#gs').setAttribute('aria-valuenow',p);$('#glass').style.setProperty('--p',p+'%');try{localStorage.setItem('glass',p)}catch(e){}}
 $('#glass').oninput=e=>setGlass(+e.target.value);
 try{const g=localStorage.getItem('glass');if(g!==null){$('#glass').value=g}}catch(e){}
 setGlass(+$('#glass').value);
@@ -1063,6 +1081,24 @@ addEventListener('offline',()=>setNet(false));
 const sideEl=$('.side');
 sideEl.addEventListener('click',e=>{if(e.target.closest('button')){sideEl.classList.add('lock');if(document.activeElement)document.activeElement.blur()}});
 sideEl.addEventListener('mouseleave',()=>sideEl.classList.remove('lock'));
+
+// свой ползунок прозрачности: мышь/касание и клавиатура
+(function(){
+  const gs=$('#gs'),inp=$('#glass'),W=38;
+  const set=v=>{v=Math.max(0,Math.min(100,Math.round(v)));inp.value=v;inp.dispatchEvent(new Event('input'))};
+  const fromX=x=>{const r=gs.getBoundingClientRect();return (x-r.left-W/2)/(r.width-W)*100};
+  gs.addEventListener('pointerdown',e=>{gs.setPointerCapture(e.pointerId);set(fromX(e.clientX));
+    const mv=ev=>set(fromX(ev.clientX)),up=()=>{gs.removeEventListener('pointermove',mv);gs.removeEventListener('pointerup',up)};
+    gs.addEventListener('pointermove',mv);gs.addEventListener('pointerup',up)});
+  gs.addEventListener('keydown',e=>{
+    const v=+inp.value;
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();set(v+5)}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();set(v-5)}
+    else if(e.key==='Home'){e.preventDefault();set(0)}
+    else if(e.key==='End'){e.preventDefault();set(100)}
+  });
+  setGlass(+inp.value);
+})();
 </script>
 </body>
 </html>
