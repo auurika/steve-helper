@@ -159,9 +159,17 @@ struct MessageList: View {
             if isUser { Spacer(minLength: 40) }
             WidthLimited(maxWidth: 520) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(message.text)
-                    .font(.system(size: compact ? 12.5 : 14))
-                    .textSelection(.enabled)
+                ForEach(message.files, id: \.self) { path in
+                    HStack(spacing: 6) {
+                        Image(nsImage: NSWorkspace.shared.icon(forFile: path)).resizable().frame(width: 16, height: 16)
+                        Text((path as NSString).lastPathComponent).font(.system(size: compact ? 12 : 13)).lineLimit(1)
+                    }
+                }
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.system(size: compact ? 12.5 : 14))
+                        .textSelection(.enabled)
+                }
                 if showCommands, let tool = message.tool {
                     Text("tool · \(tool)")
                         .font(.system(size: 12, design: .monospaced))
@@ -261,9 +269,11 @@ struct ComposerView: View {
 
     private func send() {
         let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !message.isEmpty else { return }
+        let files = model.attachments
+        guard !message.isEmpty || !files.isEmpty else { return }
         text = ""
-        Task { await model.ask(message, typed: true) }
+        model.attachments = [] // файлы уходят вместе с сообщением и пропадают из строки ввода
+        Task { await model.ask(message, typed: true, files: files) }
     }
 }
 

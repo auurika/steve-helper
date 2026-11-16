@@ -5,13 +5,14 @@ import Speech
 @MainActor
 final class Listener {
     enum ListenerError: Error, LocalizedError {
-        case notAuthorized, unavailable, nothingHeard
+        case notAuthorized, unavailable, nothingHeard, noInput
 
         var errorDescription: String? {
             switch self {
             case .notAuthorized: return "Нет доступа к микрофону или распознаванию речи. Разрешите его в настройках macOS."
             case .unavailable: return "Распознавание речи сейчас недоступно."
             case .nothingHeard: return "Ничего не расслышал."
+            case .noInput: return "Микрофон не отвечает. Проверь, что он выбран в «Системные настройки → Звук → Ввод»"
             }
         }
     }
@@ -19,7 +20,9 @@ final class Listener {
     /// Уровень звука 0...1 для волны в окне записи слова активации.
     var onLevel: ((Float) -> Void)?
 
-    private let engine = AVAudioEngine()
+    /// Для каждой записи создаётся новый движок: старый привязан к микрофону, который был выбран при его создании,
+    /// и после смены устройства (наушники, другая гарнитура) за долгую работу приложения перестаёт слышать.
+    private var engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var finish: ((Result<String, Error>) -> Void)?
@@ -44,6 +47,7 @@ final class Listener {
         guard await Self.requestAuthorization() else { throw ListenerError.notAuthorized }
         guard let recognizer = SFSpeechRecognizer(locale: locale), recognizer.isAvailable else { throw ListenerError.unavailable }
         stop()
+        engine = AVAudioEngine()
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
@@ -55,6 +59,7 @@ final class Listener {
 
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw ListenerError.noInput }
         input.removeTap(onBus: 0)
         // замыкание делаем вне главного актора: звук приходит на своём потоке, и проверка изоляции иначе роняет приложение
         input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.makeTap(request: request) { [weak self] level in

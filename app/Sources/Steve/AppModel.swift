@@ -11,6 +11,25 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     let role: Role
     let text: String
     var tool: String?
+    /// Пути файлов, отправленных вместе с сообщением.
+    var files: [String] = []
+
+    init(role: Role, text: String, tool: String? = nil, files: [String] = []) {
+        self.role = role
+        self.text = text
+        self.tool = tool
+        self.files = files
+    }
+
+    // старая история на диске без поля files читается как раньше
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        role = try container.decode(Role.self, forKey: .role)
+        text = try container.decode(String.self, forKey: .text)
+        tool = try container.decodeIfPresent(String.self, forKey: .tool)
+        files = try container.decodeIfPresent([String].self, forKey: .files) ?? []
+    }
 }
 
 /// История диалога на диске: переживает закрытие приложения. Хранятся последние 300 сообщений.
@@ -69,7 +88,7 @@ final class AppModel {
     var activeTimers: [ActiveTimer] = []
     var stopwatch: ActiveStopwatch?
     /// Файлы, прикреплённые к чату скрепкой или перетаскиванием.
-    var attachments: [URL] = [] { didSet { tools.attachments = attachments } }
+    var attachments: [URL] = []
     /// Идёт запись голоса и громкость звука 0...1: микрофон в окне пульсирует в такт.
     var isRecordingVoice = false
     var voiceLevel: Float = 0
@@ -151,7 +170,6 @@ final class AppModel {
         }
         tools.onTimersChanged = { [weak self] in self?.activeTimers = self?.tools.activeTimers ?? [] }
         tools.onStopwatchChanged = { [weak self] in self?.stopwatch = self?.tools.stopwatch }
-        tools.onAttachmentsChanged = { [weak self] in self?.attachments = self?.tools.attachments ?? [] }
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
         if !Self.isDemo { hotkeys.register(settings.hotkey) }
@@ -193,9 +211,9 @@ final class AppModel {
     // MARK: - Диалог
 
     /// Полный цикл ответа: слушает, думает, выполняет, отвечает.
-    func ask(_ text: String, typed: Bool = false) async {
+    func ask(_ text: String, typed: Bool = false, files: [URL] = []) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty || !files.isEmpty else { return }
         if isProcessing {
             // новая просьба во время ответа: прерываем речь и ждём, пока прошлый ответ закончится
             guard typed || status == .speaking else { return }
@@ -209,15 +227,27 @@ final class AppModel {
         }
         character.touch()
 
-        messages.append(ChatMessage(role: .user, text: trimmed))
+        // файлы уходят Стиву вместе с сообщением: он их видит, а команды вроде «положи в папку» работают с ними
+        if !files.isEmpty { tools.attachments = files }
+        messages.append(ChatMessage(role: .user, text: trimmed, files: files.map(\.path)))
         status = .thinking
+
+        if trimmed.isEmpty {
+            let names = files.map { "«\($0.lastPathComponent)»" }.joined(separator: ", ")
+            let reply = StyleFilter(censorship: settings.censorship).finalize("Получил \(names). Скажи, что с ними сделать, например «положи в папку Работа»")
+            messages.append(ChatMessage(role: .steve, text: reply))
+            status = .speaking
+            await speakAnswer(reply)
+            return
+        }
         var command = parser.parse(trimmed)
 
         // то, что приложение не умеет само, пробует закрыть языковая модель, если она подключена
         var chatReply: String?
         if case .unknown = command, let engine {
             let history = messages.dropLast().suffix(8).map { ChatTurn(isUser: $0.role == .user, text: $0.text) }
-            chatReply = await engine.reply(to: trimmed, history: history, allowProfanity: !settings.censorship)
+            let withFiles = files.isEmpty ? trimmed : trimmed + " (к сообщению прикреплены файлы: " + files.map(\.lastPathComponent).joined(separator: ", ") + ")"
+            chatReply = await engine.reply(to: withFiles, history: history, allowProfanity: !settings.censorship)
             if chatReply == nil, case .needsInstall = chatSetup.state {
                 chatReply = "Чтобы я болтал на любые темы, нужна модель. Скачай её в Настройках, раздел «Свободный разговор»"
             }

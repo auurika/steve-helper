@@ -36,12 +36,13 @@ enum SelfTest {
         let report = URL(fileURLWithPath: arguments[index + 2])
         let files = arguments[(index + 3)...].map { URL(fileURLWithPath: $0) }
         Task {
-            model.attach(files)
             var log = ""
-            let moved = await model.tools.execute(.moveAttached(folder: folder, copy: false))
-            log += "перенос: \(moved.reply)\n"
-            let undone = await model.tools.execute(.undo)
-            log += "откат: \(undone.reply)\n"
+            await model.ask("", typed: true, files: files) // только файлы: Стив подтверждает получение
+            log += "только файлы: \(model.messages.last?.text ?? "нет ответа") | файлов в сообщении: \(model.messages.dropLast().last?.files.count ?? 0)\n"
+            await model.ask("Положи в папку \(folder)", typed: true) // файлы взяты из предыдущего сообщения
+            log += "команда: \(model.messages.last?.text ?? "нет ответа")\n"
+            await model.ask("отмени", typed: true)
+            log += "откат: \(model.messages.last?.text ?? "нет ответа")\n"
             try? log.write(to: report, atomically: true, encoding: .utf8)
             NSApp.terminate(nil)
         }
