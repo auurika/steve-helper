@@ -131,6 +131,19 @@ extension Tools {
         return ToolResult(reply: (copy ? "Скопировал " : "Переложил ") + list + " в папку «\(folder.lastPathComponent)»" + (failed > 0 ? ", \(failed) не вышло" : ""), tool: tool)
     }
 
+    /// Открывает прикреплённые файлы в программе по умолчанию или показывает их в Finder.
+    func openAttached(reveal: Bool) -> ToolResult {
+        let tool = reveal ? "Files.reveal_attached()" : "Files.open_attached()"
+        guard !attachments.isEmpty else { return ToolResult(reply: "Нет прикреплённых файлов. Нажми на скрепку и выбери файл", tool: tool) }
+        if reveal {
+            NSWorkspace.shared.activateFileViewerSelecting(attachments)
+        } else {
+            for file in attachments.prefix(5) { NSWorkspace.shared.open(file) }
+        }
+        let names = attachments.prefix(3).map { "«\($0.lastPathComponent)»" }.joined(separator: ", ")
+        return ToolResult(reply: (reveal ? "Показал в Finder " : "Открыл ") + names, tool: tool)
+    }
+
     func listDesktop() -> ToolResult {
         let tool = "Desktop.list()"
         guard let desktop = desktopURL else { return ToolResult(reply: "Не нашёл рабочий стол", tool: tool) }

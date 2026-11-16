@@ -19,6 +19,12 @@ enum DesktopParser {
 
     /// «Положи их в папку Работа», «закинь в папку Работа», «скопируй файлы в Документы».
     private static func attached(original: String) -> Command? {
+        if groups("^(?:открой|открыть|запусти)\\s+(?:(?:его|их|это|эти)|(?:(?:этот|прикреплённый|прикрепленный)\\s+)?(?:файл\\w*|вложени\\w*|документ\\w*))$", in: original.trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))) != nil {
+            return .openAttached
+        }
+        if groups("^покажи\\s+(?:(?:его|их|это|эти)|(?:файл\\w*|вложени\\w*))\\s+(?:в\\s+)?(?:папке|папку|finder|файндере)$", in: original.trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))) != nil {
+            return .revealAttached
+        }
         let pattern = "^(перемести(?:ть)?|перенес(?:и|ти)|положи(?:ть)?|закинь|закинуть|кинь|сложи|скопируй|скопировать)\\s+(?:(?:их|его|это|эти|все|вложения|прикрепленные|прикреплённые)\\s+)*(?:файл\\w*\\s+)?(?:в|на)\\s+(?:папку\\s+)?(.+)$"
         guard let match = groups(pattern, in: original), match.count == 2 else { return nil }
         let folder = clean(match[1])

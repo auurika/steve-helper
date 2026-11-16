@@ -79,6 +79,8 @@ final class Tools {
         case .renameItem(let name, let newName): return renameItem(name: name, newName: newName)
         case .listDesktop: return listDesktop()
         case .moveAttached(let folder, let copy): return moveAttached(toFolder: folder, copy: copy)
+        case .openAttached: return openAttached(reveal: false)
+        case .revealAttached: return openAttached(reveal: true)
         case .greeting: return ToolResult(reply: varied { SmallTalk(profanity: profanity).greeting() }, tool: nil)
         case .thanks: return ToolResult(reply: varied { SmallTalk(profanity: profanity).thanksReply() }, tool: nil)
         case .unknown: return ToolResult(reply: varied { SmallTalk(profanity: profanity).unknownReply() }, tool: nil)

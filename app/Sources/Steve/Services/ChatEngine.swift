@@ -9,7 +9,7 @@ struct ChatTurn {
 /// Движок живого разговора на темы, которые Стив не умеет выполнять командами.
 protocol ChatEngine {
     /// Ответ на реплику или nil, если ответить нечем.
-    func reply(to text: String, history: [ChatTurn], allowProfanity: Bool) async -> String?
+    func reply(to text: String, history: [ChatTurn], allowProfanity: Bool, fileContext: String?) async -> String?
 }
 
 /// Локальная языковая модель через Ollama. Всё работает на этом Mac, интернет нужен только один раз,
@@ -40,7 +40,7 @@ final class OllamaEngine: ChatEngine {
         server?.terminate() // гасим только тот сервер, который запустили сами
     }
 
-    func reply(to text: String, history: [ChatTurn], allowProfanity: Bool = false) async -> String? {
+    func reply(to text: String, history: [ChatTurn], allowProfanity: Bool = false, fileContext: String? = nil) async -> String? {
         guard await ensureServer(), let model = await pickModel() else { return nil }
 
         // манера речи: при выключенной цензуре Стив говорит как друг, с матом к месту, а не вежливым ассистентом
@@ -67,13 +67,17 @@ final class OllamaEngine: ChatEngine {
             let openings = recent.map { reply in "«" + reply.split(separator: " ").prefix(4).joined(separator: " ") + "…»" }
             messages[0]["content"]! += " Отвечай каждый раз по-новому: другими словами, другим началом и другим настроением, и не возвращайся к темам прошлых ответов. Так уже начинал, так больше не начинай: " + openings.joined(separator: ", ") + "."
         }
+        // прикреплённые файлы: модель отвечает по их содержимому
+        if let fileContext, !fileContext.isEmpty {
+            messages[0]["content"]! += " Пользователь прислал файлы, их содержимое ниже. Отвечай по нему и ничего не выдумывай. Если просят пересказать или объяснить, можно до пяти коротких фраз.\n\nФАЙЛЫ:\n" + fileContext
+        }
         messages.append(["role": "user", "content": text])
 
         // первая попытка с обычным разбросом, при повторе вторая с большим разбросом и новым зерном
         for attempt in 0..<2 {
             let options: [String: Any] = [
                 "temperature": attempt == 0 ? 0.95 : 1.15, "top_p": 0.95, "repeat_penalty": 1.25,
-                "num_predict": 120, "seed": Int.random(in: 1...1_000_000),
+                "num_predict": (fileContext?.isEmpty == false) ? 400 : 120, "seed": Int.random(in: 1...1_000_000),
             ]
             let body: [String: Any] = ["model": model, "stream": false, "think": false, "messages": messages, "options": options]
             guard let json = await post("api/chat", body: body, timeout: 120),

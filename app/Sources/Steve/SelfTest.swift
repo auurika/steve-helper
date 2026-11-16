@@ -9,7 +9,7 @@ import SteveCore
 /// чтобы разрешения брались у самого приложения, а не у терминала.
 @MainActor
 enum SelfTest {
-    static var isRequested: Bool { ["--selftest", "--add-voice", "--move-test", "--setup-test"].contains { CommandLine.arguments.contains($0) } }
+    static var isRequested: Bool { ["--selftest", "--add-voice", "--move-test", "--setup-test", "--file-test"].contains { CommandLine.arguments.contains($0) } }
 
     /// `Steve --add-voice <файл> <имя> <отчёт>`: добавляет свой голос из записи без окна выбора файла.
     private static func addVoiceIfRequested(model: AppModel) -> Bool {
@@ -80,7 +80,29 @@ enum SelfTest {
         return true
     }
 
+    /// `Steve --file-test <отчёт> <файл>...`: что Стив понял про каждый файл и как отвечает на вопрос по первому.
+    private static func fileTestIfRequested(model: AppModel) -> Bool {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--file-test"), arguments.count > index + 2 else { return false }
+        let report = URL(fileURLWithPath: arguments[index + 1])
+        let files = arguments[(index + 2)...].map { URL(fileURLWithPath: $0) }
+        Task {
+            var log = ""
+            for file in files {
+                let digest = await FileReader.read(file)
+                log += "\(digest.name): \(digest.summary) | текст: \((digest.text ?? "нет").prefix(80).replacingOccurrences(of: "\n", with: " "))\n"
+            }
+            await model.ask("", typed: true, files: [files[0]])
+            await model.ask("О чём этот файл? Ответь одной фразой", typed: true)
+            log += "ответ модели: \(model.messages.last?.text ?? "нет")\n"
+            try? log.write(to: report, atomically: true, encoding: .utf8)
+            NSApp.terminate(nil)
+        }
+        return true
+    }
+
     static func runIfRequested(model: AppModel) {
+        if fileTestIfRequested(model: model) { return }
         if setupTestIfRequested(model: model) { return }
         if moveTestIfRequested(model: model) { return }
         if addVoiceIfRequested(model: model) { return }

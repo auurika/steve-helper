@@ -89,6 +89,16 @@ final class AppModel {
     var stopwatch: ActiveStopwatch?
     /// Файлы, прикреплённые к чату скрепкой или перетаскиванием.
     var attachments: [URL] = []
+    /// Что Стив прочитал в присланных файлах: из этого он отвечает на вопросы про них.
+    private(set) var fileDigests: [FileDigest] = []
+
+    /// Содержимое присланных файлов одним текстом для языковой модели.
+    private var fileContext: String? {
+        guard !fileDigests.isEmpty else { return nil }
+        return fileDigests.map { digest in
+            "«\(digest.name)» (\(digest.summary))" + (digest.text.map { ":\n\($0)" } ?? "")
+        }.joined(separator: "\n\n")
+    }
     /// Идёт запись голоса и громкость звука 0...1: микрофон в окне пульсирует в такт.
     var isRecordingVoice = false
     var voiceLevel: Float = 0
@@ -170,6 +180,7 @@ final class AppModel {
         }
         tools.onTimersChanged = { [weak self] in self?.activeTimers = self?.tools.activeTimers ?? [] }
         tools.onStopwatchChanged = { [weak self] in self?.stopwatch = self?.tools.stopwatch }
+        tools.onAttachmentsChanged = { [weak self] in self?.fileDigests = [] } // файлы переложены: контекст больше не нужен
         hotkeys.onPress = { [weak self] in self?.hotkeyPressed() }
         hotkeys.onRelease = { [weak self] in self?.hotkeyReleased() }
         if !Self.isDemo { hotkeys.register(settings.hotkey) }
@@ -232,9 +243,19 @@ final class AppModel {
         messages.append(ChatMessage(role: .user, text: trimmed, files: files.map(\.path)))
         status = .thinking
 
+        if !files.isEmpty {
+            // Стив открывает файлы и читает их: текст, PDF, Word, Excel, текст на картинках, речь в записях
+            status = .working
+            var digests: [FileDigest] = []
+            for url in files { digests.append(await FileReader.read(url)) }
+            fileDigests = digests
+        }
+
         if trimmed.isEmpty {
-            let names = files.map { "«\($0.lastPathComponent)»" }.joined(separator: ", ")
-            let reply = StyleFilter(censorship: settings.censorship).finalize("Получил \(names). Скажи, что с ними сделать, например «положи в папку Работа»")
+            let list = fileDigests.map { "«\($0.name)»: \($0.summary)" }.joined(separator: "; ")
+            let readable = fileDigests.contains { $0.text != nil }
+            let hint = readable ? "Спроси, о чём файл, или скажи, куда его положить" : "Скажи, что с ним сделать, например «положи в папку Работа»"
+            let reply = StyleFilter(censorship: settings.censorship).finalize("Получил \(list). \(hint)")
             messages.append(ChatMessage(role: .steve, text: reply))
             status = .speaking
             await speakAnswer(reply)
@@ -247,8 +268,10 @@ final class AppModel {
         if case .unknown = command, let engine {
             let history = messages.dropLast().suffix(8).map { ChatTurn(isUser: $0.role == .user, text: $0.text) }
             let withFiles = files.isEmpty ? trimmed : trimmed + " (к сообщению прикреплены файлы: " + files.map(\.lastPathComponent).joined(separator: ", ") + ")"
-            chatReply = await engine.reply(to: withFiles, history: history, allowProfanity: !settings.censorship)
-            if chatReply == nil, case .needsInstall = chatSetup.state {
+            chatReply = await engine.reply(to: withFiles, history: history, allowProfanity: !settings.censorship, fileContext: fileContext)
+            if chatReply == nil, let digest = fileDigests.first(where: { $0.text != nil }), case .needsInstall = chatSetup.state {
+                chatReply = "Модели для разговора нет, поэтому пересказать не могу. Вот начало файла: " + String((digest.text ?? "").prefix(300))
+            } else if chatReply == nil, case .needsInstall = chatSetup.state {
                 chatReply = "Чтобы я болтал на любые темы, нужна модель. Скачай её в Настройках, раздел «Свободный разговор»"
             }
         }

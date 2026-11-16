@@ -24,6 +24,10 @@ public enum Command: Equatable {
     case renameItem(name: String, newName: String)
     /// Прикреплённые к чату файлы: переложить (или скопировать) в папку.
     case moveAttached(folder: String, copy: Bool)
+    /// «Открой файл»: открыть прикреплённые файлы в программе по умолчанию.
+    case openAttached
+    /// «Покажи в папке»: показать прикреплённые файлы в Finder.
+    case revealAttached
     case listDesktop
     /// «Отмени», «откати», «верни как было»: обратить последнее действие.
     case undo
